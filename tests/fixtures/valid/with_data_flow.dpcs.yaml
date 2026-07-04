@@ -1,0 +1,27 @@
+dpcsVersion: "1.0.0"
+id: "valid.data.flow"
+version: "0.1.0"
+interface:
+  inputs:
+    - id: "customer_raw"
+      contractRef: "contracts/customer_raw.odcs.yaml"
+  outputs:
+    - id: "customer_clean"
+      contractRef: "contracts/customer_clean.odcs.yaml"
+contractReferences:
+  - id: "normalize_customer_transform"
+    type: "dtcs"
+    location: "transforms/normalize_customer.dtcs.yaml"
+steps:
+  - id: "normalize_customer"
+    type: "dtcs:transform"
+    contractRef: "normalize_customer_transform"
+graph:
+  edges: []
+dataFlow:
+  - from: "interface.inputs.customer_raw"
+    to: "steps.normalize_customer.inputs.customer_raw"
+    dataset: "customer_raw"
+  - from: "steps.normalize_customer.outputs.customer_clean"
+    to: "interface.outputs.customer_clean"
+    dataset: "customer_clean"

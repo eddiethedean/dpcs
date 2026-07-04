@@ -1,0 +1,98 @@
+//! Root Pipeline Contract object.
+
+use indexmap::IndexMap;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+
+use super::{
+    CompatibilityPolicy, ContractReference, ControlFlow, DataFlow, ExecutionRequirements,
+    FailureSemantics, Metadata, PipelineGraph, PipelineInterface, PipelineLineage, PipelineStep,
+    QualityGate, SchedulingIntent,
+};
+use crate::diagnostics::ValidationReport;
+use crate::error::Result;
+use crate::validation;
+
+/// Root Canonical Object Model for a DPCS Pipeline Contract.
+///
+/// Field names follow the camelCase serialization used in `SPEC.md` examples.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PipelineContract {
+    /// DPCS specification version this contract targets.
+    pub dpcs_version: String,
+    /// Stable pipeline identity.
+    pub id: String,
+    /// Human-readable pipeline name.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// Pipeline contract version.
+    pub version: String,
+    /// Optional descriptive metadata.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<Metadata>,
+    /// External pipeline interface.
+    pub interface: PipelineInterface,
+    /// Pipeline graph topology.
+    pub graph: PipelineGraph,
+    /// Ordered pipeline steps.
+    #[serde(default)]
+    pub steps: Vec<PipelineStep>,
+    /// External contract references (ODCS, DTCS, and others).
+    #[serde(default)]
+    pub contract_references: Vec<ContractReference>,
+    /// Declared data-flow relationships.
+    #[serde(default)]
+    pub data_flow: Vec<DataFlow>,
+    /// Declared control-flow relationships.
+    #[serde(default)]
+    pub control_flow: Vec<ControlFlow>,
+    /// Optional execution requirements.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub execution: Option<ExecutionRequirements>,
+    /// Optional scheduling intent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scheduling: Option<SchedulingIntent>,
+    /// Quality gates attached to the pipeline.
+    #[serde(default)]
+    pub quality_gates: Vec<QualityGate>,
+    /// Failure semantics attached to the pipeline.
+    #[serde(default)]
+    pub failure_semantics: Vec<FailureSemantics>,
+    /// Optional lineage declarations.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lineage: Option<PipelineLineage>,
+    /// Optional compatibility policy.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub compatibility: Option<CompatibilityPolicy>,
+    /// Extension fields preserved from the source document.
+    #[serde(default, flatten)]
+    pub extensions: IndexMap<String, Value>,
+}
+
+impl PipelineContract {
+    /// Parse a Pipeline Contract from a YAML file.
+    pub fn from_yaml_file(path: impl AsRef<std::path::Path>) -> Result<Self> {
+        crate::parser::parse_yaml_file(path)
+    }
+
+    /// Parse a Pipeline Contract from a JSON file.
+    pub fn from_json_file(path: impl AsRef<std::path::Path>) -> Result<Self> {
+        crate::parser::parse_json_file(path)
+    }
+
+    /// Parse a Pipeline Contract from a YAML string.
+    pub fn from_yaml_str(input: &str) -> Result<Self> {
+        crate::parser::parse_yaml(input)
+    }
+
+    /// Parse a Pipeline Contract from a JSON string.
+    pub fn from_json_str(input: &str) -> Result<Self> {
+        crate::parser::parse_json(input)
+    }
+
+    /// Validate this contract and return a deterministic report.
+    pub fn validate(&self) -> ValidationReport {
+        validation::validate(self)
+    }
+}

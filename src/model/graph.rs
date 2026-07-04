@@ -1,0 +1,33 @@
+//! Pipeline graph model.
+
+use indexmap::IndexMap;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+
+/// Directed graph describing step relationships.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct PipelineGraph {
+    /// Graph edges between steps or control points.
+    #[serde(default)]
+    pub edges: Vec<GraphEdge>,
+    /// Extension fields.
+    #[serde(default, flatten)]
+    pub extensions: IndexMap<String, Value>,
+}
+
+/// A single directed edge in the pipeline graph.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GraphEdge {
+    /// Source node identifier.
+    pub from: String,
+    /// Destination node identifier.
+    pub to: String,
+    /// Optional edge kind.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    /// Extension fields.
+    #[serde(default, flatten)]
+    pub extensions: IndexMap<String, Value>,
+}

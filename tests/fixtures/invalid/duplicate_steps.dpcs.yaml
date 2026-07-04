@@ -1,0 +1,13 @@
+dpcsVersion: "1.0.0"
+id: "invalid.duplicate.steps"
+version: "0.1.0"
+interface:
+  inputs: []
+  outputs: []
+steps:
+  - id: "step_a"
+    type: "extension:noop"
+  - id: "step_a"
+    type: "extension:noop"
+graph:
+  edges: []

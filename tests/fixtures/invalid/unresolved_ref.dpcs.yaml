@@ -1,0 +1,12 @@
+dpcsVersion: "1.0.0"
+id: "invalid.unresolved.ref"
+version: "0.1.0"
+interface:
+  inputs: []
+  outputs: []
+steps:
+  - id: "step_a"
+    type: "dtcs:transform"
+    contractRef: "missing_transform"
+graph:
+  edges: []

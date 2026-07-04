@@ -1,0 +1,14 @@
+dpcsVersion: "1.0.0"
+id: "invalid.bad.data.flow"
+version: "0.1.0"
+interface:
+  inputs: []
+  outputs: []
+steps:
+  - id: "step_a"
+    type: "extension:noop"
+graph:
+  edges: []
+dataFlow:
+  - from: "interface.inputs.missing"
+    to: "steps.step_a.inputs.in"
