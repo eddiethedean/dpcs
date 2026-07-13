@@ -91,9 +91,40 @@ impl PipelineContract {
         crate::parser::parse_json(input)
     }
 
+    /// Serialize this contract to a YAML string.
+    pub fn to_yaml_str(&self) -> Result<String> {
+        crate::parser::to_yaml(self)
+    }
+
+    /// Serialize this contract to a JSON string.
+    pub fn to_json_str(&self) -> Result<String> {
+        crate::parser::to_json(self)
+    }
+
+    /// Serialize this contract to a YAML file.
+    pub fn to_yaml_file(&self, path: impl AsRef<std::path::Path>) -> Result<()> {
+        crate::parser::to_yaml_file(self, path)
+    }
+
+    /// Serialize this contract to a JSON file.
+    pub fn to_json_file(&self, path: impl AsRef<std::path::Path>) -> Result<()> {
+        crate::parser::to_json_file(self, path)
+    }
+
     /// Validate this contract and return a deterministic report.
     pub fn validate(&self) -> ValidationReport {
         validation::validate(self)
+    }
+
+    /// Clone this contract with reserved colliding extension keys removed for wire output.
+    ///
+    /// Validation still reports those keys via `DPCS-COM-012`; serialization omits them so
+    /// YAML/JSON does not emit duplicate root keys.
+    pub(crate) fn for_wire_serialization(&self) -> Self {
+        let mut wire = self.clone();
+        wire.extensions
+            .retain(|key, _| !super::is_reserved_root_field(key));
+        wire
     }
 
     /// Returns pipeline-level identity extracted from this contract.

@@ -17,11 +17,11 @@ are intentionally out of scope until roadmap 0.8.0. See [`ROADMAP.md`](ROADMAP.m
 
 | Item | Value |
 | --- | --- |
-| Crate version | `0.2.0` |
+| Crate version | `0.3.0` |
 | Spec version | `1.0.0-draft` |
 | Language | Rust 2021 (MSRV 1.85) |
 | License | Apache-2.0 OR MIT |
-| Release focus | Canonical Object Model (SPEC Ch 1–4) |
+| Release focus | Parsing and serialization (ROADMAP 0.3.0) |
 
 ## Quick start
 
@@ -30,7 +30,7 @@ are intentionally out of scope until roadmap 0.8.0. See [`ROADMAP.md`](ROADMAP.m
 ```bash
 cargo install --path .
 # or, after crates.io publish:
-# cargo install dpcs --version 0.2.0
+# cargo install dpcs --version 0.3.0
 ```
 
 ### Validate a pipeline contract
@@ -54,8 +54,8 @@ dpcs version
 
 | Code | Meaning |
 | --- | --- |
-| `0` | Valid |
-| `1` | Validation errors |
+| `0` | `validate`/`diagnostics`: valid; `inspect`/`graph`: successful parse |
+| `1` | Validation errors (`validate`/`diagnostics`) |
 | `2` | Parse or I/O failure |
 
 ## Library usage
@@ -87,6 +87,9 @@ use dpcs::PipelineContract;
 let contract = PipelineContract::from_yaml_file("pipeline.dpcs.yaml")?;
 let report = contract.validate();
 assert!(report.is_valid());
+
+let yaml = contract.to_yaml_str()?;
+let json = contract.to_json_str()?;
 ```
 
 ## Repository layout

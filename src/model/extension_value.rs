@@ -1,12 +1,14 @@
 //! Format-neutral extension values for the Canonical Object Model.
 //!
 //! Extension storage is independent of any particular serialization format.
-//! Serde conversions to and from `serde_json::Value` exist only at the wire boundary.
+//! Serde conversions to and from `serde_json::Value` exist for JSON interoperability;
+//! deserialization uses a format-neutral visitor so YAML documents do not need an
+//! intermediate JSON value.
 
 use std::fmt;
-use std::ops::Index;
 
 use indexmap::IndexMap;
+use serde::de::{self, MapAccess, SeqAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Number;
 
@@ -58,16 +60,6 @@ impl ExtensionValue {
     }
 }
 
-impl Index<&str> for ExtensionValue {
-    type Output = ExtensionValue;
-
-    fn index(&self, key: &str) -> &Self::Output {
-        self.as_object()
-            .and_then(|map| map.get(key))
-            .expect("extension key not found")
-    }
-}
-
 impl fmt::Display for ExtensionValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -102,8 +94,100 @@ impl<'de> Deserialize<'de> for ExtensionValue {
     where
         D: Deserializer<'de>,
     {
-        let value = serde_json::Value::deserialize(deserializer)?;
-        Ok(value.into())
+        deserializer.deserialize_any(ExtensionValueVisitor)
+    }
+}
+
+struct ExtensionValueVisitor;
+
+impl<'de> Visitor<'de> for ExtensionValueVisitor {
+    type Value = ExtensionValue;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("a JSON-compatible extension value")
+    }
+
+    fn visit_bool<E>(self, value: bool) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(ExtensionValue::Bool(value))
+    }
+
+    fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(ExtensionValue::Number(Number::from(value)))
+    }
+
+    fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(ExtensionValue::Number(Number::from(value)))
+    }
+
+    fn visit_f64<E>(self, value: f64) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        if let Some(number) = Number::from_f64(value) {
+            Ok(ExtensionValue::Number(number))
+        } else {
+            // Non-finite YAML numbers are not JSON-compatible; preserve as strings.
+            Ok(ExtensionValue::String(value.to_string()))
+        }
+    }
+
+    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(ExtensionValue::String(value.to_owned()))
+    }
+
+    fn visit_string<E>(self, value: String) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(ExtensionValue::String(value))
+    }
+
+    fn visit_none<E>(self) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(ExtensionValue::Null)
+    }
+
+    fn visit_unit<E>(self) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Ok(ExtensionValue::Null)
+    }
+
+    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+    where
+        A: SeqAccess<'de>,
+    {
+        let mut values = Vec::new();
+        while let Some(value) = seq.next_element()? {
+            values.push(value);
+        }
+        Ok(ExtensionValue::Array(values))
+    }
+
+    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+    where
+        A: MapAccess<'de>,
+    {
+        let mut object = ExtensionMap::new();
+        while let Some((key, value)) = map.next_entry()? {
+            object.insert(key, value);
+        }
+        Ok(ExtensionValue::Object(object))
     }
 }
 
@@ -173,5 +257,14 @@ mod tests {
         let extension: ExtensionValue = json.clone().into();
         let back: serde_json::Value = extension.into();
         assert_eq!(json, back);
+    }
+
+    #[test]
+    fn yaml_null_and_non_finite_extensions_do_not_fail_parse() {
+        let value: ExtensionValue = serde_yaml::from_str("null").unwrap();
+        assert!(value.is_null());
+
+        let nan: ExtensionValue = serde_yaml::from_str(".nan").unwrap();
+        assert_eq!(nan.as_str(), Some("NaN"));
     }
 }

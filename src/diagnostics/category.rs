@@ -18,4 +18,6 @@ pub mod categories {
     pub const CONTROL_FLOW: &str = "controlFlow";
     /// Extension issues.
     pub const EXTENSION: &str = "extension";
+    /// Syntax and parse issues.
+    pub const SYNTAX: &str = "syntax";
 }

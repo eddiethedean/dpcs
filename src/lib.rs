@@ -43,7 +43,10 @@ pub use model::{
     ExtensionMap, ExtensionValue, IdentityCatalog, InterfacePort, Metadata, ObjectId, ObjectKind,
     ObjectPath, PipelineContract, PipelineIdentity, PipelineInterface,
 };
-pub use parser::{parse_json, parse_json_file, parse_yaml, parse_yaml_file};
+pub use parser::{
+    parse_file, parse_json, parse_json_file, parse_yaml, parse_yaml_file, to_file, to_json,
+    to_json_file, to_yaml, to_yaml_file,
+};
 pub use validation::validate;
 
 /// Library and CLI version string.

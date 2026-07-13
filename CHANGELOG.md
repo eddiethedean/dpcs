@@ -5,6 +5,33 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-07-13
+
+### Added
+
+- Parse-stage diagnostics (`DPCS-PARSE-001`, `DPCS-PARSE-002`) with `syntax` category and optional `sourceLocation`
+- `Error::InvalidDocument` carrying a `ValidationReport` for invalid YAML/JSON documents
+- Serialization APIs: `to_yaml`, `to_json`, `to_yaml_file`, `to_json_file`, `to_file`
+- `PipelineContract::to_yaml_str`, `to_json_str`, and matching file writers
+- Document round-trip and nested extension preservation tests
+
+### Changed
+
+- YAML/JSON document failures use `Error::InvalidDocument` (Parse-stage `ValidationReport`) instead of raw `Error::Yaml` / `Error::Json`
+- CLI `validate` and `diagnostics` print parse reports (text or `--json`) and exit with code `2`
+- Re-export `parse_file` and serialize helpers from the crate root
+- Schema/type deserialize failures map to `DPCS-PARSE-002`; syntax failures remain `DPCS-PARSE-001`
+- File parse failures include the document path in `sourceLocation`
+- Wire serialization omits reserved colliding root extension keys to avoid duplicate keys
+- Format-neutral `ExtensionValue` deserialization preserves YAML nulls and non-finite numbers
+
+### Fixed
+
+- CLI `inspect`/`graph` honor `--json` for parse-stage failures
+- `DPCS-COM-013` only reports cross-side interface port collisions (same-side duplicates stay `DPCS-COM-005`)
+- `Error::InvalidDocument` Display includes diagnostic id and message
+- Missing-field parse remediation names the absent field when available
+
 ## [0.2.0] - 2026-07-13
 
 ### Added
@@ -47,5 +74,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `dpcs` CLI: `validate`, `inspect`, `diagnostics`, `graph`, `version`
 - Examples, fixtures, CI, and contributor documentation
 
+[0.3.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.3.0
 [0.2.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.2.0
 [0.1.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.1.0

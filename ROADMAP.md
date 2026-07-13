@@ -51,7 +51,7 @@ Implements Chapters 1--4.
 
 ------------------------------------------------------------------------
 
-# 0.3.0 --- Parsing
+# 0.3.0 --- Parsing (shipped)
 
 ### Deliverables
 

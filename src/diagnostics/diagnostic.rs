@@ -27,6 +27,9 @@ pub struct Diagnostic {
     /// Optional remediation guidance.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub remediation: Option<String>,
+    /// Optional source location in the original document.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_location: Option<String>,
 }
 
 impl Diagnostic {
@@ -44,6 +47,21 @@ impl Diagnostic {
             message: message.into(),
             object_ref: None,
             remediation: None,
+            source_location: None,
+        }
+    }
+
+    /// Create a parse-stage error diagnostic.
+    pub fn parse_error(id: impl Into<String>, message: impl Into<String>) -> Self {
+        Self {
+            id: id.into(),
+            severity: Severity::Error,
+            stage: DiagnosticStage::Parse,
+            category: crate::diagnostics::categories::SYNTAX.to_owned(),
+            message: message.into(),
+            object_ref: None,
+            remediation: None,
+            source_location: None,
         }
     }
 
@@ -61,6 +79,7 @@ impl Diagnostic {
             message: message.into(),
             object_ref: None,
             remediation: None,
+            source_location: None,
         }
     }
 
@@ -73,6 +92,12 @@ impl Diagnostic {
     /// Attach remediation guidance.
     pub fn with_remediation(mut self, remediation: impl Into<String>) -> Self {
         self.remediation = Some(remediation.into());
+        self
+    }
+
+    /// Attach a source location in the original document.
+    pub fn with_source_location(mut self, source_location: impl Into<String>) -> Self {
+        self.source_location = Some(source_location.into());
         self
     }
 }

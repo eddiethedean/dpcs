@@ -27,6 +27,7 @@ fn com_error(id: &str, message: impl Into<String>) -> Diagnostic {
         message: message.into(),
         object_ref: None,
         remediation: None,
+        source_location: None,
     }
 }
 
@@ -96,30 +97,32 @@ fn validate_identity_catalog(contract: &PipelineContract, report: &mut Validatio
 }
 
 fn validate_interface_port_uniqueness(contract: &PipelineContract, report: &mut ValidationReport) {
-    if contract.interface.has_unique_port_ids() {
-        return;
-    }
+    let input_ids: BTreeSet<&str> = contract
+        .interface
+        .inputs
+        .iter()
+        .map(|port| port.id.as_str())
+        .filter(|id| !id.trim().is_empty())
+        .collect();
+    let output_ids: BTreeSet<&str> = contract
+        .interface
+        .outputs
+        .iter()
+        .map(|port| port.id.as_str())
+        .filter(|id| !id.trim().is_empty())
+        .collect();
 
-    let mut seen = BTreeSet::new();
-    for port in contract.interface.all_ports() {
-        if port.id.trim().is_empty() {
-            continue;
-        }
-        if !seen.insert(port.id.as_str()) {
-            report.push(
-                com_error(
-                    "DPCS-COM-013",
-                    format!(
-                        "duplicate interface port identifier `{}` across inputs and outputs",
-                        port.id
-                    ),
-                )
-                .with_object_ref(format!("interface.port.{}", port.id))
-                .with_remediation(
-                    "Ensure interface input and output identifiers are unique across the interface",
-                ),
-            );
-        }
+    for id in input_ids.intersection(&output_ids) {
+        report.push(
+            com_error(
+                "DPCS-COM-013",
+                format!("duplicate interface port identifier `{id}` across inputs and outputs"),
+            )
+            .with_object_ref(format!("interface.port.{id}"))
+            .with_remediation(
+                "Ensure interface input and output identifiers are unique across the interface",
+            ),
+        );
     }
 }
 

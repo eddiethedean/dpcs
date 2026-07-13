@@ -1,0 +1,20 @@
+dpcsVersion: "1.0.0"
+id: "valid.nested.extensions"
+version: "0.1.0"
+interface:
+  inputs: []
+  outputs: []
+  x-interface:
+    owner: data-platform
+steps:
+  - id: "step_a"
+    type: "extension:noop"
+    x-step:
+      priority: high
+graph:
+  edges: []
+  x-graph:
+    layout: linear
+x-vendor:
+  team: data-platform
+  region: us-east

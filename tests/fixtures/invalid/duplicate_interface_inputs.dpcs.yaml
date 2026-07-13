@@ -1,0 +1,17 @@
+dpcsVersion: "1.0.0"
+id: "invalid.duplicate.interface.inputs"
+version: "0.1.0"
+interface:
+  inputs:
+    - id: "shared"
+      name: "Shared A"
+      contractRef: "contracts/a.odcs.yaml"
+      purpose: "input-a"
+    - id: "shared"
+      name: "Shared B"
+      contractRef: "contracts/b.odcs.yaml"
+      purpose: "input-b"
+  outputs: []
+steps: []
+graph:
+  edges: []

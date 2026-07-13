@@ -53,12 +53,56 @@ fn validate_parse_failure() {
 }
 
 #[test]
+fn validate_parse_failure_json_includes_parse_stage() {
+    let mut cmd = bin();
+    cmd.args(["validate", "does-not-exist.dpcs.yaml", "--json"]);
+    cmd.assert().failure().code(2);
+
+    let mut malformed = bin();
+    malformed.args([
+        "validate",
+        &format!(
+            "{}/tests/fixtures/invalid/malformed.dpcs.yaml",
+            env!("CARGO_MANIFEST_DIR")
+        ),
+        "--json",
+    ]);
+    malformed
+        .assert()
+        .failure()
+        .code(2)
+        .stdout(predicate::str::contains("\"stage\": \"parse\""))
+        .stdout(predicate::str::contains("DPCS-PARSE-001"));
+}
+
+#[test]
 fn inspect_json() {
     bin()
         .args(["inspect", &fixture("valid/minimal.dpcs.yaml"), "--json"])
         .assert()
         .success()
         .stdout(predicate::str::contains("\"id\": \"valid.minimal\""));
+}
+
+#[test]
+fn inspect_parse_failure_json_includes_parse_stage() {
+    bin()
+        .args(["inspect", &fixture("invalid/malformed.dpcs.yaml"), "--json"])
+        .assert()
+        .failure()
+        .code(2)
+        .stdout(predicate::str::contains("\"stage\": \"parse\""))
+        .stdout(predicate::str::contains("DPCS-PARSE-"));
+}
+
+#[test]
+fn graph_parse_failure_json_includes_parse_stage() {
+    bin()
+        .args(["graph", &fixture("invalid/malformed.dpcs.yaml"), "--json"])
+        .assert()
+        .failure()
+        .code(2)
+        .stdout(predicate::str::contains("\"stage\": \"parse\""));
 }
 
 #[test]

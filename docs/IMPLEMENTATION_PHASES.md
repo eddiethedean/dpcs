@@ -33,12 +33,13 @@ deepened in ROADMAP 0.4.0:
 - ExecutionRequirements
 - SchedulingIntent
 
-## Phase 3 — Parsing
+## Phase 3 — Parsing (complete in 0.3.0)
 
-- YAML parsing
-- JSON parsing
-- extension preservation
-- parse diagnostics
+- YAML parsing with Parse-stage diagnostics
+- JSON parsing with Parse-stage diagnostics
+- Extension preservation (root and nested)
+- Parse diagnostics (`DPCS-PARSE-001`, `DPCS-PARSE-002`)
+- Round-trip serialization (`to_yaml`, `to_json`) and tests
 
 ## Phase 4 — Diagnostics
 

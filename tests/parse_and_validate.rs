@@ -25,15 +25,16 @@ fn parses_valid_minimal_json() {
 
 #[test]
 fn rejects_malformed_yaml() {
-    let err = parse_yaml("dpcsVersion: [unterminated").unwrap_err();
-    let message = err.to_string();
-    assert!(message.contains("YAML parse error"), "{message}");
+    let err = parse_yaml(":\n").unwrap_err();
+    let report = err.invalid_document_report().expect("parse report");
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-PARSE-001"));
 }
 
 #[test]
 fn rejects_missing_required_fields() {
     let err = parse_yaml("id: only-id\n").unwrap_err();
-    assert!(err.to_string().contains("YAML parse error"));
+    let report = err.invalid_document_report().expect("parse report");
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-PARSE-002"));
 }
 
 #[test]
@@ -126,6 +127,17 @@ fn rejects_duplicate_interface_ports_across_sides() {
     let report = validate(&contract);
     assert!(!report.is_valid());
     assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-COM-013"));
+    assert!(!report.diagnostics.iter().any(|d| d.id == "DPCS-COM-005"));
+}
+
+#[test]
+fn rejects_duplicate_interface_inputs_with_com_005_only() {
+    let contract =
+        parse_yaml_file(fixture("invalid/duplicate_interface_inputs.dpcs.yaml")).unwrap();
+    let report = validate(&contract);
+    assert!(!report.is_valid());
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-COM-005"));
+    assert!(!report.diagnostics.iter().any(|d| d.id == "DPCS-COM-013"));
 }
 
 #[test]

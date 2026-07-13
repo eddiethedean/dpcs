@@ -6,6 +6,7 @@ use std::process::ExitCode;
 use clap::{Parser, Subcommand};
 
 use crate::diagnostics::ValidationReport;
+use crate::error::Error;
 use crate::parser;
 use crate::plan;
 use crate::{validate, VERSION};
@@ -76,27 +77,51 @@ pub fn run() -> ExitCode {
     let cli = Cli::parse();
     match execute(cli) {
         Ok(code) => ExitCode::from(code),
-        Err(err) => {
-            eprintln!("error: {err}");
-            ExitCode::from(EXIT_FAILURE)
-        }
+        Err(err) => handle_cli_error(err, false),
     }
 }
 
-fn execute(cli: Cli) -> Result<u8, crate::Error> {
+fn handle_cli_error(err: Error, json: bool) -> ExitCode {
+    if let Some(report) = err.invalid_document_report() {
+        if let Err(print_err) = print_report(report, json) {
+            eprintln!("error: {print_err}");
+            return ExitCode::from(EXIT_FAILURE);
+        }
+        return ExitCode::from(EXIT_FAILURE);
+    }
+
+    eprintln!("error: {err}");
+    ExitCode::from(EXIT_FAILURE)
+}
+
+fn execute(cli: Cli) -> Result<u8, Error> {
     match cli.command {
         Commands::Version => {
             println!("dpcs {VERSION}");
             Ok(EXIT_OK)
         }
         Commands::Validate { path, json, strict } => {
-            let contract = parser::parse_file(&path)?;
+            let contract = match parser::parse_file(&path) {
+                Ok(contract) => contract,
+                Err(Error::InvalidDocument { report }) => {
+                    print_report(&report, json)?;
+                    return Ok(EXIT_FAILURE);
+                }
+                Err(err) => return Err(err),
+            };
             let report = validate(&contract);
             print_report(&report, json)?;
             Ok(exit_code_for_report(&report, strict))
         }
         Commands::Inspect { path, json } => {
-            let contract = parser::parse_file(&path)?;
+            let contract = match parser::parse_file(&path) {
+                Ok(contract) => contract,
+                Err(Error::InvalidDocument { report }) => {
+                    print_report(&report, json)?;
+                    return Ok(EXIT_FAILURE);
+                }
+                Err(err) => return Err(err),
+            };
             let summary = InspectSummary {
                 id: contract.id.clone(),
                 name: contract.name.clone(),
@@ -112,7 +137,10 @@ fn execute(cli: Cli) -> Result<u8, crate::Error> {
                 valid: contract.validate().is_valid(),
             };
             if json {
-                println!("{}", serde_json::to_string_pretty(&summary)?);
+                let payload = serde_json::to_string_pretty(&summary).map_err(|err| {
+                    Error::Serialization(format!("failed to serialize inspect summary: {err}"))
+                })?;
+                println!("{payload}");
             } else {
                 println!("id: {}", summary.id);
                 if let Some(name) = &summary.name {
@@ -132,13 +160,27 @@ fn execute(cli: Cli) -> Result<u8, crate::Error> {
             Ok(EXIT_OK)
         }
         Commands::Diagnostics { path, json } => {
-            let contract = parser::parse_file(&path)?;
+            let contract = match parser::parse_file(&path) {
+                Ok(contract) => contract,
+                Err(Error::InvalidDocument { report }) => {
+                    print_report(&report, json)?;
+                    return Ok(EXIT_FAILURE);
+                }
+                Err(err) => return Err(err),
+            };
             let report = validate(&contract);
             print_report(&report, json)?;
             Ok(exit_code_for_report(&report, false))
         }
         Commands::Graph { path, json } => {
-            let contract = parser::parse_file(&path)?;
+            let contract = match parser::parse_file(&path) {
+                Ok(contract) => contract,
+                Err(Error::InvalidDocument { report }) => {
+                    print_report(&report, json)?;
+                    return Ok(EXIT_FAILURE);
+                }
+                Err(err) => return Err(err),
+            };
             let plan = plan::plan(&contract);
             if json {
                 let payload = GraphPayload {
@@ -154,7 +196,10 @@ fn execute(cli: Cli) -> Result<u8, crate::Error> {
                         .collect(),
                     step_order: plan.step_order,
                 };
-                println!("{}", serde_json::to_string_pretty(&payload)?);
+                let payload = serde_json::to_string_pretty(&payload).map_err(|err| {
+                    Error::Serialization(format!("failed to serialize graph payload: {err}"))
+                })?;
+                println!("{payload}");
             } else {
                 if contract.graph.edges.is_empty() {
                     println!("(no edges)");
@@ -175,10 +220,10 @@ fn execute(cli: Cli) -> Result<u8, crate::Error> {
     }
 }
 
-fn print_report(report: &ValidationReport, json: bool) -> Result<(), crate::Error> {
+fn print_report(report: &ValidationReport, json: bool) -> Result<(), Error> {
     if json {
         let payload = serde_json::to_string_pretty(report).map_err(|err| {
-            crate::Error::Serialization(format!("failed to serialize diagnostics: {err}"))
+            Error::Serialization(format!("failed to serialize diagnostics: {err}"))
         })?;
         println!("{payload}");
         return Ok(());
@@ -195,9 +240,19 @@ fn print_report(report: &ValidationReport, json: bool) -> Result<(), crate::Erro
             .as_deref()
             .map(|value| format!(" @ {value}"))
             .unwrap_or_default();
+        let location = diagnostic
+            .source_location
+            .as_deref()
+            .map(|value| format!(" ({value})"))
+            .unwrap_or_default();
         println!(
-            "{} {}: {}{} — {}",
-            diagnostic.severity, diagnostic.id, diagnostic.category, object, diagnostic.message
+            "{} {}: {}{} — {}{}",
+            diagnostic.severity,
+            diagnostic.id,
+            diagnostic.stage,
+            object,
+            diagnostic.message,
+            location
         );
         if let Some(remediation) = &diagnostic.remediation {
             println!("  remediation: {remediation}");

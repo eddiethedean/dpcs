@@ -14,7 +14,7 @@ Thanks for helping build the DPCS reference implementation.
 
 Tagged releases use `.github/workflows/release.yml`:
 
-1. Push a version tag matching `v*.*.*` (for example `v0.2.0`).
+1. Push a version tag matching `v*.*.*` (for example `v0.3.0`).
 2. The release workflow runs the same CI checks as pull requests (`ci-checks.yml`).
 3. After checks pass, it publishes the Rust crate to crates.io.
 
