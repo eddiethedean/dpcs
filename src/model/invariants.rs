@@ -123,6 +123,13 @@ fn validate_interface_port_uniqueness(contract: &PipelineContract, report: &mut 
     }
 }
 
+fn is_missing_optional_string(value: &Option<String>) -> bool {
+    match value {
+        None => true,
+        Some(item) => item.trim().is_empty(),
+    }
+}
+
 fn validate_interface_ports(contract: &PipelineContract, report: &mut ValidationReport) {
     for (index, port) in contract.interface.inputs.iter().enumerate() {
         let object_ref = if port.id.trim().is_empty() {
@@ -135,7 +142,7 @@ fn validate_interface_ports(contract: &PipelineContract, report: &mut Validation
             continue;
         }
 
-        if port.name.as_ref().map_or(true, |v| v.trim().is_empty()) {
+        if is_missing_optional_string(&port.name) {
             report.push(
                 com_error(
                     "DPCS-COM-006",
@@ -146,11 +153,7 @@ fn validate_interface_ports(contract: &PipelineContract, report: &mut Validation
             );
         }
 
-        if port
-            .contract_ref
-            .as_ref()
-            .map_or(true, |v| v.trim().is_empty())
-        {
+        if is_missing_optional_string(&port.contract_ref) {
             report.push(
                 com_error(
                     "DPCS-COM-007",
@@ -161,7 +164,7 @@ fn validate_interface_ports(contract: &PipelineContract, report: &mut Validation
             );
         }
 
-        if port.purpose.as_ref().map_or(true, |v| v.trim().is_empty()) {
+        if is_missing_optional_string(&port.purpose) {
             report.push(
                 com_error(
                     "DPCS-COM-008",
@@ -184,7 +187,7 @@ fn validate_interface_ports(contract: &PipelineContract, report: &mut Validation
             continue;
         }
 
-        if port.name.as_ref().map_or(true, |v| v.trim().is_empty()) {
+        if is_missing_optional_string(&port.name) {
             report.push(
                 com_error(
                     "DPCS-COM-009",
@@ -195,11 +198,7 @@ fn validate_interface_ports(contract: &PipelineContract, report: &mut Validation
             );
         }
 
-        if port
-            .contract_ref
-            .as_ref()
-            .map_or(true, |v| v.trim().is_empty())
-        {
+        if is_missing_optional_string(&port.contract_ref) {
             report.push(
                 com_error(
                     "DPCS-COM-010",
@@ -210,7 +209,7 @@ fn validate_interface_ports(contract: &PipelineContract, report: &mut Validation
             );
         }
 
-        if port.purpose.as_ref().map_or(true, |v| v.trim().is_empty()) {
+        if is_missing_optional_string(&port.purpose) {
             report.push(
                 com_error(
                     "DPCS-COM-011",
