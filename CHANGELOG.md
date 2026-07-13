@@ -5,6 +5,24 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-07-13
+
+### Added
+
+- `DependencyGraph` analysis APIs: traversal, transitive dependencies/dependents, cycle detection, topological ordering, unreachable steps, duplicate edge detection
+- `PipelineGraph` fields: `entryPoints`, `exitPoints`, `metadata`
+- `DataFlow::contract_ref` for associated contract references
+- `PipelineStep::input_port` / `output_port`, `ContractReference::matches_id`, `PipelineContract::step_ids`
+- Graph diagnostics `DPCS-GRP-005` (duplicate edges) and `DPCS-GRP-006` (unreachable steps)
+- Re-export graph analysis and COM types from crate root (`DependencyGraph`, `PipelineGraph`, `PipelineStep`, …)
+- Fixtures and integration tests for graph analysis and new validation rules
+
+### Changed
+
+- Graph validation uses `DependencyGraph` for cycle and reachability analysis
+- `plan::plan` uses topological ordering when the dependency graph is acyclic
+- CLI `graph` includes `entryPoints` and `exitPoints` in text and JSON output
+
 ## [0.3.0] - 2026-07-13
 
 ### Added

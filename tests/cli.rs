@@ -106,6 +106,21 @@ fn graph_parse_failure_json_includes_parse_stage() {
 }
 
 #[test]
+fn graph_json_includes_entry_and_exit_points() {
+    bin()
+        .args([
+            "graph",
+            &fixture("valid/with_graph_features.dpcs.yaml"),
+            "--json",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("\"entryPoints\""))
+        .stdout(predicate::str::contains("\"exitPoints\""))
+        .stdout(predicate::str::contains("\"stepOrder\""));
+}
+
+#[test]
 fn diagnostics_json() {
     bin()
         .args([

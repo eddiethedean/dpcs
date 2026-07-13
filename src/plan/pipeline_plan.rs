@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::model::PipelineContract;
+use crate::model::{DependencyGraph, PipelineContract};
 
 /// Canonical intermediate representation produced from a validated contract.
 ///
@@ -20,12 +20,18 @@ pub struct PipelinePlan {
 
 /// Build a lightweight plan skeleton from a contract.
 ///
-/// The current implementation preserves declaration order and does not perform
-/// topological sorting. Callers SHOULD validate the contract first.
+/// When the dependency graph is acyclic, `step_order` follows a topological
+/// ordering. Otherwise declaration order is preserved. Callers SHOULD validate
+/// the contract first.
 pub fn plan(contract: &PipelineContract) -> PipelinePlan {
+    let step_order = match DependencyGraph::from_contract(contract).topological_order() {
+        Ok(order) if !order.is_empty() => order,
+        _ => contract.steps.iter().map(|step| step.id.clone()).collect(),
+    };
+
     PipelinePlan {
         contract_id: contract.id.clone(),
         contract_version: contract.version.clone(),
-        step_order: contract.steps.iter().map(|s| s.id.clone()).collect(),
+        step_order,
     }
 }

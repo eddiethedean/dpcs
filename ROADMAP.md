@@ -63,7 +63,7 @@ Implements Chapters 1--4.
 
 ------------------------------------------------------------------------
 
-# 0.4.0 --- Pipeline Graph
+# 0.4.0 --- Pipeline Graph (shipped)
 
 Implements Chapters 5--9.
 

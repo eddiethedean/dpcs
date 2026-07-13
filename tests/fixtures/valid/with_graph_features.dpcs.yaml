@@ -1,0 +1,35 @@
+dpcsVersion: "1.0.0"
+id: "valid.graph.features"
+version: "0.1.0"
+interface:
+  inputs: []
+  outputs: []
+graph:
+  entryPoints:
+    - "ingest"
+  exitPoints:
+    - "publish"
+  metadata:
+    description: "Linear ingestion graph"
+  edges:
+    - from: "ingest"
+      to: "transform"
+      kind: "dependsOn"
+    - from: "transform"
+      to: "publish"
+steps:
+  - id: "ingest"
+    type: "extension:ingress"
+  - id: "transform"
+    type: "dtcs:transform"
+  - id: "publish"
+    type: "extension:egress"
+dataFlow:
+  - from: "steps.ingest.outputs.raw"
+    to: "steps.transform.inputs.raw"
+    dataset: "raw"
+    contractRef: "raw_contract"
+contractReferences:
+  - id: "raw_contract"
+    type: "odcs"
+    location: "contracts/raw.odcs.yaml"

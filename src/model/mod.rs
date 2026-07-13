@@ -3,6 +3,7 @@
 //! Types in this module are serialization-independent representations of the
 //! objects defined in `SPEC.md`. Serde attributes exist only at the boundary.
 
+mod analysis;
 mod compatibility;
 mod contract;
 mod control_flow;
@@ -24,6 +25,7 @@ mod scheduling;
 mod step;
 mod versioning;
 
+pub use analysis::{step_id_from_endpoint, CycleError, DependencyGraph, DuplicateEdge};
 pub use compatibility::*;
 pub use contract::*;
 pub use control_flow::*;

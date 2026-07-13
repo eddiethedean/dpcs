@@ -91,6 +91,31 @@ profile on [`Metadata`]:
 
 Additional metadata MAY be supplied through extension fields.
 
+## Pipeline graph (0.4.0)
+
+[`PipelineGraph`] includes entry/exit points, optional metadata, and directed edges:
+
+```rust
+pub struct PipelineGraph {
+    pub entry_points: Vec<String>,
+    pub exit_points: Vec<String>,
+    pub metadata: Option<Metadata>,
+    pub edges: Vec<GraphEdge>,
+    pub extensions: ExtensionMap,
+}
+```
+
+[`DataFlow`] may declare an associated `contractRef`. [`DependencyGraph`] builds a
+directed step dependency graph from explicit graph edges, control flow, and
+data flow where both endpoints resolve to steps.
+
+```rust
+use dpcs::DependencyGraph;
+
+let graph = DependencyGraph::from_contract(&contract);
+let order = graph.topological_order()?;
+```
+
 ## COM validation
 
 COM invariants run as the first validation phase after document checks:
@@ -102,10 +127,11 @@ COM invariants run as the first validation phase after document checks:
 
 Later validation phases (structural, graph, references, flows) build on the COM.
 
-## Roadmap note
+Full validation polish for data/control flow completeness is roadmap 0.5.0.
 
-Graph, step, flow, execution, and capability depth are intentionally thin in
-0.2.0. See [`ROADMAP.md`](../ROADMAP.md) for 0.4+ deliverables.
+[`PipelineGraph`]: ../../src/model/graph.rs
+[`DataFlow`]: ../../src/model/data_flow.rs
+[`DependencyGraph`]: ../../src/model/analysis.rs
 
 [`PipelineInterface`]: ../../src/model/interface.rs
 [`InterfacePort`]: ../../src/model/interface.rs

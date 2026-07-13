@@ -70,6 +70,22 @@ fn rejects_prohibited_cycles() {
 }
 
 #[test]
+fn rejects_duplicate_graph_edges() {
+    let contract = parse_yaml_file(fixture("invalid/duplicate_edge.dpcs.yaml")).unwrap();
+    let report = validate(&contract);
+    assert!(!report.is_valid());
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-GRP-005"));
+}
+
+#[test]
+fn rejects_unreachable_steps() {
+    let contract = parse_yaml_file(fixture("invalid/unreachable_step.dpcs.yaml")).unwrap();
+    let report = validate(&contract);
+    assert!(!report.is_valid());
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-GRP-006"));
+}
+
+#[test]
 fn rejects_unresolved_contract_references() {
     let contract = parse_yaml_file(fixture("invalid/unresolved_ref.dpcs.yaml")).unwrap();
     let report = validate(&contract);

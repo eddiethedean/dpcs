@@ -1,0 +1,19 @@
+dpcsVersion: "1.0.0"
+id: "invalid.unreachable"
+version: "0.1.0"
+interface:
+  inputs: []
+  outputs: []
+steps:
+  - id: "step_a"
+    type: "extension:noop"
+  - id: "step_b"
+    type: "extension:noop"
+  - id: "step_c"
+    type: "extension:noop"
+graph:
+  entryPoints:
+    - "step_a"
+  edges:
+    - from: "step_a"
+      to: "step_b"

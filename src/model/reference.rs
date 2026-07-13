@@ -22,3 +22,10 @@ pub struct ContractReference {
     #[serde(default, flatten)]
     pub extensions: ExtensionMap,
 }
+
+impl ContractReference {
+    /// Returns whether this reference has the given stable identifier.
+    pub fn matches_id(&self, id: &str) -> bool {
+        self.id == id
+    }
+}

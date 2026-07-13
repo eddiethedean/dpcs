@@ -33,6 +33,18 @@ pub struct PipelineStep {
     pub extensions: ExtensionMap,
 }
 
+impl PipelineStep {
+    /// Returns the input port with the given identifier, if declared.
+    pub fn input_port(&self, id: &str) -> Option<&StepPort> {
+        self.inputs.iter().find(|port| port.id == id)
+    }
+
+    /// Returns the output port with the given identifier, if declared.
+    pub fn output_port(&self, id: &str) -> Option<&StepPort> {
+        self.outputs.iter().find(|port| port.id == id)
+    }
+}
+
 /// Input or output port declared on a pipeline step.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

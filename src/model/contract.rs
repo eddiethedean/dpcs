@@ -141,4 +141,9 @@ impl PipelineContract {
     pub fn identity_catalog(&self) -> IdentityCatalog {
         IdentityCatalog::from_contract(self)
     }
+
+    /// Returns the set of declared step identifiers.
+    pub fn step_ids(&self) -> std::collections::BTreeSet<&str> {
+        self.steps.iter().map(|step| step.id.as_str()).collect()
+    }
 }

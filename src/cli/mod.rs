@@ -184,6 +184,8 @@ fn execute(cli: Cli) -> Result<u8, Error> {
             let plan = plan::plan(&contract);
             if json {
                 let payload = GraphPayload {
+                    entry_points: contract.graph.entry_points.clone(),
+                    exit_points: contract.graph.exit_points.clone(),
                     edges: contract
                         .graph
                         .edges
@@ -201,6 +203,12 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                 })?;
                 println!("{payload}");
             } else {
+                if !contract.graph.entry_points.is_empty() {
+                    println!("entryPoints: {}", contract.graph.entry_points.join(", "));
+                }
+                if !contract.graph.exit_points.is_empty() {
+                    println!("exitPoints: {}", contract.graph.exit_points.join(", "));
+                }
                 if contract.graph.edges.is_empty() {
                     println!("(no edges)");
                 } else {
@@ -297,6 +305,10 @@ struct InspectSummary {
 #[derive(Debug, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 struct GraphPayload {
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    entry_points: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    exit_points: Vec<String>,
     edges: Vec<GraphEdgeView>,
     step_order: Vec<String>,
 }

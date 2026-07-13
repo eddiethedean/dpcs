@@ -23,11 +23,11 @@ are intentionally out of scope until roadmap 0.8.0. See [`ROADMAP.md`](ROADMAP.m
 
 | Item | Value |
 | --- | --- |
-| Crate version | `0.3.0` |
+| Crate version | `0.4.0` |
 | Spec version | `1.0.0-draft` |
 | Language | Rust 2021 (MSRV 1.85) |
 | License | Apache-2.0 OR MIT |
-| Release focus | Parsing and serialization (ROADMAP 0.3.0) |
+| Release focus | Pipeline graph analysis (ROADMAP 0.4.0) |
 
 ## Quick start
 
@@ -36,7 +36,7 @@ are intentionally out of scope until roadmap 0.8.0. See [`ROADMAP.md`](ROADMAP.m
 ```bash
 cargo install --path .
 # or, after crates.io publish:
-# cargo install dpcs --version 0.3.0
+# cargo install dpcs --version 0.4.0
 ```
 
 ### Validate a pipeline contract
@@ -96,6 +96,22 @@ assert!(report.is_valid());
 
 let yaml = contract.to_yaml_str()?;
 let json = contract.to_json_str()?;
+```
+
+Graph analysis (0.4.0):
+
+```rust
+use dpcs::{parse_yaml_file, DependencyGraph};
+
+let contract = parse_yaml_file("pipeline.dpcs.yaml")?;
+let graph = DependencyGraph::from_contract(&contract);
+
+if let Ok(order) = graph.topological_order() {
+    println!("step order: {:?}", order);
+}
+if let Some(cycle) = graph.find_cycle() {
+    eprintln!("cycle: {:?}", cycle);
+}
 ```
 
 ## Repository layout

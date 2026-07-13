@@ -91,6 +91,22 @@ for diagnostic in &report.diagnostics {
 }
 ```
 
+## Graph analysis (0.4.0)
+
+```rust
+use dpcs::{parse_yaml_file, DependencyGraph};
+
+let contract = parse_yaml_file("pipeline.dpcs.yaml")?;
+let graph = DependencyGraph::from_contract(&contract);
+
+let order = graph.topological_order()?;
+let deps = graph.dependencies("normalize_customer");
+let unreachable = graph.unreachable_steps(&contract);
+let duplicates = DependencyGraph::duplicate_edges(&contract);
+```
+
+`plan::plan` uses topological ordering when the dependency graph is acyclic.
+
 ## Planning skeleton
 
 A minimal planner exists today; orchestrator binding does not:

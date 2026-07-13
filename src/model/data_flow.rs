@@ -15,6 +15,9 @@ pub struct DataFlow {
     /// Optional dataset identifier carried by the flow.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub dataset: Option<String>,
+    /// Optional associated contract reference identifier.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub contract_ref: Option<String>,
     /// Extension fields.
     #[serde(default, flatten)]
     pub extensions: ExtensionMap,

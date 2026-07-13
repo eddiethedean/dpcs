@@ -1,19 +1,12 @@
 //! Graph validation phase.
 
-use std::collections::{BTreeMap, BTreeSet, VecDeque};
-
 use crate::diagnostics::{categories, Diagnostic, ValidationReport};
-use crate::model::PipelineContract;
+use crate::model::{DependencyGraph, PipelineContract};
 
 /// Validate graph edges and detect prohibited cycles.
 pub fn validate(contract: &PipelineContract) -> ValidationReport {
     let mut report = ValidationReport::new();
-    let step_ids: BTreeSet<&str> = contract.steps.iter().map(|s| s.id.as_str()).collect();
-
-    let mut adjacency: BTreeMap<&str, Vec<&str>> = BTreeMap::new();
-    for step in &contract.steps {
-        adjacency.entry(step.id.as_str()).or_default();
-    }
+    let step_ids = contract.step_ids();
 
     for (index, edge) in contract.graph.edges.iter().enumerate() {
         let object_ref = format!("graph.edges[{index}]");
@@ -53,15 +46,27 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
                 .with_remediation("Ensure edge endpoints refer to declared step identifiers"),
             );
         }
-
-        adjacency
-            .entry(edge.from.as_str())
-            .or_default()
-            .push(edge.to.as_str());
-        adjacency.entry(edge.to.as_str()).or_default();
     }
 
-    if let Some(cycle_node) = find_cycle(&adjacency) {
+    for duplicate in DependencyGraph::duplicate_edges(contract) {
+        report.push(
+            Diagnostic::error(
+                "DPCS-GRP-005",
+                categories::GRAPH,
+                format!(
+                    "duplicate graph edge from `{}` to `{}`",
+                    duplicate.from, duplicate.to
+                ),
+            )
+            .with_object_ref(format!("graph.edges[{}]", duplicate.duplicate_index))
+            .with_remediation("Remove duplicate edges from graph.edges"),
+        );
+    }
+
+    let dependency_graph = DependencyGraph::from_contract(contract);
+
+    if let Some(cycle) = dependency_graph.find_cycle() {
+        let cycle_node = cycle.first().cloned().unwrap_or_default();
         report.push(
             Diagnostic::error(
                 "DPCS-GRP-004",
@@ -73,42 +78,18 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
         );
     }
 
+    let unreachable = dependency_graph.unreachable_steps(contract);
+    for step_id in unreachable {
+        report.push(
+            Diagnostic::error(
+                "DPCS-GRP-006",
+                categories::GRAPH,
+                format!("pipeline step `{step_id}` is unreachable from graph entry points"),
+            )
+            .with_object_ref(format!("steps.{step_id}"))
+            .with_remediation("Declare graph.entryPoints or add edges so every step is reachable"),
+        );
+    }
+
     report
-}
-
-fn find_cycle(adjacency: &BTreeMap<&str, Vec<&str>>) -> Option<String> {
-    let mut indegree: BTreeMap<&str, usize> = adjacency.keys().map(|k| (*k, 0usize)).collect();
-    for targets in adjacency.values() {
-        for target in targets {
-            *indegree.entry(target).or_default() += 1;
-        }
-    }
-
-    let mut queue: VecDeque<&str> = indegree
-        .iter()
-        .filter_map(|(node, degree)| (*degree == 0).then_some(*node))
-        .collect();
-
-    let mut visited = 0usize;
-    while let Some(node) = queue.pop_front() {
-        visited += 1;
-        if let Some(targets) = adjacency.get(node) {
-            for target in targets {
-                if let Some(degree) = indegree.get_mut(target) {
-                    *degree -= 1;
-                    if *degree == 0 {
-                        queue.push_back(target);
-                    }
-                }
-            }
-        }
-    }
-
-    if visited == adjacency.len() {
-        None
-    } else {
-        indegree
-            .into_iter()
-            .find_map(|(node, degree)| (degree > 0).then(|| node.to_string()))
-    }
 }
