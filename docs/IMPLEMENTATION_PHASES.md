@@ -45,7 +45,7 @@ items:
 - Topological planning skeleton wired from DependencyGraph
 - Graph diagnostics `DPCS-GRP-001`–`DPCS-GRP-008`
 
-## Phase 4 — Diagnostics
+## Phase 4 — Diagnostics (complete)
 
 Implement deterministic diagnostics:
 
@@ -57,18 +57,19 @@ Implement deterministic diagnostics:
 - object reference
 - remediation
 
-## Phase 5 — Validation
+## Phase 5 — Validation (complete in 0.5.0)
 
-Implement phase-based validation:
+Phase-based validation:
 
 1. Document validation
 2. Canonical Object Model validation
 3. Structural validation
 4. Graph validation
-5. Reference validation
-6. Data Flow validation
-7. Control Flow validation
-8. Extension validation
+5. Reference validation (including `transformRef` and step-port refs)
+6. Data Flow validation (dataset identity, wiring, reachability)
+7. Control Flow validation (conflicts and duplicates)
+8. Quality / Failure stubs (semantics in 0.6.0)
+9. Extension stubs (namespace rules in 0.9.0)
 
 ## Phase 6 — CLI
 

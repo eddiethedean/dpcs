@@ -32,6 +32,18 @@ Required test categories:
 - CLI `graph --json` includes entry/exit points and step order
 - graph features round-trip (`entryPoints`, `exitPoints`, `dataFlow.contractRef`)
 
+## Validation Engine (0.5.0)
+
+- reject unresolved `transformRef` (`DPCS-REF-005`)
+- reject unresolved step-port `contractRef` (`DPCS-REF-006`)
+- reject missing data-flow `dataset` (`DPCS-DF-004`)
+- reject unreachable datasets (`DPCS-DF-005`)
+- reject unsatisfied step inputs / interface outputs (`DPCS-DF-006`)
+- reject conflicting control vs graph/data deps (`DPCS-CF-004`)
+- reject duplicate control-flow edges (`DPCS-CF-005`)
+- reject empty step port ids (`DPCS-STR-001`)
+- accept same graph endpoints with different `kind` values
+
 ## Validation
 
 - reject duplicate step identifiers (`DPCS-COM-005`)

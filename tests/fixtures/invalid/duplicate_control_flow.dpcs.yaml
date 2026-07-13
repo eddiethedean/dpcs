@@ -1,0 +1,18 @@
+dpcsVersion: "1.0.0"
+id: "invalid.duplicate.control.flow"
+version: "0.1.0"
+interface:
+  inputs: []
+  outputs: []
+steps:
+  - id: "a"
+    type: "extension:noop"
+  - id: "b"
+    type: "extension:noop"
+graph:
+  edges: []
+controlFlow:
+  - from: "a"
+    to: "b"
+  - from: "a"
+    to: "b"

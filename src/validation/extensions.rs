@@ -1,7 +1,8 @@
 //! Extension validation phase.
 //!
 //! Reserved-field collision checks run in the Canonical Object Model phase.
-//! This phase is reserved for future extension-structure validation.
+//! Namespace and profile rules remain deferred to later roadmap releases
+//! (ROADMAP 0.9.0 extensibility).
 
 use crate::diagnostics::ValidationReport;
 use crate::model::PipelineContract;

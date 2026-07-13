@@ -5,6 +5,23 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-07-13
+
+### Added
+
+- Reference validation for `transformRef` (`DPCS-REF-005`) and step-port `contractRef` (`DPCS-REF-006`)
+- Data-flow dataset identity (`DPCS-DF-004`), unreachable datasets (`DPCS-DF-005`), and unsatisfied ports (`DPCS-DF-006`)
+- Control-flow conflict detection against opposite graph/data-flow deps (`DPCS-CF-004`)
+- Duplicate control-flow edge detection (`DPCS-CF-005`)
+- Structural empty step-port id check (`DPCS-STR-001`)
+- Dataset reachability helpers `unreachable_datasets` / `unsatisfied_ports`
+- Fixtures and integration tests for the new validation rules
+
+### Changed
+
+- `DPCS-GRP-005` messages include edge `kind` (or `untyped`)
+- Quality, failure, and extension validation phases remain intentional stubs until ROADMAP 0.6 / 0.9
+
 ## [0.4.0] - 2026-07-13
 
 ### Added
@@ -105,6 +122,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `dpcs` CLI: `validate`, `inspect`, `diagnostics`, `graph`, `version`
 - Examples, fixtures, CI, and contributor documentation
 
+[0.5.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.5.0
 [0.4.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.4.0
 [0.3.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.3.0
 [0.2.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.2.0

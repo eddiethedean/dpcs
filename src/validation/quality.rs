@@ -6,7 +6,7 @@ use crate::model::PipelineContract;
 /// Validate quality-gate structural constraints beyond identity.
 ///
 /// Identifier presence and uniqueness are owned by the Canonical Object Model
-/// phase. Placement and rule semantics are deferred to later roadmap releases.
+/// phase. Rule and scope semantics are deferred to ROADMAP 0.6.0.
 pub fn validate(_contract: &PipelineContract) -> ValidationReport {
     ValidationReport::new()
 }

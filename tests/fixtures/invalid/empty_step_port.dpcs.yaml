@@ -1,0 +1,15 @@
+dpcsVersion: "1.0.0"
+id: "invalid.empty.step.port"
+version: "0.1.0"
+interface:
+  inputs: []
+  outputs: []
+steps:
+  - id: "a"
+    type: "extension:noop"
+    inputs:
+      - id: ""
+    outputs:
+      - id: "out"
+graph:
+  edges: []

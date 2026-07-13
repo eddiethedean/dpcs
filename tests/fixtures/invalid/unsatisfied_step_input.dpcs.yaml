@@ -1,0 +1,24 @@
+dpcsVersion: "1.0.0"
+id: "invalid.unsatisfied.step.input"
+version: "0.1.0"
+interface:
+  inputs:
+    - id: "raw"
+      name: "Raw"
+      contractRef: "contracts/raw.odcs.yaml"
+      purpose: "raw"
+  outputs: []
+steps:
+  - id: "a"
+    type: "extension:noop"
+    inputs:
+      - id: "in"
+      - id: "extra"
+    outputs:
+      - id: "out"
+graph:
+  edges: []
+dataFlow:
+  - from: "interface.inputs.raw"
+    to: "steps.a.inputs.in"
+    dataset: "raw"

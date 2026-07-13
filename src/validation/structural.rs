@@ -26,6 +26,25 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
                 .with_remediation("Provide a step type"),
             );
         }
+
+        for (side, ports) in [("inputs", &step.inputs), ("outputs", &step.outputs)] {
+            for (index, port) in ports.iter().enumerate() {
+                if port.id.trim().is_empty() {
+                    report.push(
+                        Diagnostic::error(
+                            "DPCS-STR-001",
+                            categories::STRUCTURAL,
+                            format!(
+                                "pipeline step `{}` declares an empty {side} port id",
+                                step.id
+                            ),
+                        )
+                        .with_object_ref(format!("steps.{}.{side}[{index}].id", step.id))
+                        .with_remediation("Provide a non-empty port identifier"),
+                    );
+                }
+            }
+        }
     }
 
     report

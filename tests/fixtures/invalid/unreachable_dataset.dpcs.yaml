@@ -1,0 +1,32 @@
+dpcsVersion: "1.0.0"
+id: "invalid.unreachable.dataset"
+version: "0.1.0"
+interface:
+  inputs:
+    - id: "raw"
+      name: "Raw"
+      contractRef: "contracts/raw.odcs.yaml"
+      purpose: "raw"
+  outputs: []
+steps:
+  - id: "a"
+    type: "extension:noop"
+    inputs:
+      - id: "in"
+    outputs:
+      - id: "out"
+  - id: "orphan"
+    type: "extension:noop"
+    inputs:
+      - id: "in"
+    outputs:
+      - id: "out"
+graph:
+  edges: []
+dataFlow:
+  - from: "interface.inputs.raw"
+    to: "steps.a.inputs.in"
+    dataset: "raw"
+  - from: "steps.orphan.outputs.out"
+    to: "steps.orphan.inputs.in"
+    dataset: "orphan_ds"

@@ -80,7 +80,7 @@ Implements Chapters 5--9.
 
 ------------------------------------------------------------------------
 
-# 0.5.0 --- Validation Engine
+# 0.5.0 --- Validation Engine (shipped)
 
 ### Deliverables
 

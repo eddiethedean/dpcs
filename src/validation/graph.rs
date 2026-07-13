@@ -87,12 +87,17 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
     }
 
     for duplicate in DependencyGraph::duplicate_edges(contract) {
+        let kind_label = duplicate
+            .kind
+            .as_deref()
+            .map(|kind| format!(" (kind `{kind}`)"))
+            .unwrap_or_else(|| " (untyped)".to_string());
         report.push(
             Diagnostic::error(
                 "DPCS-GRP-005",
                 categories::GRAPH,
                 format!(
-                    "duplicate graph edge from `{}` to `{}`",
+                    "duplicate graph edge from `{}` to `{}`{kind_label}",
                     duplicate.from, duplicate.to
                 ),
             )

@@ -42,7 +42,7 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
 
     for step in &contract.steps {
         if let Some(contract_ref) = &step.contract_ref {
-            if !looks_like_path(contract_ref) && !known_refs.contains(contract_ref.as_str()) {
+            if !is_resolvable(contract_ref, &known_refs) {
                 report.push(
                     Diagnostic::error(
                         "DPCS-REF-003",
@@ -59,6 +59,67 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
                 );
             }
         }
+
+        if let Some(transform_ref) = &step.transform_ref {
+            if !is_resolvable(transform_ref, &known_refs) {
+                report.push(
+                    Diagnostic::error(
+                        "DPCS-REF-005",
+                        categories::REFERENCE,
+                        format!(
+                            "step `{}` references unknown transform `{}`",
+                            step.id, transform_ref
+                        ),
+                    )
+                    .with_object_ref(format!("steps.{}.transformRef", step.id))
+                    .with_remediation(
+                        "Declare the transform under contractReferences or use a direct location",
+                    ),
+                );
+            }
+        }
+
+        for port in &step.inputs {
+            if let Some(contract_ref) = &port.contract_ref {
+                if !is_resolvable(contract_ref, &known_refs) {
+                    report.push(
+                        Diagnostic::error(
+                            "DPCS-REF-006",
+                            categories::REFERENCE,
+                            format!(
+                                "step `{}` input port `{}` references unknown contract `{}`",
+                                step.id, port.id, contract_ref
+                            ),
+                        )
+                        .with_object_ref(format!("steps.{}.inputs.{}", step.id, port.id))
+                        .with_remediation(
+                            "Declare the contract under contractReferences or use a direct location",
+                        ),
+                    );
+                }
+            }
+        }
+
+        for port in &step.outputs {
+            if let Some(contract_ref) = &port.contract_ref {
+                if !is_resolvable(contract_ref, &known_refs) {
+                    report.push(
+                        Diagnostic::error(
+                            "DPCS-REF-006",
+                            categories::REFERENCE,
+                            format!(
+                                "step `{}` output port `{}` references unknown contract `{}`",
+                                step.id, port.id, contract_ref
+                            ),
+                        )
+                        .with_object_ref(format!("steps.{}.outputs.{}", step.id, port.id))
+                        .with_remediation(
+                            "Declare the contract under contractReferences or use a direct location",
+                        ),
+                    );
+                }
+            }
+        }
     }
 
     for (side, ports) in [
@@ -67,7 +128,7 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
     ] {
         for port in ports {
             if let Some(contract_ref) = &port.contract_ref {
-                if !looks_like_path(contract_ref) && !known_refs.contains(contract_ref.as_str()) {
+                if !is_resolvable(contract_ref, &known_refs) {
                     report.push(
                         Diagnostic::error(
                             "DPCS-REF-004",
@@ -86,7 +147,7 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
 
     for (index, flow) in contract.data_flow.iter().enumerate() {
         if let Some(contract_ref) = &flow.contract_ref {
-            if !looks_like_path(contract_ref) && !known_refs.contains(contract_ref.as_str()) {
+            if !is_resolvable(contract_ref, &known_refs) {
                 report.push(
                     Diagnostic::error(
                         "DPCS-REF-003",
@@ -103,6 +164,10 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
     }
 
     report
+}
+
+fn is_resolvable(value: &str, known_refs: &BTreeSet<&str>) -> bool {
+    looks_like_path(value) || known_refs.contains(value)
 }
 
 fn looks_like_path(value: &str) -> bool {

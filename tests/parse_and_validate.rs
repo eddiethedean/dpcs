@@ -148,6 +148,77 @@ fn rejects_unresolved_contract_references() {
 }
 
 #[test]
+fn rejects_unresolved_transform_refs() {
+    let contract = parse_yaml_file(fixture("invalid/unresolved_transform_ref.dpcs.yaml")).unwrap();
+    let report = validate(&contract);
+    assert!(!report.is_valid());
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-REF-005"));
+}
+
+#[test]
+fn rejects_unresolved_step_port_refs() {
+    let contract = parse_yaml_file(fixture("invalid/unresolved_step_port_ref.dpcs.yaml")).unwrap();
+    let report = validate(&contract);
+    assert!(!report.is_valid());
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-REF-006"));
+}
+
+#[test]
+fn rejects_missing_dataset_identity() {
+    let contract = parse_yaml_file(fixture("invalid/missing_dataset.dpcs.yaml")).unwrap();
+    let report = validate(&contract);
+    assert!(!report.is_valid());
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-DF-004"));
+}
+
+#[test]
+fn rejects_unreachable_datasets() {
+    let contract = parse_yaml_file(fixture("invalid/unreachable_dataset.dpcs.yaml")).unwrap();
+    let report = validate(&contract);
+    assert!(!report.is_valid());
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-DF-005"));
+}
+
+#[test]
+fn rejects_unsatisfied_step_inputs() {
+    let contract = parse_yaml_file(fixture("invalid/unsatisfied_step_input.dpcs.yaml")).unwrap();
+    let report = validate(&contract);
+    assert!(!report.is_valid());
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-DF-006"));
+}
+
+#[test]
+fn rejects_conflicting_control_and_graph_deps() {
+    let contract = parse_yaml_file(fixture("invalid/conflicting_deps.dpcs.yaml")).unwrap();
+    let report = validate(&contract);
+    assert!(!report.is_valid());
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-CF-004"));
+}
+
+#[test]
+fn rejects_duplicate_control_flow_edges() {
+    let contract = parse_yaml_file(fixture("invalid/duplicate_control_flow.dpcs.yaml")).unwrap();
+    let report = validate(&contract);
+    assert!(!report.is_valid());
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-CF-005"));
+}
+
+#[test]
+fn accepts_duplicate_graph_endpoints_with_different_kinds() {
+    let contract =
+        parse_yaml_file(fixture("valid/duplicate_edge_different_kind.dpcs.yaml")).unwrap();
+    assert!(validate(&contract).is_valid());
+}
+
+#[test]
+fn rejects_empty_step_port_ids() {
+    let contract = parse_yaml_file(fixture("invalid/empty_step_port.dpcs.yaml")).unwrap();
+    let report = validate(&contract);
+    assert!(!report.is_valid());
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-STR-001"));
+}
+
+#[test]
 fn validates_data_flow_endpoints() {
     let contract = parse_yaml_file(fixture("valid/with_data_flow.dpcs.yaml")).unwrap();
     assert!(validate(&contract).is_valid());

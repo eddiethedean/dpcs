@@ -1,0 +1,24 @@
+dpcsVersion: "1.0.0"
+id: "invalid.unresolved.step.port.ref"
+version: "0.1.0"
+interface:
+  inputs:
+    - id: "raw"
+      name: "Raw"
+      contractRef: "contracts/raw.odcs.yaml"
+      purpose: "raw"
+  outputs: []
+steps:
+  - id: "step_a"
+    type: "dtcs:transform"
+    inputs:
+      - id: "in"
+        contractRef: "missing_port_contract"
+    outputs:
+      - id: "out"
+graph:
+  edges: []
+dataFlow:
+  - from: "interface.inputs.raw"
+    to: "steps.step_a.inputs.in"
+    dataset: "raw"

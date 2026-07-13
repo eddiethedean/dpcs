@@ -23,11 +23,11 @@ are intentionally out of scope until roadmap 0.8.0. See [`ROADMAP.md`](ROADMAP.m
 
 | Item | Value |
 | --- | --- |
-| Crate version | `0.4.0` |
+| Crate version | `0.5.0` |
 | Spec version | `1.0.0-draft` |
 | Language | Rust 2021 (MSRV 1.85) |
 | License | Apache-2.0 OR MIT |
-| Release focus | Pipeline graph analysis (ROADMAP 0.4.0) |
+| Release focus | Validation engine (ROADMAP 0.5.0) |
 
 ## Quick start
 
@@ -36,7 +36,7 @@ are intentionally out of scope until roadmap 0.8.0. See [`ROADMAP.md`](ROADMAP.m
 ```bash
 cargo install --path .
 # or, after crates.io publish:
-# cargo install dpcs --version 0.4.0
+# cargo install dpcs --version 0.5.0
 ```
 
 ### Validate a pipeline contract

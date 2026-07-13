@@ -8,6 +8,7 @@ mod compatibility;
 mod contract;
 mod control_flow;
 mod data_flow;
+mod dataset;
 mod endpoints;
 mod execution;
 mod extension;
@@ -31,6 +32,7 @@ pub use compatibility::*;
 pub use contract::*;
 pub use control_flow::*;
 pub use data_flow::*;
+pub use dataset::{unreachable_datasets, unsatisfied_ports};
 pub use endpoints::{
     data_flow_endpoint_known, data_flow_step_dependency, known_data_flow_endpoints,
 };
