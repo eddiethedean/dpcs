@@ -243,6 +243,11 @@ impl DependencyGraph {
             .collect();
 
         let roots: Vec<String> = if has_declared_entry_points {
+            // Invalid entry points are reported by graph validation (GRP-007).
+            // Do not treat an all-invalid entryPoints list as "nothing reachable".
+            if valid_entry_points.is_empty() {
+                return BTreeSet::new();
+            }
             valid_entry_points.into_iter().collect()
         } else {
             self.nodes
@@ -253,6 +258,7 @@ impl DependencyGraph {
         };
 
         if roots.is_empty() {
+            // Cycles with no roots: every node is unreachable from indegree-zero roots.
             return self.nodes.clone();
         }
 

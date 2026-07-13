@@ -107,6 +107,23 @@ let duplicates = DependencyGraph::duplicate_edges(&contract);
 
 `plan::plan` uses topological ordering when the dependency graph is acyclic.
 
+## Validation engine (0.5.0)
+
+```rust
+use dpcs::{parse_yaml_file, unreachable_datasets, unsatisfied_ports, validate};
+
+let contract = parse_yaml_file("pipeline.dpcs.yaml")?;
+let report = validate(&contract);
+assert!(report.is_valid());
+
+let missing_ports = unsatisfied_ports(&contract);
+let orphan_datasets = unreachable_datasets(&contract);
+```
+
+Phase-based validation covers document, COM, structural, graph, references,
+data flow (including endpoint roles), and control flow. Quality, failure, and
+extension semantics remain stubs until later roadmap releases.
+
 ## Planning skeleton
 
 A minimal planner exists today; orchestrator binding does not:

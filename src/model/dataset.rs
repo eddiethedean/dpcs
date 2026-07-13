@@ -2,12 +2,15 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use super::{data_flow_endpoint_known, step_id_from_endpoint, PipelineContract};
+use super::{
+    data_flow_endpoint_known, endpoint_role, is_valid_flow_destination, is_valid_flow_source,
+    step_id_from_endpoint, EndpointRole, PipelineContract,
+};
 
 /// Returns dataset identifiers that are not reachable from interface inputs.
 ///
-/// A dataset is sourced when a validated flow carrying it starts at an interface
-/// input, or leaves a step whose required inputs already carry sourced datasets.
+/// A dataset is sourced when a role-valid flow carrying it starts at an interface
+/// input, or leaves a step output after that step's inputs carry sourced datasets.
 pub fn unreachable_datasets(contract: &PipelineContract) -> BTreeSet<String> {
     let mut all_datasets = BTreeSet::new();
     let mut flows: Vec<(String, String, String)> = Vec::new();
@@ -25,6 +28,8 @@ pub fn unreachable_datasets(contract: &PipelineContract) -> BTreeSet<String> {
             || flow.to.trim().is_empty()
             || !data_flow_endpoint_known(contract, &flow.from)
             || !data_flow_endpoint_known(contract, &flow.to)
+            || !is_valid_flow_source(&flow.from)
+            || !is_valid_flow_destination(&flow.to)
         {
             continue;
         }
@@ -44,23 +49,9 @@ pub fn unreachable_datasets(contract: &PipelineContract) -> BTreeSet<String> {
             .insert(dataset.clone());
     }
 
-    let required_inputs = |step_id: &str| -> Vec<String> {
-        let Some(step) = contract.steps.iter().find(|step| step.id == step_id) else {
-            return Vec::new();
-        };
-        if step.inputs.is_empty() && step.outputs.is_empty() {
-            return Vec::new();
-        }
-        step.inputs
-            .iter()
-            .filter(|port| !port.id.trim().is_empty())
-            .map(|port| format!("steps.{step_id}.inputs.{}", port.id))
-            .collect()
-    };
-
     let mut sourced = BTreeSet::new();
     for (from, _to, dataset) in &flows {
-        if from.starts_with("interface.inputs.") {
+        if matches!(endpoint_role(from), Some(EndpointRole::InterfaceInput)) {
             sourced.insert(dataset.clone());
         }
     }
@@ -72,42 +63,13 @@ pub fn unreachable_datasets(contract: &PipelineContract) -> BTreeSet<String> {
             if step.id.trim().is_empty() {
                 continue;
             }
-
-            let inputs = required_inputs(&step.id);
-            let step_sourced = if inputs.is_empty() {
-                // No explicit input ports: sourced only when some incoming flow
-                // already carries a sourced dataset, or the step has no incoming
-                // data flows (vacuous for producers that only bind interface roots).
-                let mut has_incoming = false;
-                let mut all_sourced = true;
-                for (endpoint, datasets) in &incoming {
-                    let Some(target) = step_id_from_endpoint(endpoint) else {
-                        continue;
-                    };
-                    if target != step.id || !endpoint.contains(".inputs") {
-                        continue;
-                    }
-                    has_incoming = true;
-                    if !datasets.iter().any(|dataset| sourced.contains(dataset)) {
-                        all_sourced = false;
-                    }
-                }
-                !has_incoming || all_sourced
-            } else {
-                inputs.iter().all(|endpoint| {
-                    incoming
-                        .get(endpoint)
-                        .map(|datasets| datasets.iter().any(|dataset| sourced.contains(dataset)))
-                        .unwrap_or(false)
-                })
-            };
-
-            if !step_sourced {
+            if !step_is_sourced(contract, step.id.as_str(), &incoming, &sourced) {
                 continue;
             }
 
             for (from, _to, dataset) in &flows {
-                if step_id_from_endpoint(from).as_deref() == Some(step.id.as_str())
+                if matches!(endpoint_role(from), Some(EndpointRole::StepOutput))
+                    && step_id_from_endpoint(from).as_deref() == Some(step.id.as_str())
                     && sourced.insert(dataset.clone())
                 {
                     changed = true;
@@ -119,6 +81,54 @@ pub fn unreachable_datasets(contract: &PipelineContract) -> BTreeSet<String> {
     all_datasets.difference(&sourced).cloned().collect()
 }
 
+fn step_is_sourced(
+    contract: &PipelineContract,
+    step_id: &str,
+    incoming: &BTreeMap<String, BTreeSet<String>>,
+    sourced: &BTreeSet<String>,
+) -> bool {
+    let Some(step) = contract.steps.iter().find(|step| step.id == step_id) else {
+        return false;
+    };
+
+    let declared_inputs: Vec<String> = if !step.inputs.is_empty() || !step.outputs.is_empty() {
+        step.inputs
+            .iter()
+            .filter(|port| !port.id.trim().is_empty())
+            .map(|port| format!("steps.{step_id}.inputs.{}", port.id))
+            .collect()
+    } else {
+        Vec::new()
+    };
+
+    if !declared_inputs.is_empty() {
+        return declared_inputs.iter().all(|endpoint| {
+            incoming
+                .get(endpoint)
+                .map(|datasets| datasets.iter().any(|dataset| sourced.contains(dataset)))
+                .unwrap_or(false)
+        });
+    }
+
+    // Bag / portless steps: require at least one incoming input flow with a
+    // sourced dataset. Never treat "no incoming" as vacuous provenance.
+    let mut has_incoming = false;
+    let mut all_sourced = true;
+    for (endpoint, datasets) in incoming {
+        if step_id_from_endpoint(endpoint).as_deref() != Some(step_id) {
+            continue;
+        }
+        if !matches!(endpoint_role(endpoint), Some(EndpointRole::StepInput)) {
+            continue;
+        }
+        has_incoming = true;
+        if !datasets.iter().any(|dataset| sourced.contains(dataset)) {
+            all_sourced = false;
+        }
+    }
+    has_incoming && all_sourced
+}
+
 /// Declared step input and interface output endpoints that lack an incoming data flow.
 pub fn unsatisfied_ports(contract: &PipelineContract) -> Vec<(String, String)> {
     let mut targets: BTreeSet<String> = BTreeSet::new();
@@ -126,7 +136,7 @@ pub fn unsatisfied_ports(contract: &PipelineContract) -> Vec<(String, String)> {
         if flow.to.trim().is_empty() {
             continue;
         }
-        if data_flow_endpoint_known(contract, &flow.to) {
+        if data_flow_endpoint_known(contract, &flow.to) && is_valid_flow_destination(&flow.to) {
             targets.insert(flow.to.clone());
         }
     }
@@ -211,5 +221,34 @@ dataFlow:
         let unreachable = unreachable_datasets(&contract);
         assert!(unreachable.contains("orphan_ds"));
         assert!(!unreachable.contains("raw"));
+    }
+
+    #[test]
+    fn does_not_vacuously_source_portless_steps() {
+        let contract = parse_yaml(
+            r#"
+dpcsVersion: "1.0.0"
+id: "test"
+version: "0.1.0"
+interface:
+  inputs: []
+  outputs: []
+steps:
+  - id: "ingest"
+    type: "extension:ingress"
+  - id: "transform"
+    type: "dtcs:transform"
+graph:
+  edges: []
+dataFlow:
+  - from: "steps.ingest.outputs.raw"
+    to: "steps.transform.inputs.raw"
+    dataset: "raw"
+"#,
+        )
+        .unwrap();
+
+        let unreachable = unreachable_datasets(&contract);
+        assert!(unreachable.contains("raw"));
     }
 }

@@ -34,7 +34,8 @@ pub use control_flow::*;
 pub use data_flow::*;
 pub use dataset::{unreachable_datasets, unsatisfied_ports};
 pub use endpoints::{
-    data_flow_endpoint_known, data_flow_step_dependency, known_data_flow_endpoints,
+    data_flow_endpoint_known, data_flow_step_dependency, endpoint_role, is_valid_flow_destination,
+    is_valid_flow_source, known_data_flow_endpoints, EndpointRole,
 };
 pub use execution::*;
 pub use extension::*;

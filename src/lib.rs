@@ -40,9 +40,10 @@ pub mod cli;
 pub use diagnostics::{Diagnostic, DiagnosticStage, Severity, ValidationReport};
 pub use error::{Error, Result};
 pub use model::{
-    step_id_from_endpoint, CycleError, DependencyGraph, DuplicateEdge, ExtensionMap,
-    ExtensionValue, IdentityCatalog, InterfacePort, Metadata, ObjectId, ObjectKind, ObjectPath,
-    PipelineContract, PipelineGraph, PipelineIdentity, PipelineInterface, PipelineStep,
+    step_id_from_endpoint, unreachable_datasets, unsatisfied_ports, CycleError, DependencyGraph,
+    DuplicateEdge, EndpointRole, ExtensionMap, ExtensionValue, IdentityCatalog, InterfacePort,
+    Metadata, ObjectId, ObjectKind, ObjectPath, PipelineContract, PipelineGraph, PipelineIdentity,
+    PipelineInterface, PipelineStep,
 };
 pub use parser::{
     parse_file, parse_json, parse_json_file, parse_yaml, parse_yaml_file, to_file, to_json,

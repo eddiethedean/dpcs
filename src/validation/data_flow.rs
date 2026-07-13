@@ -2,11 +2,11 @@
 
 use crate::diagnostics::{categories, Diagnostic, ValidationReport};
 use crate::model::{
-    data_flow_endpoint_known, unreachable_datasets, unsatisfied_ports, DependencyGraph,
-    PipelineContract,
+    data_flow_endpoint_known, is_valid_flow_destination, is_valid_flow_source,
+    unreachable_datasets, unsatisfied_ports, PipelineContract,
 };
 
-/// Validate data-flow endpoints, dataset identity, wiring, and reachability.
+/// Validate data-flow endpoints, roles, dataset identity, wiring, and reachability.
 pub fn validate(contract: &PipelineContract) -> ValidationReport {
     let mut report = ValidationReport::new();
 
@@ -25,7 +25,10 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
             continue;
         }
 
-        if !data_flow_endpoint_known(contract, &flow.from) {
+        let from_known = data_flow_endpoint_known(contract, &flow.from);
+        let to_known = data_flow_endpoint_known(contract, &flow.to);
+
+        if !from_known {
             report.push(
                 Diagnostic::error(
                     "DPCS-DF-002",
@@ -37,9 +40,24 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
                     "Use interface.inputs.<id>, interface.outputs.<id>, or steps.<id>.inputs|outputs.<id>",
                 ),
             );
+        } else if !is_valid_flow_source(&flow.from) {
+            report.push(
+                Diagnostic::error(
+                    "DPCS-DF-007",
+                    categories::DATA_FLOW,
+                    format!(
+                        "data flow source `{}` must be an interface input or step output",
+                        flow.from
+                    ),
+                )
+                .with_object_ref(format!("{object_ref}.from"))
+                .with_remediation(
+                    "Use interface.inputs.<id> or steps.<id>.outputs.<id> as the source",
+                ),
+            );
         }
 
-        if !data_flow_endpoint_known(contract, &flow.to) {
+        if !to_known {
             report.push(
                 Diagnostic::error(
                     "DPCS-DF-003",
@@ -47,6 +65,21 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
                     format!("data flow references unknown endpoint `{}`", flow.to),
                 )
                 .with_object_ref(object_ref.clone()),
+            );
+        } else if !is_valid_flow_destination(&flow.to) {
+            report.push(
+                Diagnostic::error(
+                    "DPCS-DF-008",
+                    categories::DATA_FLOW,
+                    format!(
+                        "data flow destination `{}` must be a step input or interface output",
+                        flow.to
+                    ),
+                )
+                .with_object_ref(format!("{object_ref}.to"))
+                .with_remediation(
+                    "Use steps.<id>.inputs.<id> or interface.outputs.<id> as the destination",
+                ),
             );
         }
 
@@ -76,21 +109,18 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
         );
     }
 
-    let has_cycle = DependencyGraph::from_contract(contract).has_cycle();
-    if !has_cycle {
-        for dataset in unreachable_datasets(contract) {
-            report.push(
-                Diagnostic::error(
-                    "DPCS-DF-005",
-                    categories::DATA_FLOW,
-                    format!("dataset `{dataset}` is unreachable from interface inputs"),
-                )
-                .with_object_ref(format!("dataFlow.dataset.{dataset}"))
-                .with_remediation(
-                    "Introduce the dataset from an interface input or a sourced upstream step",
-                ),
-            );
-        }
+    for dataset in unreachable_datasets(contract) {
+        report.push(
+            Diagnostic::error(
+                "DPCS-DF-005",
+                categories::DATA_FLOW,
+                format!("dataset `{dataset}` is unreachable from interface inputs"),
+            )
+            .with_object_ref(format!("dataFlow.dataset.{dataset}"))
+            .with_remediation(
+                "Introduce the dataset from an interface input or a sourced upstream step",
+            ),
+        );
     }
 
     report

@@ -1,0 +1,31 @@
+dpcsVersion: "1.0.0"
+id: "invalid.cycle.with.orphan.dataset"
+version: "0.1.0"
+interface:
+  inputs:
+    - id: "raw"
+      name: "Raw"
+      contractRef: "contracts/raw.odcs.yaml"
+      purpose: "raw"
+  outputs: []
+steps:
+  - id: "a"
+    type: "extension:noop"
+  - id: "b"
+    type: "extension:noop"
+  - id: "orphan"
+    type: "extension:noop"
+    inputs:
+      - id: "in"
+    outputs:
+      - id: "out"
+graph:
+  edges:
+    - from: "a"
+      to: "b"
+    - from: "b"
+      to: "a"
+dataFlow:
+  - from: "steps.orphan.outputs.out"
+    to: "steps.orphan.inputs.in"
+    dataset: "orphan_ds"

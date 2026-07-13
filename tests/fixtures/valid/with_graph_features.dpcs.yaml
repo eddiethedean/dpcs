@@ -2,8 +2,16 @@ dpcsVersion: "1.0.0"
 id: "valid.graph.features"
 version: "0.1.0"
 interface:
-  inputs: []
-  outputs: []
+  inputs:
+    - id: "raw"
+      name: "Raw"
+      contractRef: "contracts/raw.odcs.yaml"
+      purpose: "Raw ingress"
+  outputs:
+    - id: "published"
+      name: "Published"
+      contractRef: "contracts/published.odcs.yaml"
+      purpose: "Published egress"
 graph:
   entryPoints:
     - "ingest"
@@ -20,15 +28,36 @@ graph:
 steps:
   - id: "ingest"
     type: "extension:ingress"
+    inputs:
+      - id: "raw"
+    outputs:
+      - id: "raw"
   - id: "transform"
     type: "dtcs:transform"
+    inputs:
+      - id: "raw"
+    outputs:
+      - id: "clean"
   - id: "publish"
     type: "extension:egress"
+    inputs:
+      - id: "clean"
+    outputs:
+      - id: "published"
 dataFlow:
+  - from: "interface.inputs.raw"
+    to: "steps.ingest.inputs.raw"
+    dataset: "raw"
   - from: "steps.ingest.outputs.raw"
     to: "steps.transform.inputs.raw"
     dataset: "raw"
     contractRef: "raw_contract"
+  - from: "steps.transform.outputs.clean"
+    to: "steps.publish.inputs.clean"
+    dataset: "clean"
+  - from: "steps.publish.outputs.published"
+    to: "interface.outputs.published"
+    dataset: "published"
 contractReferences:
   - id: "raw_contract"
     type: "odcs"

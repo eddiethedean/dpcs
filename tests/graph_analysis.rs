@@ -57,10 +57,10 @@ fn graph_features_round_trip() {
     assert_eq!(original.graph.entry_points, vec!["ingest"]);
     assert_eq!(original.graph.exit_points, vec!["publish"]);
     assert!(original.graph.metadata.is_some());
-    assert_eq!(
-        original.data_flow[0].contract_ref.as_deref(),
-        Some("raw_contract")
-    );
+    assert!(original
+        .data_flow
+        .iter()
+        .any(|flow| flow.contract_ref.as_deref() == Some("raw_contract")));
 
     let yaml = original.to_yaml_str().unwrap();
     let round_tripped = PipelineContract::from_yaml_str(&yaml).unwrap();

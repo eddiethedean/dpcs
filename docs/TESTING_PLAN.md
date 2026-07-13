@@ -39,10 +39,14 @@ Required test categories:
 - reject missing data-flow `dataset` (`DPCS-DF-004`)
 - reject unreachable datasets (`DPCS-DF-005`)
 - reject unsatisfied step inputs / interface outputs (`DPCS-DF-006`)
+- reject illegal data-flow source/destination roles (`DPCS-DF-007`, `DPCS-DF-008`)
 - reject conflicting control vs graph/data deps (`DPCS-CF-004`)
 - reject duplicate control-flow edges (`DPCS-CF-005`)
 - reject empty step port ids (`DPCS-STR-001`)
 - accept same graph endpoints with different `kind` values
+- cycles do not suppress unreachable-dataset diagnostics
+- invalid entry points do not flood unreachable-step diagnostics
+- graph features fixture validates with interface-rooted data flow
 
 ## Validation
 

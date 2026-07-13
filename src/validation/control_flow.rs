@@ -10,20 +10,20 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
     let mut report = ValidationReport::new();
     let step_ids: BTreeSet<&str> = contract.steps.iter().map(|s| s.id.as_str()).collect();
 
-    let mut opposite: BTreeSet<(String, String)> = BTreeSet::new();
+    let mut deps: BTreeSet<(String, String)> = BTreeSet::new();
     for edge in &contract.graph.edges {
         if edge.from.trim().is_empty() || edge.to.trim().is_empty() {
             continue;
         }
         if step_ids.contains(edge.from.as_str()) && step_ids.contains(edge.to.as_str()) {
-            opposite.insert((edge.to.clone(), edge.from.clone()));
+            deps.insert((edge.from.clone(), edge.to.clone()));
         }
     }
     for flow in &contract.data_flow {
         if let Some((from_step, to_step)) =
             data_flow_step_dependency(contract, &flow.from, &flow.to)
         {
-            opposite.insert((to_step, from_step));
+            deps.insert((from_step, to_step));
         }
     }
 
@@ -86,9 +86,14 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
             seen.insert(key, index);
         }
 
+        // Conflict when a uni-directional graph/data edge points the opposite way.
+        // Bidirectional graph cycles are already covered by GRP-004 without CF noise.
+        let forward = (flow.to.clone(), flow.from.clone());
+        let same = (flow.from.clone(), flow.to.clone());
         if step_ids.contains(flow.from.as_str())
             && step_ids.contains(flow.to.as_str())
-            && opposite.contains(&(flow.from.clone(), flow.to.clone()))
+            && deps.contains(&forward)
+            && !deps.contains(&same)
         {
             report.push(
                 Diagnostic::error(

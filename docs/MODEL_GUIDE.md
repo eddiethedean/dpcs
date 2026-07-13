@@ -127,9 +127,10 @@ COM invariants run as the first validation phase after document checks:
 
 Later validation phases (structural, graph, references, flows) build on the COM.
 
-Full validation polish for data/control flow completeness is roadmap 0.5.0
-(shipped): dataset identity, port satisfiability, conflicting deps, and richer
-reference checks. Quality/failure/execution rule evaluation remains roadmap 0.6.0.
+Full validation polish for data/control flow completeness shipped in roadmap
+0.5.0: dataset identity, port satisfiability, endpoint roles, conflicting deps,
+and richer reference checks. Quality/failure/execution rule evaluation remains
+roadmap 0.6.0.
 
 [`PipelineGraph`]: ../../src/model/graph.rs
 [`DataFlow`]: ../../src/model/data_flow.rs

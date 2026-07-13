@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Reference validation for `transformRef` (`DPCS-REF-005`) and step-port `contractRef` (`DPCS-REF-006`)
-- Data-flow dataset identity (`DPCS-DF-004`), unreachable datasets (`DPCS-DF-005`), and unsatisfied ports (`DPCS-DF-006`)
+- Data-flow dataset identity (`DPCS-DF-004`), unreachable datasets (`DPCS-DF-005`), unsatisfied ports (`DPCS-DF-006`), and endpoint roles (`DPCS-DF-007` / `DPCS-DF-008`)
 - Control-flow conflict detection against opposite graph/data-flow deps (`DPCS-CF-004`)
 - Duplicate control-flow edge detection (`DPCS-CF-005`)
 - Structural empty step-port id check (`DPCS-STR-001`)
@@ -21,6 +21,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `DPCS-GRP-005` messages include edge `kind` (or `untyped`)
 - Quality, failure, and extension validation phases remain intentional stubs until ROADMAP 0.6 / 0.9
+
+### Fixed
+
+- Dataset reachability no longer vacuously sources portless steps; requires interface-rooted provenance
+- Graph cycles no longer suppress unreachable-dataset diagnostics (`DPCS-DF-005`)
+- Data-flow endpoint role checks (`DPCS-DF-007` / `DPCS-DF-008`) enforce SPEC source/destination rules
+- Invalid `entryPoints` no longer flood `DPCS-GRP-006` for every step
+- Control-flow conflicts (`DPCS-CF-004`) ignore already-bidirectional graph pairs covered by cycle detection
 
 ## [0.4.0] - 2026-07-13
 

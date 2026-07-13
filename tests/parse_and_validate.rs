@@ -91,6 +91,7 @@ fn rejects_invalid_entry_points() {
     let report = validate(&contract);
     assert!(!report.is_valid());
     assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-GRP-007"));
+    assert!(!report.diagnostics.iter().any(|d| d.id == "DPCS-GRP-006"));
 }
 
 #[test]
@@ -185,6 +186,22 @@ fn rejects_unsatisfied_step_inputs() {
     let report = validate(&contract);
     assert!(!report.is_valid());
     assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-DF-006"));
+}
+
+#[test]
+fn rejects_illegal_data_flow_endpoint_roles() {
+    let contract = parse_yaml_file(fixture("invalid/bad_flow_roles.dpcs.yaml")).unwrap();
+    let report = validate(&contract);
+    assert!(!report.is_valid());
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-DF-007"));
+}
+
+#[test]
+fn cycle_does_not_suppress_unreachable_datasets() {
+    let contract = parse_yaml_file(fixture("invalid/cycle_with_orphan_dataset.dpcs.yaml")).unwrap();
+    let report = validate(&contract);
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-GRP-004"));
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-DF-005"));
 }
 
 #[test]

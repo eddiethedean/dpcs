@@ -4,6 +4,19 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use super::{PipelineContract, PipelineStep};
 
+/// Role of a data-flow endpoint in SPEC Ch 8 source/destination rules.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EndpointRole {
+    /// `interface.inputs.*` — valid flow source only.
+    InterfaceInput,
+    /// `interface.outputs.*` — valid flow destination only.
+    InterfaceOutput,
+    /// `steps.<id>.inputs.*` — valid flow destination only.
+    StepInput,
+    /// `steps.<id>.outputs.*` — valid flow source only.
+    StepOutput,
+}
+
 /// Builds the set of known data-flow endpoint paths for a contract.
 pub fn known_data_flow_endpoints(contract: &PipelineContract) -> BTreeSet<String> {
     let mut endpoints = BTreeSet::new();
@@ -49,16 +62,61 @@ pub fn data_flow_endpoint_known(contract: &PipelineContract, endpoint: &str) -> 
     endpoint_known(&endpoints, &steps_by_id, endpoint)
 }
 
+/// Classifies a known-or-bag endpoint into a SPEC source/destination role.
+pub fn endpoint_role(endpoint: &str) -> Option<EndpointRole> {
+    if let Some(rest) = endpoint.strip_prefix("interface.inputs.") {
+        return (!rest.is_empty()).then_some(EndpointRole::InterfaceInput);
+    }
+    if let Some(rest) = endpoint.strip_prefix("interface.outputs.") {
+        return (!rest.is_empty()).then_some(EndpointRole::InterfaceOutput);
+    }
+    if endpoint == "interface.inputs" || endpoint == "interface.outputs" {
+        return None;
+    }
+
+    let rest = endpoint.strip_prefix("steps.")?;
+    let mut parts = rest.split('.');
+    let step_id = parts.next()?;
+    if step_id.is_empty() {
+        return None;
+    }
+    let direction = parts.next()?;
+    match direction {
+        "inputs" => Some(EndpointRole::StepInput),
+        "outputs" => Some(EndpointRole::StepOutput),
+        _ => None,
+    }
+}
+
+/// Returns whether an endpoint is a valid data-flow source.
+pub fn is_valid_flow_source(endpoint: &str) -> bool {
+    matches!(
+        endpoint_role(endpoint),
+        Some(EndpointRole::InterfaceInput | EndpointRole::StepOutput)
+    )
+}
+
+/// Returns whether an endpoint is a valid data-flow destination.
+pub fn is_valid_flow_destination(endpoint: &str) -> bool {
+    matches!(
+        endpoint_role(endpoint),
+        Some(EndpointRole::InterfaceOutput | EndpointRole::StepInput)
+    )
+}
+
 /// Returns a validated inter-step dependency from a data-flow declaration.
 ///
-/// Returns `None` when endpoints are invalid, refer to the same step, or do not
-/// resolve to step identifiers.
+/// Returns `None` when endpoints are invalid, role-illegal, refer to the same
+/// step, or do not resolve to step identifiers.
 pub fn data_flow_step_dependency(
     contract: &PipelineContract,
     from: &str,
     to: &str,
 ) -> Option<(String, String)> {
     if !data_flow_endpoint_known(contract, from) || !data_flow_endpoint_known(contract, to) {
+        return None;
+    }
+    if !is_valid_flow_source(from) || !is_valid_flow_destination(to) {
         return None;
     }
 
@@ -189,5 +247,20 @@ dataFlow:
             data_flow_step_dependency(&contract, "steps.a.outputs.out", "steps.a.inputs.in")
                 .is_none()
         );
+    }
+
+    #[test]
+    fn classifies_endpoint_roles() {
+        assert_eq!(
+            endpoint_role("interface.inputs.raw"),
+            Some(EndpointRole::InterfaceInput)
+        );
+        assert_eq!(
+            endpoint_role("steps.a.outputs.out"),
+            Some(EndpointRole::StepOutput)
+        );
+        assert!(is_valid_flow_source("steps.a.outputs.out"));
+        assert!(!is_valid_flow_source("steps.a.inputs.in"));
+        assert!(is_valid_flow_destination("steps.a.inputs.in"));
     }
 }

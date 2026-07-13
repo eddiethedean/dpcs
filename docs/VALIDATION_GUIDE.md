@@ -30,6 +30,8 @@ accumulated, then sorted deterministically.
 - every `dataFlow` entry declares a non-empty `dataset` (`DPCS-DF-004`)
 - declared step inputs and interface outputs have incoming data flows (`DPCS-DF-006`)
 - datasets are reachable from interface inputs (`DPCS-DF-005`)
+- data-flow sources are interface inputs or step outputs (`DPCS-DF-007`)
+- data-flow destinations are step inputs or interface outputs (`DPCS-DF-008`)
 - valid control-flow step dependencies; no opposite-direction conflicts with graph/data flow (`DPCS-CF-004`)
 - no duplicate control-flow edges (`DPCS-CF-005`)
 
@@ -43,6 +45,8 @@ accumulated, then sorted deterministically.
 | `DPCS-DF-004` | Missing data-flow dataset identity |
 | `DPCS-DF-005` | Unreachable dataset |
 | `DPCS-DF-006` | Unsatisfied step input / interface output |
+| `DPCS-DF-007` | Illegal data-flow source role |
+| `DPCS-DF-008` | Illegal data-flow destination role |
 | `DPCS-CF-004` | Conflicting control vs graph/data dependency |
 | `DPCS-CF-005` | Duplicate control-flow edge |
 
