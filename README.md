@@ -1,5 +1,11 @@
 # DPCS
 
+[![CI](https://github.com/eddiethedean/dpcs/actions/workflows/ci.yml/badge.svg)](https://github.com/eddiethedean/dpcs/actions/workflows/ci.yml)
+[![crates.io](https://img.shields.io/crates/v/dpcs.svg)](https://crates.io/crates/dpcs)
+[![docs.rs](https://img.shields.io/docsrs/dpcs)](https://docs.rs/dpcs)
+[![MSRV](https://img.shields.io/crates/msrv/dpcs)](https://crates.io/crates/dpcs)
+[![License](https://img.shields.io/crates/l/dpcs.svg)](#license)
+
 Reference implementation of the **Data Pipeline Contract Standard (DPCS)**.
 
 `dpcs` is a Rust-first toolkit for parsing, inspecting, and validating portable,
