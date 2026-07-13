@@ -23,6 +23,5 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Publish to crates.io
         env:
-          # Secret name matches project convention; value must be a crates.io API token.
-          CARGO_REGISTRY_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: cargo publish --locked
