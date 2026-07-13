@@ -21,6 +21,7 @@ are intentionally out of scope until roadmap 0.8.0. See [`ROADMAP.md`](ROADMAP.m
 | Spec version | `1.0.0-draft` |
 | Language | Rust 2021 (MSRV 1.74) |
 | License | Apache-2.0 OR MIT |
+| Release focus | Canonical Object Model (SPEC Ch 1–4) |
 
 ## Quick start
 
@@ -28,6 +29,8 @@ are intentionally out of scope until roadmap 0.8.0. See [`ROADMAP.md`](ROADMAP.m
 
 ```bash
 cargo install --path .
+# or, after crates.io publish:
+# cargo install dpcs --version 0.2.0
 ```
 
 ### Validate a pipeline contract

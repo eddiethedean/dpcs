@@ -45,3 +45,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pipeline Plan and capability-model skeletons
 - `dpcs` CLI: `validate`, `inspect`, `diagnostics`, `graph`, `version`
 - Examples, fixtures, CI, and contributor documentation
+
+[0.2.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.2.0
+[0.1.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.1.0

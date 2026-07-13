@@ -16,7 +16,7 @@ stable public API where practical.
 
 ------------------------------------------------------------------------
 
-# 0.1.0 --- Project Foundation
+# 0.1.0 --- Project Foundation (shipped)
 
 ## Goals
 
@@ -37,7 +37,7 @@ stable public API where practical.
 
 ------------------------------------------------------------------------
 
-# 0.2.0 --- Canonical Object Model
+# 0.2.0 --- Canonical Object Model (shipped)
 
 Implements Chapters 1--4.
 

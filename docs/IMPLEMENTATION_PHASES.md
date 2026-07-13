@@ -8,7 +8,7 @@
 - Add CLI binary.
 - Add fixtures.
 
-## Phase 2 — Canonical Object Model
+## Phase 2 — Canonical Object Model (complete in 0.2.0)
 
 Implement the DPCS COM core (ROADMAP 0.2.0, SPEC Ch 1–4):
 
