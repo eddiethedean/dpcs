@@ -1,8 +1,8 @@
 //! Control flow model.
 
-use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+use super::ExtensionMap;
 
 /// Declared control dependency between pipeline elements.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -17,5 +17,5 @@ pub struct ControlFlow {
     pub kind: Option<String>,
     /// Extension fields.
     #[serde(default, flatten)]
-    pub extensions: IndexMap<String, Value>,
+    pub extensions: ExtensionMap,
 }

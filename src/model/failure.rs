@@ -1,8 +1,8 @@
 //! Failure semantics model.
 
-use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+use super::ExtensionMap;
 
 /// Declared failure behavior for a pipeline scope.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -18,5 +18,5 @@ pub struct FailureSemantics {
     pub on_failure: Option<String>,
     /// Extension fields.
     #[serde(default, flatten)]
-    pub extensions: IndexMap<String, Value>,
+    pub extensions: ExtensionMap,
 }

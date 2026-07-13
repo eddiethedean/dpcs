@@ -3,13 +3,23 @@ id: "customer.pipeline"
 name: "Customer Pipeline"
 version: "0.1.0"
 
+metadata:
+  description: "Example customer normalization pipeline"
+  owner: "data-platform"
+
 interface:
+  metadata:
+    description: "External customer data boundary"
   inputs:
     - id: "customer_raw"
+      name: "Customer Raw"
       contractRef: "contracts/customer_raw.odcs.yaml"
+      purpose: "Raw customer dataset input"
   outputs:
     - id: "customer_clean"
+      name: "Customer Clean"
       contractRef: "contracts/customer_clean.odcs.yaml"
+      purpose: "Cleaned customer dataset output"
 
 contractReferences:
   - id: "customer_raw_contract"

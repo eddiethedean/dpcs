@@ -1,6 +1,9 @@
 # Canonical Object Model Guide
 
-Initial root type sketch:
+The Canonical Object Model (COM) is the serialization-independent representation
+of a DPCS Pipeline Contract (SPEC Ch 3).
+
+## Root type
 
 ```rust
 pub struct PipelineContract {
@@ -20,8 +23,90 @@ pub struct PipelineContract {
     pub quality_gates: Vec<QualityGate>,
     pub failure_semantics: Vec<FailureSemantics>,
     pub lineage: Option<PipelineLineage>,
-    pub extensions: IndexMap<String, serde_json::Value>,
+    pub compatibility: Option<CompatibilityPolicy>,
+    pub extensions: ExtensionMap,
 }
 ```
 
-This is a starting sketch. `SPEC.md` is authoritative.
+`SPEC.md` is authoritative. When the specification and this guide differ, follow
+the specification.
+
+## Serialization independence
+
+COM types are the canonical in-memory representation. Serde attributes exist at
+the wire boundary so YAML and JSON documents deserialize into the same COM values.
+
+Extension fields use [`ExtensionValue`](../../src/model/extension_value.rs) and
+[`ExtensionMap`](../../src/model/extension_value.rs), not `serde_json::Value`.
+Conversions to and from JSON-shaped values happen only at parse/serialize time.
+
+## Identity model
+
+Every addressable COM object possesses a stable identifier within the contract
+(SPEC Ch 3 §5).
+
+| Type | Purpose |
+| --- | --- |
+| `ObjectId` | Non-empty stable identifier newtype |
+| `PipelineIdentity` | Root pipeline identity (`id`, `version`, `dpcsVersion`, `name`) |
+| `ObjectKind` | Kind of addressable object (step, interface port, …) |
+| `ObjectPath` | Deterministic path (`interface.inputs.<id>`, `steps.<id>`, …) |
+| `IdentityCatalog` | Catalog of all addressable objects in a contract |
+
+```rust
+let contract = PipelineContract::from_yaml_file("pipeline.dpcs.yaml")?;
+let identity = contract.identity();
+let catalog = contract.identity_catalog();
+```
+
+## Pipeline interface
+
+Every contract defines exactly one [`PipelineInterface`] (SPEC Ch 4 §3).
+
+Each [`InterfacePort`] SHALL possess:
+
+- a stable identifier (`id`)
+- an interface name (`name`)
+- a declared contract reference (`contractRef`)
+- a logical purpose (`purpose`)
+
+Ports deserialize with optional fields for ergonomics. COM invariant validation
+reports missing properties using `canonicalObjectModel` diagnostics.
+
+```rust
+contract.interface.input("customer_raw");
+contract.interface.output("customer_clean");
+contract.interface.all_ports();
+```
+
+## Metadata
+
+DPCS names metadata as a root and interface slot. This crate provides an initial
+profile on [`Metadata`]:
+
+- `description`
+- `owner`
+- `tags`
+- extension fields
+
+Additional metadata MAY be supplied through extension fields.
+
+## COM validation
+
+COM invariants run as the first validation phase after document checks:
+
+1. Pipeline identity completeness
+2. Addressable object identifier presence and uniqueness
+3. Interface port completeness
+4. Extension key collision with reserved root fields
+
+Later validation phases (structural, graph, references, flows) build on the COM.
+
+## Roadmap note
+
+Graph, step, flow, execution, and capability depth are intentionally thin in
+0.2.0. See [`ROADMAP.md`](../ROADMAP.md) for 0.4+ deliverables.
+
+[`PipelineInterface`]: ../../src/model/interface.rs
+[`InterfacePort`]: ../../src/model/interface.rs
+[`Metadata`]: ../../src/model/metadata.rs

@@ -1,8 +1,8 @@
 //! Execution requirements model.
 
-use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+use super::ExtensionMap;
 
 /// Declared execution requirements for a Pipeline Contract.
 ///
@@ -16,5 +16,5 @@ pub struct ExecutionRequirements {
     pub required_capabilities: Vec<String>,
     /// Extension fields.
     #[serde(default, flatten)]
-    pub extensions: IndexMap<String, Value>,
+    pub extensions: ExtensionMap,
 }

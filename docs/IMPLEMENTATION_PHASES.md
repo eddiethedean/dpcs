@@ -10,10 +10,18 @@
 
 ## Phase 2 — Canonical Object Model
 
-Implement the DPCS COM:
+Implement the DPCS COM core (ROADMAP 0.2.0, SPEC Ch 1–4):
 
 - PipelineContract
 - PipelineInterface
+- Metadata
+- Identity model (`ObjectId`, `PipelineIdentity`, `IdentityCatalog`, …)
+- Serialization-independent COM (`ExtensionValue`, `ExtensionMap`)
+- COM invariant validation
+
+The following COM slots are present as thin placeholders in 0.2.0 and are
+deepened in ROADMAP 0.4.0:
+
 - PipelineGraph
 - PipelineStep
 - ContractReference

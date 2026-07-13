@@ -1,8 +1,8 @@
 //! Pipeline lineage model.
 
-use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+use super::ExtensionMap;
 
 /// Declared lineage information for a Pipeline Contract.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
@@ -16,5 +16,5 @@ pub struct PipelineLineage {
     pub downstream: Vec<String>,
     /// Extension fields.
     #[serde(default, flatten)]
-    pub extensions: IndexMap<String, Value>,
+    pub extensions: ExtensionMap,
 }

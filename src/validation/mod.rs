@@ -1,5 +1,6 @@
 //! Phase-based validation for Pipeline Contracts.
 
+mod com;
 mod control_flow;
 mod data_flow;
 mod document;

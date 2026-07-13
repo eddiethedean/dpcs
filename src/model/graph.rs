@@ -1,8 +1,8 @@
 //! Pipeline graph model.
 
-use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+use super::ExtensionMap;
 
 /// Directed graph describing step relationships.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
@@ -13,7 +13,7 @@ pub struct PipelineGraph {
     pub edges: Vec<GraphEdge>,
     /// Extension fields.
     #[serde(default, flatten)]
-    pub extensions: IndexMap<String, Value>,
+    pub extensions: ExtensionMap,
 }
 
 /// A single directed edge in the pipeline graph.
@@ -29,5 +29,5 @@ pub struct GraphEdge {
     pub kind: Option<String>,
     /// Extension fields.
     #[serde(default, flatten)]
-    pub extensions: IndexMap<String, Value>,
+    pub extensions: ExtensionMap,
 }

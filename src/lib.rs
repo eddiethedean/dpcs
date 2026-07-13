@@ -39,7 +39,10 @@ pub mod cli;
 
 pub use diagnostics::{Diagnostic, DiagnosticStage, Severity, ValidationReport};
 pub use error::{Error, Result};
-pub use model::PipelineContract;
+pub use model::{
+    ExtensionMap, ExtensionValue, IdentityCatalog, InterfacePort, Metadata, ObjectId, ObjectKind,
+    ObjectPath, PipelineContract, PipelineIdentity, PipelineInterface,
+};
 pub use parser::{parse_json, parse_json_file, parse_yaml, parse_yaml_file};
 pub use validation::validate;
 

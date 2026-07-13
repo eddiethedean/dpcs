@@ -1,8 +1,8 @@
 //! Quality gate model.
 
-use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+use super::ExtensionMap;
 
 /// Quality gate attached to a pipeline, step, or interface.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -18,5 +18,5 @@ pub struct QualityGate {
     pub rule: Option<String>,
     /// Extension fields.
     #[serde(default, flatten)]
-    pub extensions: IndexMap<String, Value>,
+    pub extensions: ExtensionMap,
 }

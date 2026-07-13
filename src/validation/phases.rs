@@ -4,7 +4,8 @@ use crate::diagnostics::ValidationReport;
 use crate::model::PipelineContract;
 
 use super::{
-    control_flow, data_flow, document, extensions, failure, graph, quality, references, structural,
+    com, control_flow, data_flow, document, extensions, failure, graph, quality, references,
+    structural,
 };
 
 /// Validate a Pipeline Contract using the DPCS phase model.
@@ -15,6 +16,7 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
     let mut report = ValidationReport::new();
 
     report.extend(document::validate(contract));
+    report.extend(com::validate(contract));
     report.extend(structural::validate(contract));
     report.extend(graph::validate(contract));
     report.extend(references::validate(contract));

@@ -1,8 +1,8 @@
 //! Compatibility policy model.
 
-use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+use super::ExtensionMap;
 
 /// Declared compatibility policy for a Pipeline Contract.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
@@ -13,5 +13,5 @@ pub struct CompatibilityPolicy {
     pub mode: Option<String>,
     /// Extension fields.
     #[serde(default, flatten)]
-    pub extensions: IndexMap<String, Value>,
+    pub extensions: ExtensionMap,
 }

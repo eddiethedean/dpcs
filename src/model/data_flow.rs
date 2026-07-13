@@ -1,8 +1,8 @@
 //! Data flow model.
 
-use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+use super::ExtensionMap;
 
 /// Declared movement of data between addressable endpoints.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -17,5 +17,5 @@ pub struct DataFlow {
     pub dataset: Option<String>,
     /// Extension fields.
     #[serde(default, flatten)]
-    pub extensions: IndexMap<String, Value>,
+    pub extensions: ExtensionMap,
 }

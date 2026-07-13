@@ -17,7 +17,7 @@ are intentionally out of scope for `0.1.x`. See [`ROADMAP.md`](ROADMAP.md).
 
 | Item | Value |
 | --- | --- |
-| Crate version | `0.1.0` |
+| Crate version | `0.2.0` |
 | Spec version | `1.0.0-draft` |
 | Language | Rust 2021 (MSRV 1.74) |
 | License | Apache-2.0 OR MIT |

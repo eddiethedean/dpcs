@@ -1,8 +1,8 @@
 //! Pipeline step model.
 
-use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+use super::ExtensionMap;
 
 /// Logical unit of work within a Pipeline Contract.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -30,7 +30,7 @@ pub struct PipelineStep {
     pub outputs: Vec<StepPort>,
     /// Extension fields.
     #[serde(default, flatten)]
-    pub extensions: IndexMap<String, Value>,
+    pub extensions: ExtensionMap,
 }
 
 /// Input or output port declared on a pipeline step.
@@ -44,5 +44,5 @@ pub struct StepPort {
     pub contract_ref: Option<String>,
     /// Extension fields.
     #[serde(default, flatten)]
-    pub extensions: IndexMap<String, Value>,
+    pub extensions: ExtensionMap,
 }

@@ -103,10 +103,7 @@ x-vendor:
   team: data-platform
 "#;
     let contract = parse_yaml(input).unwrap();
-    assert_eq!(
-        contract.extensions["x-vendor"]["team"],
-        serde_json::json!("data-platform")
-    );
+    assert_eq!(contract.extensions["x-vendor"]["team"], "data-platform");
     assert!(validate(&contract).is_valid());
 }
 

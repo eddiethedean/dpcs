@@ -1,8 +1,8 @@
 //! Scheduling intent model.
 
-use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+use super::ExtensionMap;
 
 /// Declared scheduling intent for a Pipeline Contract.
 ///
@@ -18,5 +18,5 @@ pub struct SchedulingIntent {
     pub timezone: Option<String>,
     /// Extension fields.
     #[serde(default, flatten)]
-    pub extensions: IndexMap<String, Value>,
+    pub extensions: ExtensionMap,
 }

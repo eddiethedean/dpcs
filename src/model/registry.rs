@@ -1,8 +1,8 @@
 //! Registry model skeleton.
 
-use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+use super::ExtensionMap;
 
 /// Reference to an external DPCS registry entry.
 ///
@@ -18,5 +18,5 @@ pub struct RegistryReference {
     pub artifact_id: Option<String>,
     /// Extension fields.
     #[serde(default, flatten)]
-    pub extensions: IndexMap<String, Value>,
+    pub extensions: ExtensionMap,
 }

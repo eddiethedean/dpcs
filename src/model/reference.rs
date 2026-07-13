@@ -1,8 +1,8 @@
 //! Contract reference model.
 
-use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+use super::ExtensionMap;
 
 /// Reference to an external contract artifact.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -20,5 +20,5 @@ pub struct ContractReference {
     pub version: Option<String>,
     /// Extension fields.
     #[serde(default, flatten)]
-    pub extensions: IndexMap<String, Value>,
+    pub extensions: ExtensionMap,
 }

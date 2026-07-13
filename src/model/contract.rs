@@ -1,13 +1,13 @@
 //! Root Pipeline Contract object.
 
-use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+use super::ExtensionMap;
 
 use super::{
     CompatibilityPolicy, ContractReference, ControlFlow, DataFlow, ExecutionRequirements,
-    FailureSemantics, Metadata, PipelineGraph, PipelineInterface, PipelineLineage, PipelineStep,
-    QualityGate, SchedulingIntent,
+    FailureSemantics, IdentityCatalog, Metadata, PipelineGraph, PipelineIdentity,
+    PipelineInterface, PipelineLineage, PipelineStep, QualityGate, SchedulingIntent,
 };
 use crate::diagnostics::ValidationReport;
 use crate::error::Result;
@@ -67,7 +67,7 @@ pub struct PipelineContract {
     pub compatibility: Option<CompatibilityPolicy>,
     /// Extension fields preserved from the source document.
     #[serde(default, flatten)]
-    pub extensions: IndexMap<String, Value>,
+    pub extensions: ExtensionMap,
 }
 
 impl PipelineContract {
@@ -94,5 +94,20 @@ impl PipelineContract {
     /// Validate this contract and return a deterministic report.
     pub fn validate(&self) -> ValidationReport {
         validation::validate(self)
+    }
+
+    /// Returns pipeline-level identity extracted from this contract.
+    pub fn identity(&self) -> PipelineIdentity {
+        PipelineIdentity {
+            id: self.id.clone().into(),
+            version: self.version.clone().into(),
+            dpcs_version: self.dpcs_version.clone().into(),
+            name: self.name.clone(),
+        }
+    }
+
+    /// Builds a catalog of addressable objects within this contract.
+    pub fn identity_catalog(&self) -> IdentityCatalog {
+        IdentityCatalog::from_contract(self)
     }
 }

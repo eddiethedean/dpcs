@@ -1,28 +1,12 @@
 //! Extension validation phase.
+//!
+//! Reserved-field collision checks run in the Canonical Object Model phase.
+//! This phase is reserved for future extension-structure validation.
 
-use crate::diagnostics::{categories, Diagnostic, ValidationReport};
-use crate::model::{is_reserved_root_field, PipelineContract};
+use crate::diagnostics::ValidationReport;
+use crate::model::PipelineContract;
 
 /// Validate extension field namespaces.
-///
-/// Extension keys that collide with reserved root fields are rejected. Other
-/// extension fields are preserved and accepted in this release.
-pub fn validate(contract: &PipelineContract) -> ValidationReport {
-    let mut report = ValidationReport::new();
-
-    for key in contract.extensions.keys() {
-        if is_reserved_root_field(key) {
-            report.push(
-                Diagnostic::error(
-                    "DPCS-EXT-001",
-                    categories::EXTENSION,
-                    format!("extension key `{key}` collides with a reserved root field"),
-                )
-                .with_object_ref(key.clone())
-                .with_remediation("Use a namespaced extension key such as `x-vendor.field`"),
-            );
-        }
-    }
-
-    report
+pub fn validate(_contract: &PipelineContract) -> ValidationReport {
+    ValidationReport::new()
 }

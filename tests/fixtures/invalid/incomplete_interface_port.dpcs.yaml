@@ -1,0 +1,11 @@
+dpcsVersion: "1.0.0"
+id: "invalid.incomplete.interface"
+version: "0.1.0"
+interface:
+  inputs:
+    - id: "customer_raw"
+      contractRef: "contracts/customer_raw.odcs.yaml"
+  outputs: []
+steps: []
+graph:
+  edges: []
