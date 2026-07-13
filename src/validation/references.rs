@@ -84,12 +84,27 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
         }
     }
 
+    for (index, flow) in contract.data_flow.iter().enumerate() {
+        if let Some(contract_ref) = &flow.contract_ref {
+            if !looks_like_path(contract_ref) && !known_refs.contains(contract_ref.as_str()) {
+                report.push(
+                    Diagnostic::error(
+                        "DPCS-REF-003",
+                        categories::REFERENCE,
+                        format!("data flow references unknown contract `{contract_ref}`"),
+                    )
+                    .with_object_ref(format!("dataFlow[{index}].contractRef"))
+                    .with_remediation(
+                        "Declare the contract under contractReferences or use a direct location",
+                    ),
+                );
+            }
+        }
+    }
+
     report
 }
 
 fn looks_like_path(value: &str) -> bool {
     value.contains('/')
-        || value.ends_with(".yaml")
-        || value.ends_with(".yml")
-        || value.ends_with(".json")
 }

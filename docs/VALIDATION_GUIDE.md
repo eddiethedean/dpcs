@@ -8,7 +8,7 @@ and does not panic on invalid contracts.
 1. Document — unsupported `dpcsVersion` warnings (`DPCS-DOC-002`)
 2. Canonical Object Model — identity, uniqueness, interface completeness, reserved extension keys
 3. Structural — remaining shape (for example empty step `type`)
-4. Graph — edges, cycles, duplicate edges, unreachable steps
+4. Graph — edges, cycles, duplicate edges, unreachable steps, entry/exit point integrity
 5. References — resolvable contract references
 6. Data Flow — endpoint validity against declared ports
 7. Control Flow — step dependency endpoints
@@ -22,8 +22,9 @@ and does not panic on invalid contracts.
 - unique interface port ids across inputs and outputs
 - complete interface ports (`name`, `contractRef`, `purpose`) when ports are present
 - valid graph edges and no prohibited cycles
+- graph entry and exit points reference declared steps (`DPCS-GRP-007`, `DPCS-GRP-008`)
 - no duplicate graph edges (`DPCS-GRP-005`)
-- no unreachable steps when entry points are declared (`DPCS-GRP-006`)
+- no unreachable steps from declared entry points or indegree-zero roots (`DPCS-GRP-006`)
 - resolvable contract references
 - valid data-flow endpoints (exact declared step ports; implicit ports when undeclared)
 - valid control-flow step dependencies

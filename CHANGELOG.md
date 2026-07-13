@@ -13,7 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `PipelineGraph` fields: `entryPoints`, `exitPoints`, `metadata`
 - `DataFlow::contract_ref` for associated contract references
 - `PipelineStep::input_port` / `output_port`, `ContractReference::matches_id`, `PipelineContract::step_ids`
-- Graph diagnostics `DPCS-GRP-005` (duplicate edges) and `DPCS-GRP-006` (unreachable steps)
+- Graph diagnostics `DPCS-GRP-005`–`DPCS-GRP-008` (duplicate edges, unreachable steps, invalid entry/exit points)
+- Shared data-flow endpoint resolution for validation and dependency analysis
 - Re-export graph analysis and COM types from crate root (`DependencyGraph`, `PipelineGraph`, `PipelineStep`, …)
 - Fixtures and integration tests for graph analysis and new validation rules
 
@@ -22,6 +23,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Graph validation uses `DependencyGraph` for cycle and reachability analysis
 - `plan::plan` uses topological ordering when the dependency graph is acyclic
 - CLI `graph` includes `entryPoints` and `exitPoints` in text and JSON output
+- `DPCS_SPEC_VERSION` aligned with the draft specification label (`1.0.0-draft`)
+
+### Fixed
+
+- Data-flow graph analysis only adds inter-step edges for validated endpoints, avoiding false cycles and missed unreachable steps
+- Invalid `graph.entryPoints` / `graph.exitPoints` are reported (`DPCS-GRP-007`, `DPCS-GRP-008`) instead of being silently ignored
+- `plan::plan` preserves declaration order for steps omitted from topological ordering
+- `dataFlow[].contractRef` is validated against `contractReferences`
+- Bare filename `contractRef` values (for example `bogus.yaml`) are no longer treated as direct paths
+- `DPCS-GRP-006` is suppressed when a cycle is already reported; unreachable messaging distinguishes entry points from roots
+- Cycle diagnostics reference graph, control flow, and data flow sources
+- `find_cycle` returns a minimal cycle path
 
 ## [0.3.0] - 2026-07-13
 
@@ -92,6 +105,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `dpcs` CLI: `validate`, `inspect`, `diagnostics`, `graph`, `version`
 - Examples, fixtures, CI, and contributor documentation
 
+[0.4.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.4.0
 [0.3.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.3.0
 [0.2.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.2.0
 [0.1.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.1.0

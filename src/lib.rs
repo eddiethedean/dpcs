@@ -54,4 +54,4 @@ pub use validation::validate;
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Supported DPCS specification version for this release.
-pub const DPCS_SPEC_VERSION: &str = "1.0.0";
+pub const DPCS_SPEC_VERSION: &str = "1.0.0-draft";

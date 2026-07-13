@@ -8,6 +8,44 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
     let mut report = ValidationReport::new();
     let step_ids = contract.step_ids();
 
+    for (index, point) in contract.graph.entry_points.iter().enumerate() {
+        if point.trim().is_empty() {
+            continue;
+        }
+        if !step_ids.contains(point.as_str()) {
+            report.push(
+                Diagnostic::error(
+                    "DPCS-GRP-007",
+                    categories::GRAPH,
+                    format!("graph entry point references unknown step `{point}`"),
+                )
+                .with_object_ref(format!("graph.entryPoints[{index}]"))
+                .with_remediation(
+                    "Declare graph.entryPoints that refer to declared step identifiers",
+                ),
+            );
+        }
+    }
+
+    for (index, point) in contract.graph.exit_points.iter().enumerate() {
+        if point.trim().is_empty() {
+            continue;
+        }
+        if !step_ids.contains(point.as_str()) {
+            report.push(
+                Diagnostic::error(
+                    "DPCS-GRP-008",
+                    categories::GRAPH,
+                    format!("graph exit point references unknown step `{point}`"),
+                )
+                .with_object_ref(format!("graph.exitPoints[{index}]"))
+                .with_remediation(
+                    "Declare graph.exitPoints that refer to declared step identifiers",
+                ),
+            );
+        }
+    }
+
     for (index, edge) in contract.graph.edges.iter().enumerate() {
         let object_ref = format!("graph.edges[{index}]");
 
@@ -64,8 +102,10 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
     }
 
     let dependency_graph = DependencyGraph::from_contract(contract);
+    let cycle = dependency_graph.find_cycle();
+    let has_cycle = cycle.is_some();
 
-    if let Some(cycle) = dependency_graph.find_cycle() {
+    if let Some(cycle) = cycle {
         let cycle_node = cycle.first().cloned().unwrap_or_default();
         report.push(
             Diagnostic::error(
@@ -74,21 +114,33 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
                 format!("pipeline graph contains a prohibited cycle involving `{cycle_node}`"),
             )
             .with_object_ref("graph")
-            .with_remediation("Remove cyclic dependencies from graph.edges"),
+            .with_remediation(
+                "Remove cyclic dependencies from graph.edges, controlFlow, or dataFlow",
+            ),
         );
     }
 
-    let unreachable = dependency_graph.unreachable_steps(contract);
-    for step_id in unreachable {
-        report.push(
-            Diagnostic::error(
-                "DPCS-GRP-006",
-                categories::GRAPH,
-                format!("pipeline step `{step_id}` is unreachable from graph entry points"),
-            )
-            .with_object_ref(format!("steps.{step_id}"))
-            .with_remediation("Declare graph.entryPoints or add edges so every step is reachable"),
-        );
+    if !has_cycle {
+        let has_declared_entry_points = contract
+            .graph
+            .entry_points
+            .iter()
+            .any(|id| !id.trim().is_empty());
+        let unreachable = dependency_graph.unreachable_steps(contract);
+        for step_id in unreachable {
+            let message = if has_declared_entry_points {
+                format!("pipeline step `{step_id}` is unreachable from graph entry points")
+            } else {
+                format!("pipeline step `{step_id}` is unreachable from graph roots")
+            };
+            report.push(
+                Diagnostic::error("DPCS-GRP-006", categories::GRAPH, message)
+                    .with_object_ref(format!("steps.{step_id}"))
+                    .with_remediation(
+                        "Declare graph.entryPoints or add edges so every step is reachable",
+                    ),
+            );
+        }
     }
 
     report

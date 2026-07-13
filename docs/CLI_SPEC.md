@@ -34,5 +34,5 @@ Notes:
 
 - `validate` and `diagnostics` use the exit codes above.
 - Invalid YAML/JSON documents emit Parse-stage diagnostics (`DPCS-PARSE-*`) and exit `2`. With `--json`, the diagnostic report is printed to stdout for `validate`, `diagnostics`, `inspect`, and `graph`.
-- `inspect` and `graph` always exit `0` after a successful parse; validity is reported in the output (`valid` field / summary) and does not change the exit code.
+- `inspect` and `graph` always exit `0` after a successful parse and do not fail on validation errors. `inspect` reports `valid` in the summary; `graph` prints topology/`stepOrder` even when the contract would fail `validate`.
 - JSON serialization failures for reports exit with code `2`.

@@ -1,0 +1,22 @@
+dpcsVersion: "1.0.0"
+id: "invalid.unresolved.data.flow.ref"
+version: "0.1.0"
+interface:
+  inputs: []
+  outputs: []
+steps:
+  - id: "a"
+    type: "extension:noop"
+    inputs: [{ id: "in" }]
+    outputs: [{ id: "out" }]
+  - id: "b"
+    type: "extension:noop"
+    inputs: [{ id: "in" }]
+    outputs: [{ id: "out" }]
+graph:
+  edges: []
+dataFlow:
+  - from: "steps.a.outputs.out"
+    to: "steps.b.inputs.in"
+    dataset: "ds"
+    contractRef: "missing_ref"

@@ -1,0 +1,17 @@
+dpcsVersion: "1.0.0"
+id: "invalid.entry.point"
+version: "0.1.0"
+interface:
+  inputs: []
+  outputs: []
+steps:
+  - id: "step_a"
+    type: "extension:noop"
+  - id: "step_b"
+    type: "extension:noop"
+graph:
+  entryPoints:
+    - "missing"
+  edges:
+    - from: "step_a"
+      to: "step_b"

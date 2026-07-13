@@ -5,7 +5,7 @@
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
-use super::PipelineContract;
+use super::{data_flow_step_dependency, PipelineContract};
 
 /// A directed step dependency graph derived from a Pipeline Contract.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -83,13 +83,10 @@ impl DependencyGraph {
             if flow.from.trim().is_empty() || flow.to.trim().is_empty() {
                 continue;
             }
-            if let (Some(from_step), Some(to_step)) = (
-                step_id_from_endpoint(&flow.from),
-                step_id_from_endpoint(&flow.to),
-            ) {
-                if step_ids.contains(from_step.as_str()) && step_ids.contains(to_step.as_str()) {
-                    graph.add_edge(&from_step, &to_step);
-                }
+            if let Some((from_step, to_step)) =
+                data_flow_step_dependency(contract, &flow.from, &flow.to)
+            {
+                graph.add_edge(&from_step, &to_step);
             }
         }
 
@@ -231,23 +228,33 @@ impl DependencyGraph {
 
     /// Returns step identifiers not reachable from declared entry points or indegree-zero roots.
     pub fn unreachable_steps(&self, contract: &PipelineContract) -> BTreeSet<String> {
-        let declared: BTreeSet<String> = contract
+        let declared: Vec<String> = contract
             .graph
             .entry_points
             .iter()
-            .filter(|id| !id.trim().is_empty() && self.nodes.contains(id.as_str()))
+            .filter(|id| !id.trim().is_empty())
             .cloned()
             .collect();
 
-        let roots: Vec<String> = if declared.is_empty() {
+        let has_declared_entry_points = !declared.is_empty();
+        let valid_entry_points: BTreeSet<String> = declared
+            .into_iter()
+            .filter(|id| self.nodes.contains(id.as_str()))
+            .collect();
+
+        let roots: Vec<String> = if has_declared_entry_points {
+            valid_entry_points.into_iter().collect()
+        } else {
             self.nodes
                 .iter()
                 .filter(|node| self.predecessors(node).is_empty())
                 .cloned()
                 .collect()
-        } else {
-            declared.into_iter().collect()
         };
+
+        if roots.is_empty() {
+            return self.nodes.clone();
+        }
 
         let mut reachable = BTreeSet::new();
         for root in roots {
@@ -359,6 +366,9 @@ fn dfs_cycle(
         for next in nexts {
             match state.get(next).copied().unwrap_or(0) {
                 1 => {
+                    if let Some(pos) = path.iter().position(|node| node == next) {
+                        path.drain(0..pos);
+                    }
                     path.push(next.clone());
                     return true;
                 }

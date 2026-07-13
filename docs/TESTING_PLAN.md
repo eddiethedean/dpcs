@@ -18,6 +18,20 @@ Required test categories:
 - reserved colliding extensions omitted from wire serialization
 - CLI validate/inspect/graph malformed document with `--json` includes `"stage": "parse"`
 
+## Pipeline Graph (0.4.0)
+
+- dependency graph traversal, predecessors/successors, transitive deps
+- topological order stable across YAML key reorderings
+- cycle path detection
+- reject duplicate graph edges (`DPCS-GRP-005`)
+- reject unreachable steps (`DPCS-GRP-006`)
+- reject invalid entry/exit points (`DPCS-GRP-007`, `DPCS-GRP-008`)
+- invalid data-flow ports do not create spurious graph dependencies
+- cycles do not emit redundant unreachable-step diagnostics
+- plan preserves declaration-order steps omitted from topological order
+- CLI `graph --json` includes entry/exit points and step order
+- graph features round-trip (`entryPoints`, `exitPoints`, `dataFlow.contractRef`)
+
 ## Validation
 
 - reject duplicate step identifiers (`DPCS-COM-005`)
@@ -25,7 +39,7 @@ Required test categories:
 - reject incomplete interface ports (`DPCS-COM-006`–`DPCS-COM-011`)
 - reject invalid graph edges
 - reject prohibited cycles
-- reject unresolved contract references
+- reject unresolved contract references (including bare filenames and data-flow refs)
 - validate data flow endpoints (including declared step ports)
 - validate control flow dependencies
 - preserve root extension fields

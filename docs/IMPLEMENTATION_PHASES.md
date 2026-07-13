@@ -19,14 +19,11 @@ Implement the DPCS COM core (ROADMAP 0.2.0, SPEC Ch 1–4):
 - Serialization-independent COM (`ExtensionValue`, `ExtensionMap`)
 - COM invariant validation
 
-The following COM slots are present as thin placeholders in 0.2.0 and are
-deepened in ROADMAP 0.4.0:
+Pipeline graph slots were deepened in ROADMAP 0.4.0 (`PipelineGraph`,
+`PipelineStep`, `ContractReference`, `DataFlow`, `ControlFlow`, plus
+`DependencyGraph` analysis). Remaining COM placeholders for later roadmap
+items:
 
-- PipelineGraph
-- PipelineStep
-- ContractReference
-- DataFlow
-- ControlFlow
 - QualityGate
 - FailureSemantics
 - PipelineLineage
@@ -40,6 +37,13 @@ deepened in ROADMAP 0.4.0:
 - Extension preservation (root and nested)
 - Parse diagnostics (`DPCS-PARSE-001`, `DPCS-PARSE-002`)
 - Round-trip serialization (`to_yaml`, `to_json`) and tests
+
+## Phase 3.5 — Pipeline Graph (complete in 0.4.0)
+
+- PipelineGraph entry/exit points and metadata
+- DependencyGraph traversal, cycle detection, dependency analysis
+- Topological planning skeleton wired from DependencyGraph
+- Graph diagnostics `DPCS-GRP-001`–`DPCS-GRP-008`
 
 ## Phase 4 — Diagnostics
 

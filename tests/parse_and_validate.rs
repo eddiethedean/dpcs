@@ -86,6 +86,60 @@ fn rejects_unreachable_steps() {
 }
 
 #[test]
+fn rejects_invalid_entry_points() {
+    let contract = parse_yaml_file(fixture("invalid/invalid_entry_point.dpcs.yaml")).unwrap();
+    let report = validate(&contract);
+    assert!(!report.is_valid());
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-GRP-007"));
+}
+
+#[test]
+fn rejects_invalid_exit_points() {
+    let contract = parse_yaml_file(fixture("invalid/invalid_exit_point.dpcs.yaml")).unwrap();
+    let report = validate(&contract);
+    assert!(!report.is_valid());
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-GRP-008"));
+}
+
+#[test]
+fn rejects_bare_filename_contract_refs() {
+    let contract = parse_yaml_file(fixture("invalid/bogus_filename_ref.dpcs.yaml")).unwrap();
+    let report = validate(&contract);
+    assert!(!report.is_valid());
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-REF-003"));
+}
+
+#[test]
+fn rejects_unresolved_data_flow_contract_refs() {
+    let contract = parse_yaml_file(fixture("invalid/unresolved_data_flow_ref.dpcs.yaml")).unwrap();
+    let report = validate(&contract);
+    assert!(!report.is_valid());
+    assert!(report
+        .diagnostics
+        .iter()
+        .any(|d| d.id == "DPCS-REF-003"
+            && d.object_ref.as_deref() == Some("dataFlow[0].contractRef")));
+}
+
+#[test]
+fn invalid_step_ports_do_not_emit_spurious_graph_errors() {
+    let contract = parse_yaml_file(fixture("invalid/bad_step_port_endpoint.dpcs.yaml")).unwrap();
+    let report = validate(&contract);
+    assert!(!report.is_valid());
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-DF-002"));
+    assert!(!report.diagnostics.iter().any(|d| d.id == "DPCS-GRP-004"));
+    assert!(!report.diagnostics.iter().any(|d| d.id == "DPCS-GRP-006"));
+}
+
+#[test]
+fn cycles_do_not_emit_unreachable_step_noise() {
+    let contract = parse_yaml_file(fixture("invalid/cycle.dpcs.yaml")).unwrap();
+    let report = validate(&contract);
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-GRP-004"));
+    assert!(!report.diagnostics.iter().any(|d| d.id == "DPCS-GRP-006"));
+}
+
+#[test]
 fn rejects_unresolved_contract_references() {
     let contract = parse_yaml_file(fixture("invalid/unresolved_ref.dpcs.yaml")).unwrap();
     let report = validate(&contract);
