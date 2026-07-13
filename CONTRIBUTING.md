@@ -10,7 +10,18 @@ Thanks for helping build the DPCS reference implementation.
 4. Add a `TODO` referencing the relevant SPEC section when deferring behavior.
 5. Do not implement orchestrator binding or execution runtimes until roadmap 0.8.0.
 
-## Development setup
+## Releases
+
+Tagged releases use `.github/workflows/release.yml`:
+
+1. Push a version tag matching `v*.*.*` (for example `v0.2.0`).
+2. The release workflow runs the same CI checks as pull requests (`ci-checks.yml`).
+3. After checks pass, it publishes the Rust crate to crates.io.
+
+Store a **crates.io** API token in the repository secret named `PYPI_API_TOKEN`
+(the workflow maps it to `CARGO_REGISTRY_TOKEN`). Do not use a PyPI token here;
+this project does not publish a Python package yet.
+
 
 ```bash
 rustup toolchain install stable
