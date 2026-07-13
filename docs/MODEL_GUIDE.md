@@ -47,7 +47,7 @@ Every addressable COM object possesses a stable identifier within the contract
 
 | Type | Purpose |
 | --- | --- |
-| `ObjectId` | Non-empty stable identifier newtype |
+| `ObjectId` | Stable identifier newtype (`is_present()` reports emptiness) |
 | `PipelineIdentity` | Root pipeline identity (`id`, `version`, `dpcsVersion`, `name`) |
 | `ObjectKind` | Kind of addressable object (step, interface port, …) |
 | `ObjectPath` | Deterministic path (`interface.inputs.<id>`, `steps.<id>`, …) |

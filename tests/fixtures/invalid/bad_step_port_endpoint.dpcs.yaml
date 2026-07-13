@@ -1,0 +1,18 @@
+dpcsVersion: "1.0.0"
+id: "invalid.bad.step.port"
+version: "0.1.0"
+interface:
+  inputs: []
+  outputs: []
+steps:
+  - id: "step_a"
+    type: "extension:noop"
+    inputs:
+      - id: "in"
+    outputs:
+      - id: "out"
+graph:
+  edges: []
+dataFlow:
+  - from: "steps.step_a.inputs.missing"
+    to: "steps.step_a.outputs.out"

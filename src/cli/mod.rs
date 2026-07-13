@@ -5,7 +5,7 @@ use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
 
-use crate::diagnostics::{Severity, ValidationReport};
+use crate::diagnostics::ValidationReport;
 use crate::parser;
 use crate::plan;
 use crate::{validate, VERSION};
@@ -92,7 +92,7 @@ fn execute(cli: Cli) -> Result<u8, crate::Error> {
         Commands::Validate { path, json, strict } => {
             let contract = parser::parse_file(&path)?;
             let report = validate(&contract);
-            print_report(&report, json);
+            print_report(&report, json)?;
             Ok(exit_code_for_report(&report, strict))
         }
         Commands::Inspect { path, json } => {
@@ -134,7 +134,7 @@ fn execute(cli: Cli) -> Result<u8, crate::Error> {
         Commands::Diagnostics { path, json } => {
             let contract = parser::parse_file(&path)?;
             let report = validate(&contract);
-            print_report(&report, json);
+            print_report(&report, json)?;
             Ok(exit_code_for_report(&report, false))
         }
         Commands::Graph { path, json } => {
@@ -175,18 +175,18 @@ fn execute(cli: Cli) -> Result<u8, crate::Error> {
     }
 }
 
-fn print_report(report: &ValidationReport, json: bool) {
+fn print_report(report: &ValidationReport, json: bool) -> Result<(), crate::Error> {
     if json {
-        match serde_json::to_string_pretty(report) {
-            Ok(payload) => println!("{payload}"),
-            Err(err) => eprintln!("error: failed to serialize diagnostics: {err}"),
-        }
-        return;
+        let payload = serde_json::to_string_pretty(report).map_err(|err| {
+            crate::Error::Serialization(format!("failed to serialize diagnostics: {err}"))
+        })?;
+        println!("{payload}");
+        return Ok(());
     }
 
     if report.diagnostics.is_empty() {
         println!("valid: no diagnostics");
-        return;
+        return Ok(());
     }
 
     for diagnostic in &report.diagnostics {
@@ -209,6 +209,7 @@ fn print_report(report: &ValidationReport, json: bool) {
         report.error_count(),
         report.warning_count()
     );
+    Ok(())
 }
 
 fn exit_code_for_report(report: &ValidationReport, strict: bool) -> u8 {
@@ -218,15 +219,7 @@ fn exit_code_for_report(report: &ValidationReport, strict: bool) -> u8 {
     if strict && report.warning_count() > 0 {
         return EXIT_VALIDATION;
     }
-    if report
-        .diagnostics
-        .iter()
-        .any(|d| d.severity == Severity::Error)
-    {
-        EXIT_VALIDATION
-    } else {
-        EXIT_OK
-    }
+    EXIT_OK
 }
 
 #[derive(Debug, serde::Serialize)]

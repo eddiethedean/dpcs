@@ -61,25 +61,25 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
         }
     }
 
-    for port in contract
-        .interface
-        .inputs
-        .iter()
-        .chain(contract.interface.outputs.iter())
-    {
-        if let Some(contract_ref) = &port.contract_ref {
-            if !looks_like_path(contract_ref) && !known_refs.contains(contract_ref.as_str()) {
-                report.push(
-                    Diagnostic::error(
-                        "DPCS-REF-004",
-                        categories::REFERENCE,
-                        format!(
-                            "interface port `{}` references unknown contract `{}`",
-                            port.id, contract_ref
-                        ),
-                    )
-                    .with_object_ref(format!("interface.{}", port.id)),
-                );
+    for (side, ports) in [
+        ("inputs", contract.interface.inputs.as_slice()),
+        ("outputs", contract.interface.outputs.as_slice()),
+    ] {
+        for port in ports {
+            if let Some(contract_ref) = &port.contract_ref {
+                if !looks_like_path(contract_ref) && !known_refs.contains(contract_ref.as_str()) {
+                    report.push(
+                        Diagnostic::error(
+                            "DPCS-REF-004",
+                            categories::REFERENCE,
+                            format!(
+                                "interface port `{}` references unknown contract `{}`",
+                                port.id, contract_ref
+                            ),
+                        )
+                        .with_object_ref(format!("interface.{side}.{}", port.id)),
+                    );
+                }
             }
         }
     }

@@ -34,4 +34,8 @@ pub enum Error {
         /// Path with an unsupported extension.
         path: PathBuf,
     },
+
+    /// Failed to serialize diagnostics or CLI output.
+    #[error("{0}")]
+    Serialization(String),
 }

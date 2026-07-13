@@ -1,7 +1,7 @@
 //! Orchestrator binding framework.
 //!
 //! Binding adapters (Airflow, Dagster, Prefect, and others) are intentionally
-//! out of scope for 0.1.0. See roadmap 0.8.0.
+//! out of scope until roadmap 0.8.0.
 
 /// Placeholder for future orchestrator binding APIs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -41,7 +41,15 @@ fn rejects_duplicate_step_identifiers() {
     let contract = parse_yaml_file(fixture("invalid/duplicate_steps.dpcs.yaml")).unwrap();
     let report = validate(&contract);
     assert!(!report.is_valid());
-    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-STR-002"));
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-COM-005"));
+    assert_eq!(
+        report
+            .diagnostics
+            .iter()
+            .filter(|d| d.id == "DPCS-COM-005")
+            .count(),
+        1
+    );
 }
 
 #[test]
@@ -103,8 +111,29 @@ x-vendor:
   team: data-platform
 "#;
     let contract = parse_yaml(input).unwrap();
-    assert_eq!(contract.extensions["x-vendor"]["team"], "data-platform");
+    assert_eq!(
+        contract.extensions["x-vendor"]
+            .get("team")
+            .and_then(|v| v.as_str()),
+        Some("data-platform")
+    );
     assert!(validate(&contract).is_valid());
+}
+
+#[test]
+fn rejects_duplicate_interface_ports_across_sides() {
+    let contract = parse_yaml_file(fixture("invalid/duplicate_interface_ports.dpcs.yaml")).unwrap();
+    let report = validate(&contract);
+    assert!(!report.is_valid());
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-COM-013"));
+}
+
+#[test]
+fn rejects_undeclared_step_port_endpoints() {
+    let contract = parse_yaml_file(fixture("invalid/bad_step_port_endpoint.dpcs.yaml")).unwrap();
+    let report = validate(&contract);
+    assert!(!report.is_valid());
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-DF-002"));
 }
 
 #[test]

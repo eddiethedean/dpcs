@@ -11,7 +11,7 @@ DPCS Document -> Parser -> Canonical Object Model -> Validator -> Diagnostics
 ```
 
 Orchestrator binding, execution runtimes, and Airflow/Dagster/Prefect generation
-are intentionally out of scope for `0.1.x`. See [`ROADMAP.md`](ROADMAP.md).
+are intentionally out of scope until roadmap 0.8.0. See [`ROADMAP.md`](ROADMAP.md).
 
 ## Status
 

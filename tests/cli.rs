@@ -40,7 +40,7 @@ fn validate_failure_for_duplicates() {
         .assert()
         .failure()
         .code(1)
-        .stdout(predicate::str::contains("DPCS-STR-002"));
+        .stdout(predicate::str::contains("DPCS-COM-005"));
 }
 
 #[test]
@@ -71,5 +71,5 @@ fn diagnostics_json() {
         ])
         .assert()
         .failure()
-        .stdout(predicate::str::contains("DPCS-STR-002"));
+        .stdout(predicate::str::contains("DPCS-COM-005"));
 }

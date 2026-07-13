@@ -6,7 +6,7 @@ use crate::model::PipelineContract;
 
 /// Canonical intermediate representation produced from a validated contract.
 ///
-/// This is intentionally minimal in 0.1.0.
+/// This is intentionally minimal until roadmap 0.6.0.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PipelinePlan {

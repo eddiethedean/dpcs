@@ -44,6 +44,11 @@ impl ExtensionValue {
         }
     }
 
+    /// Returns a nested value by key when this value is an object.
+    pub fn get(&self, key: &str) -> Option<&ExtensionValue> {
+        self.as_object().and_then(|map| map.get(key))
+    }
+
     /// Returns the object map when this value is an object.
     pub fn as_object(&self) -> Option<&ExtensionMap> {
         match self {

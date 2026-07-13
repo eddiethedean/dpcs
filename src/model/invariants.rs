@@ -1,5 +1,7 @@
 //! COM invariant checks for the Canonical Object Model.
 
+use std::collections::BTreeSet;
+
 use crate::diagnostics::{categories, Diagnostic, DiagnosticStage, Severity, ValidationReport};
 use crate::model::{is_present_version, is_reserved_root_field, IdentityCatalog, PipelineContract};
 
@@ -9,6 +11,7 @@ pub fn validate_com_invariants(contract: &PipelineContract) -> ValidationReport 
 
     validate_pipeline_identity(contract, &mut report);
     validate_identity_catalog(contract, &mut report);
+    validate_interface_port_uniqueness(contract, &mut report);
     validate_interface_ports(contract, &mut report);
     validate_extension_keys(contract, &mut report);
 
@@ -75,19 +78,49 @@ fn validate_identity_catalog(contract: &PipelineContract, report: &mut Validatio
 
     for (kind, ids) in catalog.duplicate_ids_by_kind() {
         for id in ids {
+            let paths = catalog.paths_for_kind_and_id(kind, id.as_str());
+            let object_ref = paths
+                .first()
+                .map(|path| path.as_str().to_owned())
+                .unwrap_or_else(|| format!("{kind}.{id}"));
             report.push(
                 com_error(
                     "DPCS-COM-005",
                     format!("duplicate {} identifier `{}`", kind, id),
                 )
+                .with_object_ref(object_ref)
                 .with_remediation("Ensure identifiers are unique within their object kind"),
             );
         }
     }
 }
 
-fn is_missing_optional_string(value: &Option<String>) -> bool {
-    value.as_ref().map_or(true, |item| item.trim().is_empty())
+fn validate_interface_port_uniqueness(contract: &PipelineContract, report: &mut ValidationReport) {
+    if contract.interface.has_unique_port_ids() {
+        return;
+    }
+
+    let mut seen = BTreeSet::new();
+    for port in contract.interface.all_ports() {
+        if port.id.trim().is_empty() {
+            continue;
+        }
+        if !seen.insert(port.id.as_str()) {
+            report.push(
+                com_error(
+                    "DPCS-COM-013",
+                    format!(
+                        "duplicate interface port identifier `{}` across inputs and outputs",
+                        port.id
+                    ),
+                )
+                .with_object_ref(format!("interface.port.{}", port.id))
+                .with_remediation(
+                    "Ensure interface input and output identifiers are unique across the interface",
+                ),
+            );
+        }
+    }
 }
 
 fn validate_interface_ports(contract: &PipelineContract, report: &mut ValidationReport) {
@@ -98,7 +131,11 @@ fn validate_interface_ports(contract: &PipelineContract, report: &mut Validation
             format!("interface.inputs.{}", port.id)
         };
 
-        if is_missing_optional_string(&port.name) {
+        if port.is_complete() {
+            continue;
+        }
+
+        if port.name.as_ref().map_or(true, |v| v.trim().is_empty()) {
             report.push(
                 com_error(
                     "DPCS-COM-006",
@@ -109,7 +146,11 @@ fn validate_interface_ports(contract: &PipelineContract, report: &mut Validation
             );
         }
 
-        if is_missing_optional_string(&port.contract_ref) {
+        if port
+            .contract_ref
+            .as_ref()
+            .map_or(true, |v| v.trim().is_empty())
+        {
             report.push(
                 com_error(
                     "DPCS-COM-007",
@@ -120,7 +161,7 @@ fn validate_interface_ports(contract: &PipelineContract, report: &mut Validation
             );
         }
 
-        if is_missing_optional_string(&port.purpose) {
+        if port.purpose.as_ref().map_or(true, |v| v.trim().is_empty()) {
             report.push(
                 com_error(
                     "DPCS-COM-008",
@@ -139,7 +180,11 @@ fn validate_interface_ports(contract: &PipelineContract, report: &mut Validation
             format!("interface.outputs.{}", port.id)
         };
 
-        if is_missing_optional_string(&port.name) {
+        if port.is_complete() {
+            continue;
+        }
+
+        if port.name.as_ref().map_or(true, |v| v.trim().is_empty()) {
             report.push(
                 com_error(
                     "DPCS-COM-009",
@@ -150,7 +195,11 @@ fn validate_interface_ports(contract: &PipelineContract, report: &mut Validation
             );
         }
 
-        if is_missing_optional_string(&port.contract_ref) {
+        if port
+            .contract_ref
+            .as_ref()
+            .map_or(true, |v| v.trim().is_empty())
+        {
             report.push(
                 com_error(
                     "DPCS-COM-010",
@@ -161,7 +210,7 @@ fn validate_interface_ports(contract: &PipelineContract, report: &mut Validation
             );
         }
 
-        if is_missing_optional_string(&port.purpose) {
+        if port.purpose.as_ref().map_or(true, |v| v.trim().is_empty()) {
             report.push(
                 com_error(
                     "DPCS-COM-011",

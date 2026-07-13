@@ -1,14 +1,15 @@
 //! Data-flow validation phase.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::diagnostics::{categories, Diagnostic, ValidationReport};
-use crate::model::PipelineContract;
+use crate::model::{PipelineContract, PipelineStep};
 
 /// Validate data-flow endpoints against known addressable objects.
 pub fn validate(contract: &PipelineContract) -> ValidationReport {
     let mut report = ValidationReport::new();
     let endpoints = known_endpoints(contract);
+    let steps_by_id = steps_by_id(contract);
 
     for (index, flow) in contract.data_flow.iter().enumerate() {
         let object_ref = format!("dataFlow[{index}]");
@@ -25,7 +26,7 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
             continue;
         }
 
-        if !endpoint_known(&endpoints, &flow.from) {
+        if !endpoint_known(&endpoints, &steps_by_id, &flow.from) {
             report.push(
                 Diagnostic::error(
                     "DPCS-DF-002",
@@ -39,7 +40,7 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
             );
         }
 
-        if !endpoint_known(&endpoints, &flow.to) {
+        if !endpoint_known(&endpoints, &steps_by_id, &flow.to) {
             report.push(
                 Diagnostic::error(
                     "DPCS-DF-003",
@@ -54,49 +55,86 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
     report
 }
 
+fn steps_by_id(contract: &PipelineContract) -> BTreeMap<&str, &PipelineStep> {
+    contract
+        .steps
+        .iter()
+        .map(|step| (step.id.as_str(), step))
+        .collect()
+}
+
 fn known_endpoints(contract: &PipelineContract) -> BTreeSet<String> {
     let mut endpoints = BTreeSet::new();
 
     for port in &contract.interface.inputs {
-        endpoints.insert(format!("interface.inputs.{}", port.id));
+        if !port.id.trim().is_empty() {
+            endpoints.insert(format!("interface.inputs.{}", port.id));
+        }
     }
     for port in &contract.interface.outputs {
-        endpoints.insert(format!("interface.outputs.{}", port.id));
+        if !port.id.trim().is_empty() {
+            endpoints.insert(format!("interface.outputs.{}", port.id));
+        }
     }
     for step in &contract.steps {
-        endpoints.insert(format!("steps.{}", step.id));
-        if step.inputs.is_empty() {
-            // Steps may omit explicit ports; allow conventional input/output paths.
-            endpoints.insert(format!("steps.{}.inputs", step.id));
-            endpoints.insert(format!("steps.{}.outputs", step.id));
-        } else {
+        if step.id.trim().is_empty() {
+            continue;
+        }
+        if !step.inputs.is_empty() || !step.outputs.is_empty() {
             for port in &step.inputs {
-                endpoints.insert(format!("steps.{}.inputs.{}", step.id, port.id));
+                if !port.id.trim().is_empty() {
+                    endpoints.insert(format!("steps.{}.inputs.{}", step.id, port.id));
+                }
             }
             for port in &step.outputs {
-                endpoints.insert(format!("steps.{}.outputs.{}", step.id, port.id));
+                if !port.id.trim().is_empty() {
+                    endpoints.insert(format!("steps.{}.outputs.{}", step.id, port.id));
+                }
             }
+        } else {
+            // Steps may omit explicit ports; allow conventional bag endpoints.
+            endpoints.insert(format!("steps.{}.inputs", step.id));
+            endpoints.insert(format!("steps.{}.outputs", step.id));
         }
     }
 
     endpoints
 }
 
-fn endpoint_known(endpoints: &BTreeSet<String>, endpoint: &str) -> bool {
+fn endpoint_known(
+    endpoints: &BTreeSet<String>,
+    steps_by_id: &BTreeMap<&str, &PipelineStep>,
+    endpoint: &str,
+) -> bool {
     if endpoints.contains(endpoint) {
         return true;
     }
 
-    // Allow steps.<id>.inputs.<name> when the step exists but ports are implicit.
-    if let Some(rest) = endpoint.strip_prefix("steps.") {
-        let mut parts = rest.split('.');
-        if let Some(step_id) = parts.next() {
-            let prefix = format!("steps.{step_id}");
-            if endpoints.contains(&prefix) {
-                return matches!(parts.next(), Some("inputs") | Some("outputs"));
-            }
-        }
+    let Some(rest) = endpoint.strip_prefix("steps.") else {
+        return false;
+    };
+    let mut parts = rest.split('.');
+    let Some(step_id) = parts.next() else {
+        return false;
+    };
+    let Some(step) = steps_by_id.get(step_id) else {
+        return false;
+    };
+
+    // Explicit ports require exact matches inserted into `endpoints`.
+    if !step.inputs.is_empty() || !step.outputs.is_empty() {
+        return false;
     }
 
-    false
+    // Implicit step ports allow exactly one segment after inputs|outputs.
+    let Some(direction) = parts.next() else {
+        return false;
+    };
+    if direction != "inputs" && direction != "outputs" {
+        return false;
+    }
+    let Some(port_name) = parts.next() else {
+        return false;
+    };
+    !port_name.is_empty() && parts.next().is_none()
 }

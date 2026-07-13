@@ -37,8 +37,7 @@ assert!(catalog.get_by_path("pipeline").is_some());
 
 ## COM invariant validation
 
-COM diagnostics use the `canonicalObjectModel` stage and appear in the standard
-validation report:
+COM diagnostics use the `canonicalObjectModel` stage and category:
 
 ```rust
 let report = contract.validate();
@@ -49,11 +48,13 @@ for diagnostic in &report.diagnostics {
 }
 ```
 
-## Future API
+## Planning skeleton
+
+A minimal planner exists today; orchestrator binding does not:
 
 ```rust
-let plan = dpcs::plan(&contract)?;
-let binding = dpcs::bind(&plan, airflow_capabilities)?;
+let plan = dpcs::plan::plan(&contract);
+assert!(!dpcs::binding::BindingFramework::is_available());
 ```
 
-Do not implement binding yet.
+Full planning semantics and binding adapters are roadmap items 0.6–0.8.

@@ -8,7 +8,7 @@ Thanks for helping build the DPCS reference implementation.
 2. If a design doc conflicts with `SPEC.md`, follow `SPEC.md`.
 3. Prefer the smallest conservative behavior when the specification is ambiguous.
 4. Add a `TODO` referencing the relevant SPEC section when deferring behavior.
-5. Do not implement orchestrator binding or execution runtimes in `0.1.x`.
+5. Do not implement orchestrator binding or execution runtimes until roadmap 0.8.0.
 
 ## Development setup
 

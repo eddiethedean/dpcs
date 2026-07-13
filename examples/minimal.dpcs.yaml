@@ -33,6 +33,10 @@ steps:
   - id: "normalize_customer"
     type: "dtcs:transform"
     contractRef: "normalize_customer_transform"
+    inputs:
+      - id: "customer_raw"
+    outputs:
+      - id: "customer_clean"
 
 graph:
   edges: []

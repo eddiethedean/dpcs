@@ -8,6 +8,14 @@ use std::fmt;
 
 use super::PipelineContract;
 
+fn path_for_id(id: &str, named: ObjectPath, indexed: String) -> ObjectPath {
+    if id.trim().is_empty() {
+        ObjectPath::new(indexed)
+    } else {
+        named
+    }
+}
+
 /// A stable object identifier within a Pipeline Contract.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct ObjectId(String);
@@ -187,55 +195,88 @@ impl IdentityCatalog {
             ObjectPath::pipeline(),
         );
 
-        for port in &contract.interface.inputs {
+        for (index, port) in contract.interface.inputs.iter().enumerate() {
             catalog.insert(
                 ObjectKind::InterfaceInput,
                 ObjectId::new(port.id.clone()),
-                ObjectPath::interface_input(&port.id),
+                path_for_id(
+                    port.id.as_str(),
+                    ObjectPath::interface_input(&port.id),
+                    format!("interface.inputs[{index}]"),
+                ),
             );
         }
 
-        for port in &contract.interface.outputs {
+        for (index, port) in contract.interface.outputs.iter().enumerate() {
             catalog.insert(
                 ObjectKind::InterfaceOutput,
                 ObjectId::new(port.id.clone()),
-                ObjectPath::interface_output(&port.id),
+                path_for_id(
+                    port.id.as_str(),
+                    ObjectPath::interface_output(&port.id),
+                    format!("interface.outputs[{index}]"),
+                ),
             );
         }
 
-        for step in &contract.steps {
+        for (index, step) in contract.steps.iter().enumerate() {
             catalog.insert(
                 ObjectKind::Step,
                 ObjectId::new(step.id.clone()),
-                ObjectPath::step(&step.id),
+                path_for_id(
+                    step.id.as_str(),
+                    ObjectPath::step(&step.id),
+                    format!("steps[{index}]"),
+                ),
             );
         }
 
-        for reference in &contract.contract_references {
+        for (index, reference) in contract.contract_references.iter().enumerate() {
             catalog.insert(
                 ObjectKind::ContractReference,
                 ObjectId::new(reference.id.clone()),
-                ObjectPath::contract_reference(&reference.id),
+                path_for_id(
+                    reference.id.as_str(),
+                    ObjectPath::contract_reference(&reference.id),
+                    format!("contractReferences[{index}]"),
+                ),
             );
         }
 
-        for gate in &contract.quality_gates {
+        for (index, gate) in contract.quality_gates.iter().enumerate() {
             catalog.insert(
                 ObjectKind::QualityGate,
                 ObjectId::new(gate.id.clone()),
-                ObjectPath::quality_gate(&gate.id),
+                path_for_id(
+                    gate.id.as_str(),
+                    ObjectPath::quality_gate(&gate.id),
+                    format!("qualityGates[{index}]"),
+                ),
             );
         }
 
-        for failure in &contract.failure_semantics {
+        for (index, failure) in contract.failure_semantics.iter().enumerate() {
             catalog.insert(
                 ObjectKind::FailureSemantics,
                 ObjectId::new(failure.id.clone()),
-                ObjectPath::failure_semantics(&failure.id),
+                path_for_id(
+                    failure.id.as_str(),
+                    ObjectPath::failure_semantics(&failure.id),
+                    format!("failureSemantics[{index}]"),
+                ),
             );
         }
 
         catalog
+    }
+
+    /// Returns paths for entries that share an identifier within a kind.
+    pub fn paths_for_kind_and_id(&self, kind: ObjectKind, id: &str) -> Vec<&ObjectPath> {
+        self.entries
+            .iter()
+            .filter(|entry| entry.kind == kind && entry.id.as_str() == id)
+            .map(|entry| &entry.path)
+            .collect()
     }
 
     fn insert(&mut self, kind: ObjectKind, id: ObjectId, path: ObjectPath) {

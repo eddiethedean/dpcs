@@ -72,6 +72,18 @@ fn extension_value_round_trips_through_serde_json() {
 }
 
 #[test]
+fn reserved_extension_key_reported_for_constructed_maps() {
+    let mut contract =
+        PipelineContract::from_yaml_file(fixture("valid/minimal.dpcs.yaml")).unwrap();
+    contract.extensions.insert(
+        "id".to_owned(),
+        ExtensionValue::String("collision".to_owned()),
+    );
+    let report = contract.validate();
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-COM-012"));
+}
+
+#[test]
 fn duplicate_step_ids_surface_in_com_diagnostics() {
     let contract =
         PipelineContract::from_yaml_file(fixture("invalid/duplicate_steps.dpcs.yaml")).unwrap();

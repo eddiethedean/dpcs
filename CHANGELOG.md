@@ -15,13 +15,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - COM invariant validation phase (`canonicalObjectModel` diagnostics)
 - Interface metadata slot and port helper methods on `PipelineInterface`
 - `InterfacePort::is_complete()` for SPEC Ch 4 port completeness checks
+- Cross-side interface port uniqueness diagnostic (`DPCS-COM-013`)
 - Model-focused tests for identity, COM invariants, and cross-format equivalence
 
 ### Changed
 
 - COM extension fields now use `ExtensionMap` instead of `serde_json::Value`
 - Reserved extension key collision checks moved to the COM validation phase
+- Identifier presence/uniqueness owned by COM; document/structural phases no longer duplicate those errors
+- Data-flow endpoint matching requires declared step ports when present
 - Valid examples and fixtures populate required interface port properties (`name`, `purpose`)
+
+### Fixed
+
+- Duplicate DOC/STR diagnostics for the same identity faults
+- Ambiguous `DPCS-REF-004` object references missing `inputs`/`outputs`
+- Empty-id catalog paths colliding on trailing dots
+- CLI JSON serialize failures now exit as I/O/failure (code 2) instead of silently continuing
+- Over-permissive data-flow acceptance of arbitrary `steps.<id>.inputs|outputs…` suffixes
 
 ## [0.1.0] - 2026-07-03
 
