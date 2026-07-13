@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Empty-id catalog paths colliding on trailing dots
 - CLI JSON serialize failures now exit as I/O/failure (code 2) instead of silently continuing
 - Over-permissive data-flow acceptance of arbitrary `steps.<id>.inputs|outputs…` suffixes
+- Raise MSRV to 1.85 so locked clap dependencies (edition 2024) build in CI
 
 ## [0.1.0] - 2026-07-03
 

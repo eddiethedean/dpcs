@@ -19,7 +19,7 @@ are intentionally out of scope until roadmap 0.8.0. See [`ROADMAP.md`](ROADMAP.m
 | --- | --- |
 | Crate version | `0.2.0` |
 | Spec version | `1.0.0-draft` |
-| Language | Rust 2021 (MSRV 1.74) |
+| Language | Rust 2021 (MSRV 1.85) |
 | License | Apache-2.0 OR MIT |
 | Release focus | Canonical Object Model (SPEC Ch 1–4) |
 

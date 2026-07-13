@@ -27,7 +27,7 @@ rustup toolchain install stable
 cargo test --all-features
 ```
 
-MSRV is **1.74**.
+MSRV is **1.85**.
 
 ## Workflow
 
