@@ -4,6 +4,7 @@
 [![Release](https://github.com/eddiethedean/dpcs/actions/workflows/release.yml/badge.svg)](https://github.com/eddiethedean/dpcs/actions/workflows/release.yml)
 [![crates.io](https://img.shields.io/crates/v/dpcs.svg)](https://crates.io/crates/dpcs)
 [![docs.rs](https://img.shields.io/docsrs/dpcs)](https://docs.rs/dpcs)
+[![Documentation](https://readthedocs.org/projects/dpcs/badge/?version=latest)](https://dpcs.readthedocs.io/en/latest/)
 [![PyPI](https://img.shields.io/pypi/v/dpcs.svg)](https://pypi.org/project/dpcs/)
 [![npm](https://img.shields.io/npm/v/@eddiethedean/dpcs.svg)](https://www.npmjs.com/package/@eddiethedean/dpcs)
 [![Wasmer](https://img.shields.io/badge/wasmer-eddiethedean%2Fdpcs-blue)](https://wasmer.io/eddiethedean/dpcs)
@@ -46,6 +47,7 @@ cargo install --path crates/dpcs-cli
 ```
 
 Language package names and republish notes: [`docs/BINDINGS.md`](docs/BINDINGS.md).
+Guides and CLI docs: [dpcs.readthedocs.io](https://dpcs.readthedocs.io/en/latest/).
 
 ### Validate a pipeline contract
 

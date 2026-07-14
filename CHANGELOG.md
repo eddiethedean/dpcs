@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   diagnostics, and plan order
 - CLI smoke coverage for markdown `--out`, Mermaid graph export, and TUI
   non-TTY failure
+- MkDocs + Read the Docs configuration (`.readthedocs.yaml`, `mkdocs.yml`) for
+  guide documentation at [dpcs.readthedocs.io](https://dpcs.readthedocs.io/)
 
 ### Fixed
 

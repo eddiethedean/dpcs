@@ -38,8 +38,8 @@ the specification.
 COM types are the canonical in-memory representation. Serde attributes exist at
 the wire boundary so YAML and JSON documents deserialize into the same COM values.
 
-Extension fields use [`ExtensionValue`](../src/model/extension_value.rs) and
-[`ExtensionMap`](../src/model/extension_value.rs), not `serde_json::Value`.
+Extension fields use `ExtensionValue` and `ExtensionMap` from the
+[`dpcs`](https://docs.rs/dpcs/) crate (not `serde_json::Value`).
 Conversions to and from JSON-shaped values happen only at parse/serialize time.
 
 ## Identity model

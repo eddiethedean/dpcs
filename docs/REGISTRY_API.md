@@ -5,7 +5,7 @@ Implementation-defined reference registry protocol for ROADMAP 0.10.
 SPEC Chapter 22 defines the registry **document** model and leaves operational
 mechanisms implementation-defined. Appendix G may later standardize a protocol.
 This document describes the **DPCS reference** HTTP API shipped with toolkit
-0.10.0. See [ADR-0005](../adr/ADR-0005-reference-registry-http-api.md).
+0.10.0. See [ADR-0005](https://github.com/eddiethedean/dpcs/blob/main/adr/ADR-0005-reference-registry-http-api.md).
 
 ## Base URL
 

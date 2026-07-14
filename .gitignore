@@ -32,3 +32,7 @@ bindings/python/*.dylib
 __pycache__/
 .pytest_cache/
 *.egg-info/
+
+# MkDocs / Read the Docs local builds
+/site/
+.venv-docs/

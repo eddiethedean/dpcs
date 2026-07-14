@@ -1,0 +1,76 @@
+site_name: DPCS
+site_description: Data Pipeline Contract Standard — reference toolkit documentation
+site_author: DPCS Contributors
+site_url: !ENV [READTHEDOCS_CANONICAL_URL, "https://dpcs.readthedocs.io/"]
+repo_url: https://github.com/eddiethedean/dpcs
+repo_name: eddiethedean/dpcs
+edit_uri: edit/main/docs/
+docs_dir: docs
+site_dir: site
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: blue grey
+      accent: light blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: blue grey
+      accent: light blue
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - content.code.copy
+    - toc.follow
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - tables
+  - toc:
+      permalink: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/eddiethedean/dpcs
+    - icon: fontawesome/brands/rust
+      link: https://docs.rs/dpcs
+
+nav:
+  - Home: index.md
+  - Overview:
+      - Project goal: PROJECT_GOAL.md
+      - Architecture: ARCHITECTURE.md
+      - Crate layout: CRATE_LAYOUT.md
+      - Specification usage: SPEC_USAGE.md
+      - Non-goals: NON_GOALS.md
+      - Relationship to ODCS / DTCS: RELATIONSHIP_TO_ODCS_DTCS.md
+  - Using the toolkit:
+      - Public API: PUBLIC_API.md
+      - CLI specification: CLI_SPEC.md
+      - Language bindings: BINDINGS.md
+      - Package format: PACKAGE_FORMAT.md
+      - Registry HTTP API: REGISTRY_API.md
+  - Guides:
+      - Validation: VALIDATION_GUIDE.md
+      - Diagnostics: DIAGNOSTICS_GUIDE.md
+      - Model: MODEL_GUIDE.md
+      - Testing plan: TESTING_PLAN.md
+      - Rust dependencies: RUST_DEPENDENCIES.md
+  - Project:
+      - Implementation phases: IMPLEMENTATION_PHASES.md
+      - Cursor build prompt: CURSOR_BUILD_PROMPT.md

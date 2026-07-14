@@ -67,8 +67,10 @@ rustup toolchain install stable
 cargo test --workspace --all-features
 ```
 
-MSRV is **1.88**. Local parity with CI: `make ci`. Docs: `make docs`
-(`RUSTDOCFLAGS=-D warnings cargo doc --workspace --all-features --no-deps`).
+MSRV is **1.88**. Local parity with CI: `make ci`. Rust API docs: `make docs`.
+Guide site (MkDocs / Read the Docs): `make docs-site` or `mkdocs serve` after
+`pip install -r docs/requirements.txt`. Published guides:
+[dpcs.readthedocs.io](https://dpcs.readthedocs.io/en/latest/).
 
 ## Validation diagnostics
 

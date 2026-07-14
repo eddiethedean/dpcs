@@ -1,4 +1,4 @@
-.PHONY: fmt fmt-check lint test build examples check ci schema docs
+.PHONY: fmt fmt-check lint test build examples check ci schema docs docs-site
 
 fmt:
 	cargo fmt --all
@@ -17,6 +17,10 @@ build:
 
 docs:
 	RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps
+
+docs-site:
+	python3 -m pip install -q -r docs/requirements.txt
+	mkdocs build --strict
 
 schema:
 	cargo run -p dpcs-cli --release -- schema json --out schemas
