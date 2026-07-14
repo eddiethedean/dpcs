@@ -53,8 +53,11 @@ Orchestrator Binding (scaffold artifacts; capability-gated)
 Also first-class (not mutating contracts):
   Compatibility analysis · Registry document validate · Registry HTTP client/server
   Conformance claims/profiles · Pipeline packages · JSON Schema / OpenAPI emit
+  Language bindings (Python / WASM; see BINDINGS.md)
 ```
 
 Execution runtimes remain out of scope. Binding adapters emit implementation-defined
 scaffold artifacts for Airflow, Dagster, Prefect, Temporal, and Kubernetes.
 Registry networking uses the reference HTTP API (see ADR-0005).
+Language packages publish to PyPI (`dpcs`), npm (`@eddiethedean/dpcs`), and
+Wasmer (`eddiethedean/dpcs`).

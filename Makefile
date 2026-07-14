@@ -1,4 +1,4 @@
-.PHONY: fmt fmt-check lint test build examples check ci schema
+.PHONY: fmt fmt-check lint test build examples check ci schema docs
 
 fmt:
 	cargo fmt --all
@@ -14,6 +14,9 @@ test:
 
 build:
 	cargo build -p dpcs-cli --release
+
+docs:
+	RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps
 
 schema:
 	cargo run -p dpcs-cli --release -- schema json --out schemas

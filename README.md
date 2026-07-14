@@ -1,8 +1,12 @@
 # DPCS
 
 [![CI](https://github.com/eddiethedean/dpcs/actions/workflows/ci.yml/badge.svg)](https://github.com/eddiethedean/dpcs/actions/workflows/ci.yml)
+[![Release](https://github.com/eddiethedean/dpcs/actions/workflows/release.yml/badge.svg)](https://github.com/eddiethedean/dpcs/actions/workflows/release.yml)
 [![crates.io](https://img.shields.io/crates/v/dpcs.svg)](https://crates.io/crates/dpcs)
 [![docs.rs](https://img.shields.io/docsrs/dpcs)](https://docs.rs/dpcs)
+[![PyPI](https://img.shields.io/pypi/v/dpcs.svg)](https://pypi.org/project/dpcs/)
+[![npm](https://img.shields.io/npm/v/@eddiethedean/dpcs.svg)](https://www.npmjs.com/package/@eddiethedean/dpcs)
+[![Wasmer](https://img.shields.io/badge/wasmer-eddiethedean%2Fdpcs-blue)](https://wasmer.io/eddiethedean/dpcs)
 [![MSRV](https://img.shields.io/crates/msrv/dpcs)](https://crates.io/crates/dpcs)
 [![License](https://img.shields.io/crates/l/dpcs.svg)](#license)
 
@@ -35,11 +39,13 @@ and Kubernetes. Execution runtimes remain out of scope. See [`ROADMAP.md`](ROADM
 
 ```bash
 cargo install --path crates/dpcs-cli
-# or, after crates.io publish:
+# or published packages:
 # cargo install dpcs-cli --version 0.10.0
 # pip install dpcs
 # npm install @eddiethedean/dpcs
 ```
+
+Language package names and republish notes: [`docs/BINDINGS.md`](docs/BINDINGS.md).
 
 ### Validate a pipeline contract
 
@@ -182,21 +188,17 @@ assert!(validate_claim(&toolkit_claim()).is_valid());
 
 ```text
 .
+├── Cargo.toml              # Workspace (excludes bindings/python)
 ├── SPEC.md                 # Authoritative DPCS specification
 ├── ROADMAP.md              # Release plan
-├── src/
-│   ├── model/              # Canonical Object Model
-│   ├── parser/             # YAML and JSON parsers
-│   ├── validation/         # Phase-based validation
-│   ├── diagnostics/        # Deterministic diagnostics
-│   ├── plan/               # Deterministic Pipeline Plan IR
-│   ├── capabilities/       # Capability profiles and matcher
-│   ├── binding/            # Orchestrator binding scaffolds
-│   ├── compatibility/      # Compatibility analysis
-│   ├── conformance/        # Conformance claims and profiles
-│   └── cli/                # CLI implementation
+├── crates/
+│   ├── dpcs/               # Core library
+│   └── dpcs-cli/           # CLI binary
+├── bindings/
+│   ├── python/             # PyO3 / maturin → PyPI `dpcs`
+│   └── wasm/               # wasm-bindgen → npm + Wasmer
+├── schemas/                # Generated JSON Schema + OpenAPI
 ├── examples/               # Example contracts and profiles
-├── tests/fixtures/         # Valid and invalid fixtures
 ├── docs/                   # Design and contributor guides
 └── adr/                    # Architecture decision records
 ```
@@ -213,9 +215,12 @@ cargo build --release
 Useful docs:
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+- [`docs/BINDINGS.md`](docs/BINDINGS.md)
 - [`docs/CRATE_LAYOUT.md`](docs/CRATE_LAYOUT.md)
 - [`docs/PUBLIC_API.md`](docs/PUBLIC_API.md)
 - [`docs/CLI_SPEC.md`](docs/CLI_SPEC.md)
+- [`docs/PACKAGE_FORMAT.md`](docs/PACKAGE_FORMAT.md)
+- [`docs/REGISTRY_API.md`](docs/REGISTRY_API.md)
 - [`docs/TESTING_PLAN.md`](docs/TESTING_PLAN.md)
 - [`docs/IMPLEMENTATION_PHASES.md`](docs/IMPLEMENTATION_PHASES.md)
 - [`docs/NON_GOALS.md`](docs/NON_GOALS.md)

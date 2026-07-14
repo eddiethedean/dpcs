@@ -8,7 +8,7 @@ Contract Standard (DPCS).
 ## Vision
 
 `dpcs` will become the canonical Rust implementation of DPCS and the
-foundation for future Python, WebAssembly, and other language bindings.
+foundation for Python, WebAssembly, and other language bindings.
 
 Implementation proceeds in incremental 0.x releases, with each release
 completing a coherent portion of the specification while maintaining a
@@ -172,12 +172,14 @@ Full conformance suite (Appendix E checklist).
 
 ### Deliverables
 
--   Python bindings (PyO3 / maturin → PyPI)
--   WASM bindings (wasm-bindgen → npm + Wasmer)
+-   Python bindings (PyO3 / maturin → PyPI `dpcs`)
+-   WASM bindings (wasm-bindgen → npm `@eddiethedean/dpcs` + Wasmer `eddiethedean/dpcs`)
 -   JSON Schema generation (`dpcs schema json`)
 -   OpenAPI helpers (`dpcs schema openapi`)
 -   Registry client + reference HTTP server (`dpcs registry serve` / pull / lookup / publish)
 -   Package support (`.dpcspkg` + `dpcs package`)
+
+See [`docs/BINDINGS.md`](docs/BINDINGS.md) for install and republish details.
 
 ------------------------------------------------------------------------
 

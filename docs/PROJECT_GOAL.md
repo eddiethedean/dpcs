@@ -20,8 +20,10 @@ The crate implements foundational DPCS specification logic through ROADMAP 0.10.
 - Security and governance metadata
 - Pipeline packages (`.dpcspkg`)
 - JSON Schema / OpenAPI helpers
-- Python and WASM bindings
+- Python and WASM bindings (PyPI `dpcs`, npm `@eddiethedean/dpcs`, Wasmer `eddiethedean/dpcs`)
 - CLI
+
+See [`BINDINGS.md`](BINDINGS.md) for install and release channel names.
 
 Future milestones:
 

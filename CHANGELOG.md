@@ -17,9 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reference registry HTTP API (ADR-0005): file-backed `dpcs registry serve`,
   `RegistryClient` + cache, CLI pull/lookup/publish/deprecate/retire/cache,
   diagnostics `DPCS-REGC-*`
-- Python bindings (`bindings/python`, maturin / PyO3) with PyPI release job
-- WASM bindings (`bindings/wasm`, wasm-bindgen) with npm and Wasmer release jobs
-- Docs: `docs/PACKAGE_FORMAT.md`, `docs/REGISTRY_API.md`
+- Python bindings (`bindings/python`, maturin / PyO3) → PyPI `dpcs`
+- WASM bindings (`bindings/wasm`, wasm-bindgen) → npm `@eddiethedean/dpcs` and
+  Wasmer `eddiethedean/dpcs`
+- Docs: `docs/PACKAGE_FORMAT.md`, `docs/REGISTRY_API.md`, `docs/BINDINGS.md`
+- Manual WASM republish workflow (`.github/workflows/publish-wasm.yml`)
 
 ### Fixed
 
@@ -36,12 +38,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `#/components/schemas/`
 - `registry-server` builds without `registry-client` (`PublishRequest` shared)
 - Bindings merge evaluate failure diagnostics; Wasmer package uses `abi = "none"`
-- Release/CI: crates.io retry, version-from-tag guards, Python abi3 + CI job
+- Release/CI: crates.io retry, version-from-tag guards, Python abi3 + CI job,
+  Python venv for `maturin develop`, `wasm-opt` bulk-memory flags for release WASM
 
 ### Changed
 
 - Crate version `0.10.0`; default library features are empty (CLI enables `full`)
-- Release workflow publishes crates.io, PyPI, npm, and Wasmer
+- Release workflow publishes crates.io, PyPI, npm (`@eddiethedean/dpcs`), and
+  Wasmer (`eddiethedean/dpcs`)
 - Raise MSRV to 1.86 for locked `url`/`idna`/`icu_*` dependency builds
 - `cli` feature enables `jsonschema` + registry client/server; `full` aliases `cli`
 

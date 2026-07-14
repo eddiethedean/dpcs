@@ -18,6 +18,6 @@ Rust will provide:
 
 - CLI
 - validation core
-- future Python bindings
-- future WASM bindings
+- Python bindings (shipped in 0.10.0)
+- WASM bindings (shipped in 0.10.0)
 - future orchestrator compilers

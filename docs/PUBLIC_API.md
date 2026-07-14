@@ -260,4 +260,10 @@ Enable `registry-client` for `RegistryClient` / `RegistryCache`, and
 `registry-server` for `serve` / `serve_listener`. Both registry features share
 `PublishRequest` (server no longer depends on the client feature).
 
+## Language bindings (0.10.0)
+
+Python and WebAssembly wrappers live under `bindings/`. Install channels,
+package names, and republish workflows are documented in
+[`BINDINGS.md`](BINDINGS.md).
+
 [`Error::InvalidDocument`]: ../crates/dpcs/src/error.rs

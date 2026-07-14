@@ -2,7 +2,8 @@
 
 Completed through 0.10.0: orchestrator binding scaffolds, SPEC Ch 18–25 document
 models, JSON Schema/OpenAPI helpers, reference registry HTTP API, pipeline
-packages, and Python/WASM distribution packages.
+packages, and Python/WASM distribution packages (PyPI `dpcs`, npm
+`@eddiethedean/dpcs`, Wasmer `eddiethedean/dpcs`; see [`BINDINGS.md`](BINDINGS.md)).
 
 Do **not** implement yet:
 

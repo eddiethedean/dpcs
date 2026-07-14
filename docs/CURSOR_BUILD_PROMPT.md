@@ -30,7 +30,7 @@ Implemented:
 13. Conformance claims and Appendix E suite
 14. Pipeline packages (`.dpcspkg`)
 15. JSON Schema / OpenAPI helpers
-16. Python and WASM bindings
+16. Python and WASM bindings (PyPI / npm `@eddiethedean/dpcs` / Wasmer)
 17. CLI
 18. Tests and fixtures
 

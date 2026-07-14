@@ -19,10 +19,15 @@ Tagged releases use `.github/workflows/release.yml`:
 2. The release workflow runs the same CI checks as pull requests (`ci-checks.yml`).
 3. After checks pass, it publishes:
    - Rust crates `dpcs` and `dpcs-cli` to crates.io (`CARGO_REGISTRY_TOKEN`)
-   - Python package to PyPI (`PYPI_API_TOKEN`)
-   - WASM/JS package to npm (`NPM_TOKEN`)
-   - WASM package to Wasmer (`WASM_TOKEN`)
+   - Python package `dpcs` to PyPI (`PYPI_API_TOKEN`)
+   - WASM/JS package `@eddiethedean/dpcs` to npm (`NPM_TOKEN`)
+   - WASM package `eddiethedean/dpcs` to Wasmer (`WASM_TOKEN`)
 4. Create a GitHub Release for the tag using the matching section from [`CHANGELOG.md`](CHANGELOG.md).
+
+To re-publish only npm / Wasmer after a tag (for example after a build-tool fix),
+use `.github/workflows/publish-wasm.yml` (`workflow_dispatch`). It builds from
+the checked-out `main` ref and requires the workspace version to match the
+selected tag (for example `v0.10.0`). See [`docs/BINDINGS.md`](docs/BINDINGS.md).
 
 ## Workflow
 
@@ -48,11 +53,11 @@ Tagged releases use `.github/workflows/release.yml`:
 | `ROADMAP.md` | Release plan |
 | `crates/dpcs` | Core library |
 | `crates/dpcs-cli` | `dpcs` CLI binary |
-| `bindings/python` | PyO3 / maturin package |
-| `bindings/wasm` | wasm-bindgen package |
+| `bindings/python` | PyO3 / maturin → PyPI `dpcs` (outside workspace) |
+| `bindings/wasm` | wasm-bindgen → npm `@eddiethedean/dpcs`, Wasmer `eddiethedean/dpcs` |
 | `schemas/` | Generated JSON Schema and OpenAPI artifacts |
 | `examples/` | Example contracts, packages, and profiles |
-| `docs/` | Design guides |
+| `docs/` | Design guides (including [`docs/BINDINGS.md`](docs/BINDINGS.md)) |
 | `adr/` | Architecture decisions |
 
 ## Development setup
@@ -62,7 +67,8 @@ rustup toolchain install stable
 cargo test --workspace --all-features
 ```
 
-MSRV is **1.86**. Local parity with CI: `make ci`.
+MSRV is **1.86**. Local parity with CI: `make ci`. Docs: `make docs`
+(`RUSTDOCFLAGS=-D warnings cargo doc --workspace --all-features --no-deps`).
 
 ## Validation diagnostics
 

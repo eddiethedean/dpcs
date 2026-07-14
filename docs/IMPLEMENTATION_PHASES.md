@@ -119,5 +119,7 @@ Closes SPEC Chapters 18–25:
 - JSON Schema / OpenAPI helpers (`schemas/`, `dpcs schema`)
 - Pipeline packages (`.dpcspkg`, `dpcs package`)
 - Reference registry HTTP API / client / server (ADR-0005)
-- Python bindings (PyO3 / maturin)
-- WASM bindings (wasm-bindgen → npm + Wasmer)
+- Python bindings (PyO3 / maturin → PyPI `dpcs`)
+- WASM bindings (wasm-bindgen → npm `@eddiethedean/dpcs`, Wasmer `eddiethedean/dpcs`)
+
+Distribution details: [`BINDINGS.md`](BINDINGS.md).

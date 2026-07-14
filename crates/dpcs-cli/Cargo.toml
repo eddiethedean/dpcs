@@ -14,6 +14,7 @@ publish = true
 [[bin]]
 name = "dpcs"
 path = "src/main.rs"
+doc = false
 
 [dependencies]
 dpcs = { workspace = true, features = ["full"] }
