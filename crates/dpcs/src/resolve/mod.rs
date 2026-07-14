@@ -6,6 +6,7 @@
 //! ODCS/DTCS and other types are resolved to an on-disk (or fetched) path only.
 
 use std::collections::BTreeMap;
+#[cfg(any(test, feature = "registry-client"))]
 use std::fs;
 use std::path::{Path, PathBuf};
 

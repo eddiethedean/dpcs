@@ -39,6 +39,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Deprecated `OrchestratorCapabilities` type alias (use `CapabilityProfile`)
 
+### Fixed
+
+- Gate `std::fs` import in `resolve` on `registry-client` / tests so
+  `--no-default-features`, WASM, and Python builds stay warning-clean
+
 ## [0.12.0] - 2026-07-14
 
 ### Added
