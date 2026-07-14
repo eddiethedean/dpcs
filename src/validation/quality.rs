@@ -19,6 +19,24 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
     for (index, gate) in contract.quality_gates.iter().enumerate() {
         let object_ref = format!("qualityGates[{index}]");
 
+        for legacy_key in ["scope", "rule"] {
+            if gate.extensions.contains_key(legacy_key) {
+                report.push(
+                    Diagnostic::error(
+                        "DPCS-QG-009",
+                        categories::QUALITY_GATES,
+                        format!(
+                            "legacy `{legacy_key}` field is not supported; use purpose, criteria, and outcomes"
+                        ),
+                    )
+                    .with_object_ref(format!("{object_ref}.{legacy_key}"))
+                    .with_remediation(
+                        "Migrate to qualityGates[].purpose, criteria, onSuccess, and onFailure",
+                    ),
+                );
+            }
+        }
+
         if gate.purpose.trim().is_empty() {
             report.push(
                 Diagnostic::error(
@@ -82,6 +100,27 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
                     );
                 }
             }
+        }
+
+        if gate.on_success.as_str().trim().is_empty() {
+            report.push(
+                Diagnostic::error(
+                    "DPCS-QG-008",
+                    categories::QUALITY_GATES,
+                    "quality gate onSuccess must not be empty",
+                )
+                .with_object_ref(format!("{object_ref}.onSuccess")),
+            );
+        }
+        if gate.on_failure.as_str().trim().is_empty() {
+            report.push(
+                Diagnostic::error(
+                    "DPCS-QG-008",
+                    categories::QUALITY_GATES,
+                    "quality gate onFailure must not be empty",
+                )
+                .with_object_ref(format!("{object_ref}.onFailure")),
+            );
         }
 
         if let Some(placement) = &gate.placement {

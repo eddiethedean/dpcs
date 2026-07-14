@@ -389,3 +389,33 @@ fn rejects_invalid_lineage_references() {
     assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-LIN-010"));
     assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-LIN-012"));
 }
+
+#[test]
+fn rejects_empty_retry_object() {
+    let contract = parse_yaml_file(fixture("invalid/empty_retry.dpcs.yaml")).unwrap();
+    let report = validate(&contract);
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-FS-007"));
+}
+
+#[test]
+fn warns_on_freeform_timing_constraints() {
+    let contract = parse_yaml_file(fixture("invalid/freeform_timing.dpcs.yaml")).unwrap();
+    let report = validate(&contract);
+    assert!(report.is_valid());
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-SCH-007"));
+    assert!(!report.diagnostics.iter().any(|d| d.id == "DPCS-SCH-006"));
+}
+
+#[test]
+fn rejects_legacy_lineage_stub_fields() {
+    let contract = parse_yaml_file(fixture("invalid/legacy_lineage.dpcs.yaml")).unwrap();
+    let report = validate(&contract);
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-LIN-016"));
+}
+
+#[test]
+fn rejects_invalid_lineage_warns_orphan_dataset() {
+    let contract = parse_yaml_file(fixture("invalid/bad_lineage.dpcs.yaml")).unwrap();
+    let report = validate(&contract);
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-LIN-002"));
+}

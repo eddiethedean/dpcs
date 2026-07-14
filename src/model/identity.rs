@@ -272,9 +272,10 @@ impl IdentityCatalog {
 
     /// Returns paths for entries that share an identifier within a kind.
     pub fn paths_for_kind_and_id(&self, kind: ObjectKind, id: &str) -> Vec<&ObjectPath> {
+        let needle = id.trim();
         self.entries
             .iter()
-            .filter(|entry| entry.kind == kind && entry.id.as_str() == id)
+            .filter(|entry| entry.kind == kind && entry.id.as_str().trim() == needle)
             .map(|entry| &entry.path)
             .collect()
     }
@@ -313,7 +314,7 @@ impl IdentityCatalog {
                 continue;
             }
             *counts
-                .entry((entry.kind, entry.id.as_str().to_owned()))
+                .entry((entry.kind, entry.id.as_str().trim().to_owned()))
                 .or_default() += 1;
         }
 

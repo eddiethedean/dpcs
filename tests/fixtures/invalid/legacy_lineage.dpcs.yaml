@@ -1,0 +1,14 @@
+dpcsVersion: "1.0.0"
+id: "invalid.legacy.lineage"
+version: "0.1.0"
+interface:
+  inputs: []
+  outputs: []
+steps: []
+graph:
+  edges: []
+lineage:
+  upstream:
+    - "other.pipeline"
+  downstream:
+    - "child.pipeline"

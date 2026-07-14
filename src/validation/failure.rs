@@ -1,7 +1,7 @@
 //! Failure semantics validation phase (SPEC Ch 13).
 
 use crate::diagnostics::{categories, Diagnostic, ValidationReport};
-use crate::model::PipelineContract;
+use crate::model::{FailureResponse, PipelineContract, RetrySemantics};
 
 /// Validate failure triggers, responses, scope, and retry declarations.
 ///
@@ -13,6 +13,20 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
 
     for (index, semantics) in contract.failure_semantics.iter().enumerate() {
         let object_ref = format!("failureSemantics[{index}]");
+
+        if semantics.extensions.contains_key("onFailure") {
+            report.push(
+                Diagnostic::error(
+                    "DPCS-FS-008",
+                    categories::FAILURE_SEMANTICS,
+                    "legacy onFailure field is not supported; use responses",
+                )
+                .with_object_ref(format!("{object_ref}.onFailure"))
+                .with_remediation(
+                    "Replace onFailure with failureSemantics[].responses and optional retry",
+                ),
+            );
+        }
 
         if semantics.scope.kind.trim().is_empty() {
             report.push(
@@ -61,7 +75,7 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
             }
         }
 
-        if semantics.scope.kind == "path" {
+        if semantics.scope.kind.eq_ignore_ascii_case("path") {
             let path_empty = semantics
                 .scope
                 .path
@@ -109,54 +123,73 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
             }
         }
 
-        if semantics.responses.is_empty() {
+        if semantics.responses.is_empty()
+            || semantics
+                .responses
+                .iter()
+                .all(|response| response.as_str().trim().is_empty())
+        {
             report.push(
                 Diagnostic::error(
                     "DPCS-FS-006",
                     categories::FAILURE_SEMANTICS,
-                    "failure semantics must declare one or more responses",
+                    "failure semantics must declare one or more non-empty responses",
                 )
                 .with_object_ref(format!("{object_ref}.responses")),
             );
+        } else {
+            for (response_index, response) in semantics.responses.iter().enumerate() {
+                if response.as_str().trim().is_empty() {
+                    report.push(
+                        Diagnostic::error(
+                            "DPCS-FS-006",
+                            categories::FAILURE_SEMANTICS,
+                            "failure semantics response must not be empty",
+                        )
+                        .with_object_ref(format!("{object_ref}.responses[{response_index}]")),
+                    );
+                }
+            }
         }
 
-        let requires_retry = semantics
-            .responses
-            .iter()
-            .any(crate::model::FailureResponse::is_retry);
-        if requires_retry {
-            match &semantics.retry {
-                None => {
-                    report.push(
-                        Diagnostic::error(
-                            "DPCS-FS-007",
-                            categories::FAILURE_SEMANTICS,
-                            "retry response requires retry semantics",
-                        )
-                        .with_object_ref(format!("{object_ref}.retry"))
-                        .with_remediation(
-                            "Declare failureSemantics[].retry with eligibility or maxAttempts",
-                        ),
-                    );
-                }
-                Some(retry)
-                    if retry.eligible == Some(false)
-                        && retry.max_attempts.is_none()
-                        && retry.conditions.is_none() =>
-                {
-                    report.push(
-                        Diagnostic::error(
-                            "DPCS-FS-007",
-                            categories::FAILURE_SEMANTICS,
-                            "retry response requires retry eligibility or retry policy",
-                        )
-                        .with_object_ref(format!("{object_ref}.retry")),
-                    );
-                }
-                _ => {}
-            }
+        let requires_retry = semantics.responses.iter().any(FailureResponse::is_retry);
+        if requires_retry && !retry_is_meaningful(semantics.retry.as_ref()) {
+            report.push(
+                Diagnostic::error(
+                    "DPCS-FS-007",
+                    categories::FAILURE_SEMANTICS,
+                    "retry response requires meaningful retry semantics",
+                )
+                .with_object_ref(format!("{object_ref}.retry"))
+                .with_remediation(
+                    "Declare retry.eligible=true and/or maxAttempts, conditions, delayPolicy, or termination",
+                ),
+            );
         }
     }
 
     report
+}
+
+fn retry_is_meaningful(retry: Option<&RetrySemantics>) -> bool {
+    let Some(retry) = retry else {
+        return false;
+    };
+    if retry.eligible == Some(false) {
+        return false;
+    }
+    retry.eligible == Some(true)
+        || retry.max_attempts.is_some_and(|attempts| attempts > 0)
+        || retry
+            .conditions
+            .as_ref()
+            .is_some_and(|value| !value.trim().is_empty())
+        || retry
+            .delay_policy
+            .as_ref()
+            .is_some_and(|value| !value.trim().is_empty())
+        || retry
+            .termination
+            .as_ref()
+            .is_some_and(|value| !value.trim().is_empty())
 }

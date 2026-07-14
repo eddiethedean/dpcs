@@ -1,7 +1,5 @@
 //! Pipeline Plan types and deterministic planner (SPEC Ch 15).
 
-use std::collections::BTreeSet;
-
 use serde::{Deserialize, Serialize};
 
 use crate::diagnostics::{categories, Diagnostic, ValidationReport};
@@ -38,6 +36,9 @@ pub struct PipelinePlan {
     /// Dependency edges derived from graph, control flow, and data flow.
     pub dependency_edges: Vec<PlanDependencyEdge>,
     /// Ordered step identifiers in plan order.
+    ///
+    /// Ordering is a deterministic topological sort over the dependency graph.
+    /// Ready nodes are emitted in sorted step-id order (not declaration order).
     pub step_order: Vec<String>,
     /// Preserved execution requirements.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -119,35 +120,10 @@ pub fn plan(contract: &PipelineContract) -> PlanResult {
     }
 
     let dependency_graph = DependencyGraph::from_contract(contract);
-    let declared_order: Vec<String> = contract.steps.iter().map(|step| step.id.clone()).collect();
-
-    let step_order = match dependency_graph.topological_order() {
-        Ok(topo) if !topo.is_empty() => {
-            let topo_set: BTreeSet<String> = topo.iter().cloned().collect();
-            let mut order = topo;
-            for step_id in &declared_order {
-                if !topo_set.contains(step_id) {
-                    order.push(step_id.clone());
-                }
-            }
-            order
-        }
-        Ok(_) => declared_order.clone(),
-        Err(_) => {
-            // Validation already reports cycles; this path is defensive.
-            let mut planning_report = ValidationReport::new();
-            planning_report.push(
-                Diagnostic::planning_error(
-                    "DPCS-PLN-002",
-                    categories::PLANNING,
-                    "pipeline plan cannot resolve execution ordering due to unresolved dependencies",
-                )
-                .with_remediation("Remove graph cycles and unresolved mandatory dependencies"),
-            );
-            planning_report.sort_deterministic();
-            return PlanResult::Err(planning_report);
-        }
-    };
+    // Validated contracts are acyclic; topological_order is infallible here.
+    let step_order = dependency_graph
+        .topological_order()
+        .unwrap_or_else(|_| contract.steps.iter().map(|step| step.id.clone()).collect());
 
     let dependency_edges = dependency_graph
         .edges()
@@ -182,7 +158,7 @@ mod tests {
     use crate::parser::parse_yaml;
 
     #[test]
-    fn preserves_declaration_order_for_steps_missing_from_topo() {
+    fn refuses_invalid_contract_with_pln_001() {
         let contract = parse_yaml(
             r#"
 dpcsVersion: "1.0.0"
@@ -194,16 +170,17 @@ interface:
 steps:
   - id: ""
     type: "extension:noop"
-  - id: "a"
-    type: "extension:noop"
 graph:
   edges: []
 "#,
         )
         .unwrap();
 
-        // Empty step id is a COM validation error, so planning is refused.
-        assert!(!plan(&contract).is_ok());
+        let PlanResult::Err(report) = plan(&contract) else {
+            panic!("expected planning refusal");
+        };
+        assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-PLN-001"));
+        assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-COM-004"));
     }
 
     #[test]
@@ -236,5 +213,32 @@ graph:
         assert_eq!(plan.dependency_edges.len(), 1);
         assert_eq!(plan.dependency_edges[0].from, "a");
         assert_eq!(plan.dependency_edges[0].to, "b");
+    }
+
+    #[test]
+    fn independent_steps_use_sorted_id_tie_break() {
+        let contract = parse_yaml(
+            r#"
+dpcsVersion: "1.0.0"
+id: "test"
+version: "0.1.0"
+interface:
+  inputs: []
+  outputs: []
+steps:
+  - id: "z"
+    type: "extension:noop"
+  - id: "a"
+    type: "extension:noop"
+graph:
+  edges: []
+"#,
+        )
+        .unwrap();
+
+        let PlanResult::Ok(plan) = plan(&contract) else {
+            panic!("expected successful plan");
+        };
+        assert_eq!(plan.step_order, vec!["a", "z"]);
     }
 }

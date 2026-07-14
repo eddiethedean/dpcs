@@ -12,6 +12,24 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
         return report;
     };
 
+    for legacy_key in ["upstream", "downstream"] {
+        if lineage.extensions.contains_key(legacy_key) {
+            report.push(
+                Diagnostic::error(
+                    "DPCS-LIN-016",
+                    categories::LINEAGE,
+                    format!(
+                        "legacy `{legacy_key}` lineage field is not supported; use datasets and steps"
+                    ),
+                )
+                .with_object_ref(format!("lineage.{legacy_key}"))
+                .with_remediation(
+                    "Migrate upstream/downstream stubs to lineage.datasets and lineage.steps",
+                ),
+            );
+        }
+    }
+
     let step_ids = contract.step_ids();
     let reference_ids: BTreeSet<&str> = contract
         .contract_references
@@ -36,7 +54,7 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
                 )
                 .with_object_ref(format!("{object_ref}.dataset")),
             );
-        } else if !known_datasets.is_empty() && !known_datasets.contains(dataset.dataset.as_str()) {
+        } else if !known_datasets.contains(dataset.dataset.as_str()) {
             report.push(
                 Diagnostic::warning(
                     "DPCS-LIN-002",
@@ -102,7 +120,7 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
             dataset.contract_ref.as_deref(),
             format!("{object_ref}.contractRef"),
             "DPCS-LIN-007",
-            "dataset lineage",
+            "dataset lineage contractRef",
         );
         push_unknown_ref(
             &mut report,
@@ -110,7 +128,7 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
             dataset.transform_ref.as_deref(),
             format!("{object_ref}.transformRef"),
             "DPCS-LIN-008",
-            "dataset lineage",
+            "dataset lineage transformRef",
         );
     }
 
@@ -186,7 +204,7 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
             step.contract_ref.as_deref(),
             format!("{object_ref}.contractRef"),
             "DPCS-LIN-015",
-            "step lineage",
+            "step lineage contractRef",
         );
     }
 
@@ -209,7 +227,7 @@ fn push_unknown_ref(
             Diagnostic::error(
                 diagnostic_id,
                 categories::LINEAGE,
-                format!("{context} contract reference must not be empty when declared"),
+                format!("{context} must not be empty when declared"),
             )
             .with_object_ref(object_ref),
         );
@@ -220,7 +238,7 @@ fn push_unknown_ref(
             Diagnostic::error(
                 diagnostic_id,
                 categories::LINEAGE,
-                format!("{context} references unknown contractRef `{reference}`"),
+                format!("{context} references unknown id `{reference}`"),
             )
             .with_object_ref(object_ref)
             .with_remediation("Use a contractReferences[].id or remove the reference"),

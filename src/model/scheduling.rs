@@ -98,14 +98,19 @@ impl Serialize for SchedulingMode {
 impl<'de> Deserialize<'de> for SchedulingMode {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let value = String::deserialize(deserializer)?;
-        Ok(match value.as_str() {
+        let normalized: String = value
+            .chars()
+            .filter(|ch| ch.is_ascii_alphanumeric())
+            .flat_map(char::to_lowercase)
+            .collect();
+        Ok(match normalized.as_str() {
             "manual" => Self::Manual,
-            "onDemand" => Self::OnDemand,
+            "ondemand" => Self::OnDemand,
             "scheduled" => Self::Scheduled,
-            "eventDriven" => Self::EventDriven,
+            "eventdriven" => Self::EventDriven,
             "streaming" => Self::Streaming,
             "continuous" => Self::Continuous,
-            other => Self::Extension(other.to_owned()),
+            _ => Self::Extension(value),
         })
     }
 }

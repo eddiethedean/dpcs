@@ -56,16 +56,23 @@ Capability matching against orchestrator profiles is deferred to ROADMAP 0.7.0.
 | `DPCS-EXE-001` | Empty required capability |
 | `DPCS-EXE-003` | Empty external dependency id |
 | `DPCS-EXE-004` | Empty external dependency capability |
+| `DPCS-EXE-006` | Empty environment values |
 | `DPCS-SCH-002` | Scheduled mode missing frequency/cron |
 | `DPCS-SCH-003` | Event-driven mode missing events |
-| `DPCS-SCH-006` | earliest > latest timing constraint |
+| `DPCS-SCH-006` | Comparable ISO-8601 earliest > latest |
+| `DPCS-SCH-007` | Free-form earliest/latest not comparable |
 | `DPCS-QG-002` | Missing quality criteria |
 | `DPCS-QG-004` | Unresolved quality criterion contractRef |
 | `DPCS-QG-007` | Unknown step in quality gate placement |
+| `DPCS-QG-008` | Empty gate outcome |
+| `DPCS-QG-009` | Legacy scope/rule fields |
 | `DPCS-FS-003` | Unknown step in failure scope |
-| `DPCS-FS-007` | Retry response without retry semantics |
+| `DPCS-FS-007` | Retry response without meaningful retry semantics |
+| `DPCS-FS-008` | Legacy onFailure field |
+| `DPCS-LIN-002` | Dataset not present in dataFlow |
 | `DPCS-LIN-004` | Unknown producedBy step |
 | `DPCS-LIN-010` | Unknown step lineage stepId |
+| `DPCS-LIN-016` | Legacy upstream/downstream fields |
 | `DPCS-PLN-001` | Plan refused due to validation errors |
 
 Invalid contracts produce diagnostics instead of hard failures where possible.

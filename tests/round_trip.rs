@@ -167,3 +167,13 @@ fn pipeline_contract_serialize_methods_match_parser() {
     assert_eq!(contract, parse_yaml(&yaml).unwrap());
     assert_eq!(contract, parse_json(&json).unwrap());
 }
+
+#[test]
+fn execution_model_yaml_round_trip_preserves_com() {
+    let contract = parse_yaml_file(fixture("valid/with_execution_model.dpcs.yaml")).unwrap();
+    let yaml = to_yaml(&contract).unwrap();
+    let reparsed = parse_yaml(&yaml).unwrap();
+    assert_eq!(contract, reparsed);
+    let json = to_json(&contract).unwrap();
+    assert_eq!(contract, parse_json(&json).unwrap());
+}

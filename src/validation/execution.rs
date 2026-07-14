@@ -94,5 +94,37 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
         }
     }
 
+    if let Some(environment) = &execution.environment {
+        let empty_env = [
+            environment.operating_system.as_deref(),
+            environment.container.as_deref(),
+            environment.profile.as_deref(),
+        ]
+        .into_iter()
+        .any(|value| value.is_some_and(|v| v.trim().is_empty()))
+            || environment
+                .runtime_dependencies
+                .iter()
+                .any(|value| value.trim().is_empty())
+            || environment
+                .software_capabilities
+                .iter()
+                .any(|value| value.trim().is_empty());
+
+        if empty_env {
+            report.push(
+                Diagnostic::error(
+                    "DPCS-EXE-006",
+                    categories::EXECUTION_REQUIREMENTS,
+                    "environment requirement values must not be empty when declared",
+                )
+                .with_object_ref("execution.environment")
+                .with_remediation(
+                    "Omit unused environment fields or provide non-empty logical values",
+                ),
+            );
+        }
+    }
+
     report
 }

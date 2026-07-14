@@ -122,6 +122,7 @@ pub struct GatePlacement {
 impl GatePlacement {
     /// Returns whether this placement targets a step.
     pub fn targets_step(&self) -> bool {
-        matches!(self.kind.as_str(), "beforeStep" | "afterStep")
+        let kind = self.kind.trim();
+        kind.eq_ignore_ascii_case("beforeStep") || kind.eq_ignore_ascii_case("afterStep")
     }
 }

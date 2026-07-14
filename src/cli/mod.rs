@@ -124,6 +124,7 @@ fn execute(cli: Cli) -> Result<u8, Error> {
             };
             let valid = contract.validate().is_valid();
             let planned = plan::try_plan(&contract);
+            let planning_refused = planned.is_none();
             let summary = InspectSummary {
                 id: contract.id.clone(),
                 name: contract.name.clone(),
@@ -136,7 +137,13 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                 contract_reference_count: contract.contract_references.len(),
                 data_flow_count: contract.data_flow.len(),
                 control_flow_count: contract.control_flow.len(),
+                scheduling_count: contract.scheduling.len(),
+                quality_gate_count: contract.quality_gates.len(),
+                failure_semantics_count: contract.failure_semantics.len(),
+                has_execution: contract.execution.is_some(),
+                has_lineage: contract.lineage.is_some(),
                 valid,
+                planning_refused,
                 step_order: planned.as_ref().map(|plan| plan.step_order.clone()),
             };
             if json {
@@ -158,11 +165,14 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                 println!("contractReferences: {}", summary.contract_reference_count);
                 println!("dataFlow: {}", summary.data_flow_count);
                 println!("controlFlow: {}", summary.control_flow_count);
+                println!("scheduling: {}", summary.scheduling_count);
+                println!("qualityGates: {}", summary.quality_gate_count);
+                println!("failureSemantics: {}", summary.failure_semantics_count);
+                println!("execution: {}", summary.has_execution);
+                println!("lineage: {}", summary.has_lineage);
                 println!("valid: {}", summary.valid);
                 if let Some(order) = &summary.step_order {
-                    if !order.is_empty() {
-                        println!("stepOrder: {}", order.join(", "));
-                    }
+                    println!("stepOrder: {}", order.join(", "));
                 } else {
                     println!("planning: refused");
                 }
@@ -192,11 +202,9 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                 Err(err) => return Err(err),
             };
             let plan_result = plan::plan(&contract);
-            let step_order = match &plan_result {
-                plan::PlanResult::Ok(planned) => planned.step_order.clone(),
-                plan::PlanResult::Err(_) => {
-                    contract.steps.iter().map(|step| step.id.clone()).collect()
-                }
+            let (step_order, planning_refused) = match &plan_result {
+                plan::PlanResult::Ok(planned) => (Some(planned.step_order.clone()), false),
+                plan::PlanResult::Err(_) => (None, true),
             };
             if json {
                 let payload = GraphPayload {
@@ -213,6 +221,7 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                         })
                         .collect(),
                     step_order,
+                    planning_refused,
                 };
                 let payload = serde_json::to_string_pretty(&payload).map_err(|err| {
                     Error::Serialization(format!("failed to serialize graph payload: {err}"))
@@ -235,11 +244,15 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                         }
                     }
                 }
-                if !step_order.is_empty() {
-                    println!("stepOrder: {}", step_order.join(", "));
-                }
-                if let plan::PlanResult::Err(report) = &plan_result {
-                    println!("planning: refused ({} errors)", report.error_count());
+                match &step_order {
+                    Some(order) => println!("stepOrder: {}", order.join(", ")),
+                    None => {
+                        if let plan::PlanResult::Err(report) = &plan_result {
+                            println!("planning: refused ({} errors)", report.error_count());
+                        } else {
+                            println!("planning: refused");
+                        }
+                    }
                 }
             }
             Ok(EXIT_OK)
@@ -318,7 +331,13 @@ struct InspectSummary {
     contract_reference_count: usize,
     data_flow_count: usize,
     control_flow_count: usize,
+    scheduling_count: usize,
+    quality_gate_count: usize,
+    failure_semantics_count: usize,
+    has_execution: bool,
+    has_lineage: bool,
     valid: bool,
+    planning_refused: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     step_order: Option<Vec<String>>,
 }
@@ -331,7 +350,9 @@ struct GraphPayload {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     exit_points: Vec<String>,
     edges: Vec<GraphEdgeView>,
-    step_order: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    step_order: Option<Vec<String>>,
+    planning_refused: bool,
 }
 
 #[derive(Debug, serde::Serialize)]

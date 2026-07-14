@@ -130,7 +130,7 @@ match plan(&contract) {
 │   ├── parser/             # YAML and JSON parsers
 │   ├── validation/         # Phase-based validation
 │   ├── diagnostics/        # Deterministic diagnostics
-│   ├── plan/               # Pipeline Plan skeleton
+│   ├── plan/               # Deterministic Pipeline Plan IR
 │   ├── capabilities/       # Capability model skeleton
 │   ├── binding/            # Binding placeholder (future)
 │   └── cli/                # CLI implementation

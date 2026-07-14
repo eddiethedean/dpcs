@@ -132,3 +132,23 @@ fn diagnostics_json() {
         .failure()
         .stdout(predicate::str::contains("DPCS-COM-005"));
 }
+
+#[test]
+fn graph_json_omits_step_order_when_planning_refused() {
+    bin()
+        .args(["graph", &fixture("invalid/cycle.dpcs.yaml"), "--json"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("\"planningRefused\": true"))
+        .stdout(predicate::str::contains("\"stepOrder\"").not());
+}
+
+#[test]
+fn inspect_json_signals_planning_refused() {
+    bin()
+        .args(["inspect", &fixture("invalid/cycle.dpcs.yaml"), "--json"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("\"planningRefused\": true"))
+        .stdout(predicate::str::contains("\"valid\": false"));
+}

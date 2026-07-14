@@ -81,25 +81,107 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
 
         if let Some(constraints) = &intent.constraints {
             if let (Some(earliest), Some(latest)) = (&constraints.earliest, &constraints.latest) {
-                if !earliest.trim().is_empty()
-                    && !latest.trim().is_empty()
-                    && earliest.trim() > latest.trim()
-                {
-                    report.push(
-                        Diagnostic::error(
-                            "DPCS-SCH-006",
-                            categories::SCHEDULING,
-                            "scheduling earliest constraint must not be after latest",
-                        )
-                        .with_object_ref(format!("{object_ref}.constraints"))
-                        .with_remediation(
-                            "Ensure constraints.earliest is lexicographically <= constraints.latest for comparable timestamps",
-                        ),
-                    );
+                let earliest = earliest.trim();
+                let latest = latest.trim();
+                if !earliest.is_empty() && !latest.is_empty() {
+                    match (
+                        is_comparable_iso8601(earliest),
+                        is_comparable_iso8601(latest),
+                    ) {
+                        (true, true) if earliest > latest => {
+                            report.push(
+                                Diagnostic::error(
+                                    "DPCS-SCH-006",
+                                    categories::SCHEDULING,
+                                    "scheduling earliest constraint must not be after latest",
+                                )
+                                .with_object_ref(format!("{object_ref}.constraints"))
+                                .with_remediation(
+                                    "Use comparable RFC3339/ISO-8601 timestamps with earliest <= latest",
+                                ),
+                            );
+                        }
+                        (true, true) => {}
+                        _ => {
+                            report.push(
+                                Diagnostic::warning(
+                                    "DPCS-SCH-007",
+                                    categories::SCHEDULING,
+                                    "scheduling earliest/latest constraints are not comparable ISO-8601 timestamps",
+                                )
+                                .with_object_ref(format!("{object_ref}.constraints"))
+                                .with_remediation(
+                                    "Use RFC3339 timestamps such as 2026-01-01T00:00:00Z for timing consistency checks",
+                                ),
+                            );
+                        }
+                    }
                 }
             }
         }
     }
 
     report
+}
+
+/// Returns true for zero-padded RFC3339/ISO-8601 timestamps that are lexicographically ordered.
+fn is_comparable_iso8601(value: &str) -> bool {
+    // YYYY-MM-DDTHH:MM:SSZ or YYYY-MM-DDTHH:MM:SS±HH:MM
+    let bytes = value.as_bytes();
+    if bytes.len() < 20 {
+        return false;
+    }
+    let date_ok = bytes
+        .get(0..4)
+        .is_some_and(|b| b.iter().all(u8::is_ascii_digit))
+        && bytes.get(4) == Some(&b'-')
+        && bytes
+            .get(5..7)
+            .is_some_and(|b| b.iter().all(u8::is_ascii_digit))
+        && bytes.get(7) == Some(&b'-')
+        && bytes
+            .get(8..10)
+            .is_some_and(|b| b.iter().all(u8::is_ascii_digit))
+        && bytes.get(10) == Some(&b'T')
+        && bytes
+            .get(11..13)
+            .is_some_and(|b| b.iter().all(u8::is_ascii_digit))
+        && bytes.get(13) == Some(&b':')
+        && bytes
+            .get(14..16)
+            .is_some_and(|b| b.iter().all(u8::is_ascii_digit))
+        && bytes.get(16) == Some(&b':')
+        && bytes
+            .get(17..19)
+            .is_some_and(|b| b.iter().all(u8::is_ascii_digit));
+    if !date_ok {
+        return false;
+    }
+    match bytes.get(19) {
+        Some(b'Z') if bytes.len() == 20 => true,
+        Some(b'+') | Some(b'-') if bytes.len() == 25 => {
+            bytes
+                .get(20..22)
+                .is_some_and(|b| b.iter().all(u8::is_ascii_digit))
+                && bytes.get(22) == Some(&b':')
+                && bytes
+                    .get(23..25)
+                    .is_some_and(|b| b.iter().all(u8::is_ascii_digit))
+        }
+        _ => false,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_comparable_iso8601;
+
+    #[test]
+    fn recognizes_rfc3339_timestamps() {
+        assert!(is_comparable_iso8601("2026-01-01T00:00:00Z"));
+        assert!(is_comparable_iso8601("2026-12-31T23:59:59+00:00"));
+        assert!(!is_comparable_iso8601("9:00"));
+        assert!(!is_comparable_iso8601("10:00"));
+        assert!(!is_comparable_iso8601("P1D"));
+    }
 }

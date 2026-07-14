@@ -53,7 +53,7 @@ pub struct FailureScope {
 impl FailureScope {
     /// Returns whether this scope targets a pipeline step.
     pub fn is_step(&self) -> bool {
-        self.kind == "step"
+        self.kind.eq_ignore_ascii_case("step")
     }
 
     /// Pipeline-wide scope.

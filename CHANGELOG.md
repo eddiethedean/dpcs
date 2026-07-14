@@ -9,12 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Structured `ExecutionRequirements` with resources, environment, isolation, and external dependencies (`DPCS-EXE-001`–`005`)
-- Structured `SchedulingIntent` list with modes, events, and constraints (`DPCS-SCH-001`–`006`)
-- Quality gate criteria, outcomes, and placement validation (`DPCS-QG-001`–`007`)
-- Failure semantics scope, triggers, responses, and retry checks (`DPCS-FS-001`–`007`)
-- Pipeline lineage dataset/step/provenance validation (`DPCS-LIN-001`–`015`)
-- Full `PipelinePlan` IR with gated deterministic planning (`DPCS-PLN-001`, `DPCS-PLN-002`)
+- Structured `ExecutionRequirements` with resources, environment, isolation, and external dependencies (`DPCS-EXE-001`–`006`)
+- Structured `SchedulingIntent` list with modes, events, and constraints (`DPCS-SCH-001`–`007`)
+- Quality gate criteria, outcomes, placement, and legacy-field rejection (`DPCS-QG-001`–`009`)
+- Failure semantics scope, triggers, responses, retry, and legacy-field rejection (`DPCS-FS-001`–`008`)
+- Pipeline lineage dataset/step/provenance validation (`DPCS-LIN-001`–`016`)
+- Full `PipelinePlan` IR with gated deterministic planning (`DPCS-PLN-001`)
 - Public re-exports for execution-model COM types, `plan` / `try_plan`, and `PlanResult`
 - Example `examples/with_execution.dpcs.yaml` and fixtures for execution-model validation
 
@@ -25,8 +25,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `FailureSemantics` requires structured `scope`, `triggers`, and `responses` (replaced free-form `onFailure`)
 - `PipelineLineage` uses dataset/step/provenance structures (replaced loose `upstream`/`downstream` strings)
 - `plan()` returns `PlanResult` and refuses invalid contracts
-- CLI `inspect` / `graph` surface planning status when a plan cannot be produced
+- CLI `inspect` / `graph` surface `planningRefused` and omit fake `stepOrder` when planning fails
 - Capability matching against orchestrator profiles remains deferred to ROADMAP 0.7.0
+
+### Fixed
+
+- Retry responses require meaningful `retry` policy (reject empty `retry: {}` and `eligible: false`)
+- Timing constraint checks only compare RFC3339/ISO-8601 timestamps; free-form times warn via `DPCS-SCH-007`
+- Lineage always warns when declared datasets are absent from `dataFlow` (`DPCS-LIN-002`)
+- Legacy stub keys (`lineage.upstream`/`downstream`, QG `scope`/`rule`, FS `onFailure`) are rejected instead of silently absorbed
+- Empty quality outcomes and failure responses are rejected
+- Duplicate identity detection treats trimmed ids as equal (`DPCS-COM-005`)
+- Scheduling mode deserialization accepts common casing variants of known modes
 
 ## [0.5.0] - 2026-07-13
 

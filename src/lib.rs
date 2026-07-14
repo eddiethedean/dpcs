@@ -40,12 +40,14 @@ pub mod cli;
 pub use diagnostics::{Diagnostic, DiagnosticStage, Severity, ValidationReport};
 pub use error::{Error, Result};
 pub use model::{
-    step_id_from_endpoint, unreachable_datasets, unsatisfied_ports, CycleError, DependencyGraph,
-    DuplicateEdge, EndpointRole, ExecutionRequirements, ExtensionMap, ExtensionValue,
-    FailureResponse, FailureSemantics, GateOutcome, GatePlacement, IdentityCatalog, InterfacePort,
+    step_id_from_endpoint, unreachable_datasets, unsatisfied_ports, ContractReference, CycleError,
+    DatasetLineage, DependencyGraph, DuplicateEdge, EndpointRole, ExecutionEnvironment,
+    ExecutionRequirements, ExtensionMap, ExtensionValue, ExternalDependency, FailureResponse,
+    FailureScope, FailureSemantics, GateOutcome, GatePlacement, IdentityCatalog, InterfacePort,
     Metadata, ObjectId, ObjectKind, ObjectPath, PipelineContract, PipelineGraph, PipelineIdentity,
-    PipelineInterface, PipelineLineage, PipelineStep, QualityGate, SchedulingIntent,
-    SchedulingMode,
+    PipelineInterface, PipelineLineage, PipelineProvenance, PipelineStep, QualityCriterion,
+    QualityGate, ResourceRequirements, RetrySemantics, SchedulingConstraints, SchedulingEvent,
+    SchedulingIntent, SchedulingMode, StepLineage,
 };
 pub use parser::{
     parse_file, parse_json, parse_json_file, parse_yaml, parse_yaml_file, to_file, to_json,

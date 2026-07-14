@@ -1,0 +1,14 @@
+dpcsVersion: "1.0.0"
+id: "invalid.freeform.timing"
+version: "0.1.0"
+interface:
+  inputs: []
+  outputs: []
+steps: []
+graph:
+  edges: []
+scheduling:
+  - mode: "manual"
+    constraints:
+      earliest: "9:00"
+      latest: "10:00"
