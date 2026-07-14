@@ -130,10 +130,7 @@ pub fn inspect_to_html(view: &InspectView) -> String {
         body.push_str(&format!("<li>Name: {}</li>", esc(name)));
     }
     if let Some(order) = &view.step_order {
-        body.push_str(&format!(
-            "<li>Step order: {}</li>",
-            esc(&order.join(", "))
-        ));
+        body.push_str(&format!("<li>Step order: {}</li>", esc(&order.join(", "))));
     } else {
         body.push_str("<li>Planning: refused</li>");
     }

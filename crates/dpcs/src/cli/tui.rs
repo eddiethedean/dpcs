@@ -19,9 +19,7 @@ use ratatui::Terminal;
 use crate::diagnostics::ValidationReport;
 use crate::error::{Error, Result};
 use crate::parser;
-use crate::report::{
-    graph_view_from_contract, inspect_view_from_contract, GraphView, InspectView,
-};
+use crate::report::{graph_view_from_contract, inspect_view_from_contract, GraphView, InspectView};
 use crate::validate;
 
 use super::{EXIT_FAILURE, EXIT_OK};
@@ -140,9 +138,7 @@ impl InspectorState {
                     self.diagnostics
                         .diagnostics
                         .iter()
-                        .map(|d| {
-                            format!("{} {}: {} — {}", d.severity, d.id, d.stage, d.message)
-                        })
+                        .map(|d| format!("{} {}: {} — {}", d.severity, d.id, d.stage, d.message))
                         .collect()
                 }
             }
@@ -260,8 +256,8 @@ fn run_loop(
         {
             continue;
         }
-        let Event::Key(key) = event::read()
-            .map_err(|err| Error::Serialization(format!("read event: {err}")))?
+        let Event::Key(key) =
+            event::read().map_err(|err| Error::Serialization(format!("read event: {err}")))?
         else {
             continue;
         };
@@ -310,7 +306,10 @@ fn draw(frame: &mut ratatui::Frame<'_>, state: &mut InspectorState) {
     frame.render_widget(tabs, chunks[0]);
 
     let lines = state.lines_for_pane();
-    let items: Vec<ListItem<'_>> = lines.iter().map(|line| ListItem::new(line.clone())).collect();
+    let items: Vec<ListItem<'_>> = lines
+        .iter()
+        .map(|line| ListItem::new(line.clone()))
+        .collect();
     let list = List::new(items)
         .block(
             Block::default()

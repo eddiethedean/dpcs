@@ -58,7 +58,10 @@ impl Cli {
             | Commands::Graph { json, format, .. }
             | Commands::Capabilities { json, format, .. }
             | Commands::Compatibility { json, format, .. } => {
-                *json || format.as_deref().is_some_and(|f| f.eq_ignore_ascii_case("json"))
+                *json
+                    || format
+                        .as_deref()
+                        .is_some_and(|f| f.eq_ignore_ascii_case("json"))
             }
             Commands::Bind { json, .. } | Commands::Version { json } => *json,
             Commands::Registry { command } => match command {
@@ -74,7 +77,9 @@ impl Cli {
                 ConformanceCommands::Validate { json, .. } => *json,
             },
             Commands::Package { command } => match command {
-                PackageCommands::Validate { json, .. } | PackageCommands::Show { json, .. } => *json,
+                PackageCommands::Validate { json, .. } | PackageCommands::Show { json, .. } => {
+                    *json
+                }
                 _ => false,
             },
             #[cfg(feature = "tui")]

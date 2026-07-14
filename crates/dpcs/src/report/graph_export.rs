@@ -65,11 +65,7 @@ fn collect_nodes(view: &GraphView) -> Vec<String> {
             nodes.push(edge.to.clone());
         }
     }
-    for ep in view
-        .entry_points
-        .iter()
-        .chain(view.exit_points.iter())
-    {
+    for ep in view.entry_points.iter().chain(view.exit_points.iter()) {
         if !nodes.iter().any(|n| n == ep) {
             nodes.push(ep.clone());
         }
@@ -182,6 +178,8 @@ mod tests {
         assert!(mermaid.contains("a_b__2[\"a_b\"]") || mermaid.contains("a_b__2[\"a_b\"]"));
         assert!(!mermaid.lines().any(|l| l.contains("a_b --> a_b")));
         let dot = graph_to_dot(&view);
-        assert!(dot.contains("a_b__2") || (dot.contains("a_b [") && dot.matches("a_b").count() > 1));
+        assert!(
+            dot.contains("a_b__2") || (dot.contains("a_b [") && dot.matches("a_b").count() > 1)
+        );
     }
 }

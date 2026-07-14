@@ -92,9 +92,15 @@ pub fn inspect_to_markdown(view: &InspectView) -> String {
         view.contract_reference_count
     ));
     out.push_str(&format!("- **Data flow:** {}\n", view.data_flow_count));
-    out.push_str(&format!("- **Control flow:** {}\n", view.control_flow_count));
+    out.push_str(&format!(
+        "- **Control flow:** {}\n",
+        view.control_flow_count
+    ));
     out.push_str(&format!("- **Scheduling:** {}\n", view.scheduling_count));
-    out.push_str(&format!("- **Quality gates:** {}\n", view.quality_gate_count));
+    out.push_str(&format!(
+        "- **Quality gates:** {}\n",
+        view.quality_gate_count
+    ));
     out.push_str(&format!(
         "- **Failure semantics:** {}\n",
         view.failure_semantics_count

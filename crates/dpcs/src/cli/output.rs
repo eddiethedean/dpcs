@@ -335,9 +335,7 @@ pub fn emit_capability(opts: &EmitOpts, report: &CapabilityReport, match_ok: boo
 }
 
 fn format_capability_text(opts: &EmitOpts, report: &CapabilityReport, match_ok: bool) -> String {
-    let mut lines = vec![
-        format!("profile: {}", report.profile_identity),
-    ];
+    let mut lines = vec![format!("profile: {}", report.profile_identity)];
     if let Some(contract_id) = &report.plan_contract_id {
         lines.push(format!("contractId: {contract_id}"));
     }
