@@ -1,0 +1,45 @@
+[package]
+name = "dpcs"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Reference implementation of the Data Pipeline Contract Standard (DPCS)"
+license.workspace = true
+readme = "../../README.md"
+repository.workspace = true
+homepage.workspace = true
+documentation = "https://docs.rs/dpcs"
+keywords = ["dpcs", "data-pipeline", "contracts", "validation"]
+categories = ["command-line-utilities", "parser-implementations"]
+authors.workspace = true
+exclude = [".github/"]
+
+[features]
+default = []
+cli = ["dep:clap"]
+jsonschema = ["dep:schemars"]
+registry-client = ["dep:reqwest", "dep:url"]
+registry-server = ["dep:axum", "dep:tokio", "dep:tower-http", "dep:url"]
+full = ["cli", "jsonschema", "registry-client", "registry-server"]
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+thiserror = { workspace = true }
+indexmap = { workspace = true }
+clap = { workspace = true, optional = true }
+schemars = { workspace = true, optional = true }
+reqwest = { workspace = true, optional = true }
+axum = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
+tower-http = { workspace = true, optional = true }
+url = { workspace = true, optional = true }
+zip = { workspace = true }
+walkdir = { workspace = true }
+
+[dev-dependencies]
+assert_cmd = { workspace = true }
+predicates = { workspace = true }
+tempfile = { workspace = true }
+tokio = { workspace = true }

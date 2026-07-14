@@ -1,0 +1,50 @@
+dpcsVersion: "1.0.0"
+id: "customer.pipeline"
+name: "Customer Pipeline"
+version: "0.1.0"
+
+metadata:
+  description: "Example customer normalization pipeline"
+  owner: "data-platform"
+
+interface:
+  metadata:
+    description: "External customer data boundary"
+  inputs:
+    - id: "customer_raw"
+      name: "Customer Raw"
+      contractRef: "contracts/customer_raw.odcs.yaml"
+      purpose: "Raw customer dataset input"
+  outputs:
+    - id: "customer_clean"
+      name: "Customer Clean"
+      contractRef: "contracts/customer_clean.odcs.yaml"
+      purpose: "Cleaned customer dataset output"
+
+contractReferences:
+  - id: "customer_raw_contract"
+    type: "odcs"
+    location: "contracts/customer_raw.odcs.yaml"
+  - id: "normalize_customer_transform"
+    type: "dtcs"
+    location: "transforms/normalize_customer.dtcs.yaml"
+
+steps:
+  - id: "normalize_customer"
+    type: "dtcs:transform"
+    contractRef: "normalize_customer_transform"
+    inputs:
+      - id: "customer_raw"
+    outputs:
+      - id: "customer_clean"
+
+graph:
+  edges: []
+
+dataFlow:
+  - from: "interface.inputs.customer_raw"
+    to: "steps.normalize_customer.inputs.customer_raw"
+    dataset: "customer_raw"
+  - from: "steps.normalize_customer.outputs.customer_clean"
+    to: "interface.outputs.customer_clean"
+    dataset: "customer_clean"

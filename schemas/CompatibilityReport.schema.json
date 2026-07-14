@@ -1,0 +1,255 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "CompatibilityCategory": {
+      "description": "Compatibility category between two artifacts.",
+      "oneOf": [
+        {
+          "description": "No semantic differences in considered fields.",
+          "enum": [
+            "fullyCompatible"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Candidate preserves baseline observable semantics (additive OK).",
+          "enum": [
+            "backwardCompatible"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Candidate removes optional content while preserving core semantics.",
+          "enum": [
+            "forwardCompatible"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Compatible only under declared conditions / warnings.",
+          "enum": [
+            "conditionallyCompatible"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Mandatory observable semantics diverge.",
+          "enum": [
+            "incompatible"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "Diagnostic": {
+      "description": "A single deterministic diagnostic observation.\n\nDiagnostics describe observations only and must not change pipeline semantics.",
+      "properties": {
+        "category": {
+          "description": "Category of the observation.",
+          "type": "string"
+        },
+        "id": {
+          "description": "Stable diagnostic identifier (for example `DPCS-VAL-001`).",
+          "type": "string"
+        },
+        "message": {
+          "description": "Human-readable message.",
+          "type": "string"
+        },
+        "metadata": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Implementation-specific metadata (string map).",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "objectRef": {
+          "description": "Optional object reference within the contract.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "relatedDiagnostics": {
+          "description": "Related diagnostic identifiers.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "remediation": {
+          "description": "Optional remediation guidance.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "severity": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/Severity"
+            }
+          ],
+          "description": "Severity of the observation."
+        },
+        "sourceLocation": {
+          "description": "Optional source location in the original document.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "stage": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/DiagnosticStage"
+            }
+          ],
+          "description": "Processing stage that produced the diagnostic."
+        }
+      },
+      "required": [
+        "category",
+        "id",
+        "message",
+        "severity",
+        "stage"
+      ],
+      "type": "object"
+    },
+    "DiagnosticStage": {
+      "description": "Stage of the DPCS processing pipeline that produced a diagnostic.",
+      "oneOf": [
+        {
+          "description": "Document parsing.",
+          "enum": [
+            "parse"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Canonical Object Model construction.",
+          "enum": [
+            "canonicalObjectModel"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Semantic and structural validation.",
+          "enum": [
+            "validation"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Compatibility analysis between artifacts.",
+          "enum": [
+            "compatibilityAnalysis"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Pipeline plan generation.",
+          "enum": [
+            "planning"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Orchestrator capability evaluation.",
+          "enum": [
+            "capabilityEvaluation"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Orchestrator binding.",
+          "enum": [
+            "orchestratorBinding"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Execution analysis (reserved; unused in 0.9.0 toolkit scope).",
+          "enum": [
+            "executionAnalysis"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "Severity": {
+      "description": "Severity of a diagnostic observation.",
+      "oneOf": [
+        {
+          "description": "Informational observation that does not affect validity.",
+          "enum": [
+            "information"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Non-fatal issue that should be reviewed.",
+          "enum": [
+            "warning"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Error that makes the contract invalid.",
+          "enum": [
+            "error"
+          ],
+          "type": "string"
+        }
+      ]
+    }
+  },
+  "description": "Structured compatibility report.",
+  "properties": {
+    "baselineId": {
+      "description": "Baseline artifact identity.",
+      "type": "string"
+    },
+    "baselineVersion": {
+      "description": "Baseline artifact version.",
+      "type": "string"
+    },
+    "candidateId": {
+      "description": "Candidate artifact identity.",
+      "type": "string"
+    },
+    "candidateVersion": {
+      "description": "Candidate artifact version.",
+      "type": "string"
+    },
+    "category": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/CompatibilityCategory"
+        }
+      ],
+      "description": "Resulting compatibility category."
+    },
+    "diagnostics": {
+      "description": "Breaking-change findings and related diagnostics.",
+      "items": {
+        "$ref": "#/definitions/Diagnostic"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "baselineId",
+    "baselineVersion",
+    "candidateId",
+    "candidateVersion",
+    "category",
+    "diagnostics"
+  ],
+  "title": "CompatibilityReport",
+  "type": "object"
+}

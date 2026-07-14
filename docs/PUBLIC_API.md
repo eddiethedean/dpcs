@@ -245,4 +245,17 @@ assert!(validate_claim(&toolkit_claim()).is_valid());
 Contract root may declare optional `security` and `governance` blocks.
 Extension root keys must use `x-*`, `vendor:name`, or URI-like namespaces.
 
-[`Error::InvalidDocument`]: ../src/error.rs
+## Packages, schema, and registry network (0.10.0)
+
+```rust
+use dpcs::{validate_package, write_document_schemas};
+
+assert!(validate_package("examples/packages/minimal.dpcspkg").is_valid());
+write_document_schemas("schemas")?;
+```
+
+Optional features: `cli`, `jsonschema`, `registry-client`, `registry-server`, and `full`.
+Enable `jsonschema` for `openapi_document` / `write_openapi_documents`, and
+`registry-client` / `registry-server` for `RegistryClient` and `serve`.
+
+[`Error::InvalidDocument`]: ../crates/dpcs/src/error.rs

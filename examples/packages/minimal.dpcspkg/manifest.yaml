@@ -1,0 +1,9 @@
+id: "example.minimal"
+version: "0.1.0"
+dpcsVersion: "1.0.0-draft"
+name: "Minimal pipeline package"
+artifacts:
+  - id: "minimal"
+    type: "pipelineContract"
+    version: "0.1.0"
+    path: "artifacts/contracts/minimal.dpcs.yaml"

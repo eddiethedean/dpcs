@@ -20,21 +20,27 @@ jobs:
       - name: Format
         run: cargo fmt --all -- --check
       - name: Clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
       - name: Test
-        run: cargo test --all-features
+        run: cargo test --workspace --all-features
       - name: Validate examples
         run: |
-          cargo run --release -- validate examples/minimal.dpcs.yaml
-          cargo run --release -- validate examples/with_execution.dpcs.yaml
-          cargo run --release -- validate examples/with_security_governance.dpcs.yaml
-          cargo run --release -- capabilities examples/orchestrator.capabilities.yaml --plan examples/with_execution.dpcs.yaml
-          cargo run --release -- bind examples/with_execution.dpcs.yaml --profile examples/orchestrator.capabilities.yaml --target airflow --out /tmp/dpcs-bind-smoke
-          cargo run --release -- compatibility examples/compatibility/baseline.dpcs.yaml examples/compatibility/candidate_compatible.dpcs.yaml
-          cargo run --release -- registry validate examples/registry.yaml
-          cargo run --release -- conformance validate examples/conformance.profile.yaml
+          cargo run -p dpcs-cli --release -- validate examples/minimal.dpcs.yaml
+          cargo run -p dpcs-cli --release -- validate examples/with_execution.dpcs.yaml
+          cargo run -p dpcs-cli --release -- validate examples/with_security_governance.dpcs.yaml
+          cargo run -p dpcs-cli --release -- capabilities examples/orchestrator.capabilities.yaml --plan examples/with_execution.dpcs.yaml
+          cargo run -p dpcs-cli --release -- bind examples/with_execution.dpcs.yaml --profile examples/orchestrator.capabilities.yaml --target airflow --out /tmp/dpcs-bind-smoke
+          cargo run -p dpcs-cli --release -- compatibility examples/compatibility/baseline.dpcs.yaml examples/compatibility/candidate_compatible.dpcs.yaml
+          cargo run -p dpcs-cli --release -- registry validate examples/registry.yaml
+          cargo run -p dpcs-cli --release -- conformance validate examples/conformance.profile.yaml
+          cargo run -p dpcs-cli --release -- package validate examples/packages/minimal.dpcspkg
+      - name: Schema drift check
+        run: |
+          cargo run -p dpcs-cli --release -- schema json --out /tmp/dpcs-schemas
+          cargo run -p dpcs-cli --release -- schema openapi --kind all --out /tmp/dpcs-schemas
+          diff -ru schemas /tmp/dpcs-schemas
       - name: Build release
-        run: cargo build --release
+        run: cargo build -p dpcs-cli --release
 
   msrv:
     name: MSRV
@@ -44,4 +50,25 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.85.0
       - uses: Swatinem/rust-cache@v2
       - name: Test on MSRV
-        run: cargo test --all-features
+        run: cargo test --workspace --all-features
+
+  wasm:
+    name: WASM
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - name: Check wasm crate
+        run: cargo check -p dpcs-wasm
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - name: Build wasm package
+        working-directory: bindings/wasm
+        run: wasm-pack build --target nodejs --dev --out-dir pkg
+      - name: Node smoke
+        working-directory: bindings/wasm
+        run: |
+          node -e "const d=require('./pkg'); console.log(d.version()); const fs=require('fs'); const y=fs.readFileSync('../../examples/minimal.dpcs.yaml','utf8'); const r=d.validate_yaml(y); if(!r.diagnostics) throw new Error('no diagnostics');"

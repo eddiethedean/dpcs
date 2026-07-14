@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "ExtensionValue": true
+  },
+  "description": "A single registered artifact entry.",
+  "properties": {
+    "compatibility": {
+      "description": "Optional compatibility metadata summary.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "id": {
+      "description": "Unique artifact identifier within the registry.",
+      "type": "string"
+    },
+    "location": {
+      "description": "Optional location / payload reference.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "publicationStatus": {
+      "description": "Publication status.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "type": {
+      "description": "Artifact type (for example `pipelineContract` or `capabilityProfile`).",
+      "type": "string"
+    },
+    "version": {
+      "description": "Artifact version.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "type",
+    "version"
+  ],
+  "title": "RegisteredArtifact",
+  "type": "object"
+}

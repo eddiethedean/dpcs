@@ -8,19 +8,21 @@ Thanks for helping build the DPCS reference implementation.
 2. If a design doc conflicts with `SPEC.md`, follow `SPEC.md`.
 3. Prefer the smallest conservative behavior when the specification is ambiguous.
 4. Add a `TODO` referencing the relevant SPEC section when deferring behavior.
-5. Do not implement execution runtimes; binding scaffolds shipped in 0.8.0; Ch 18–25 document models shipped in 0.9.0 (registry network client remains 0.10).
+5. Do not implement execution runtimes; binding scaffolds and Ch 18–25 document
+   models are shipped. Registry networking uses the reference HTTP API (ADR-0005).
 
 ## Releases
 
 Tagged releases use `.github/workflows/release.yml`:
 
-1. Push a version tag matching `v*.*.*` (for example `v0.9.0`).
+1. Push a version tag matching `v*.*.*` (for example `v0.10.0`).
 2. The release workflow runs the same CI checks as pull requests (`ci-checks.yml`).
-3. After checks pass, it publishes the Rust crate to crates.io.
-4. Create a GitHub Release for the tag (title `v0.9.0`) using the `[0.9.0]` section from [`CHANGELOG.md`](CHANGELOG.md).
-
-Store a crates.io API token in the repository secret named `CARGO_REGISTRY_TOKEN`.
-Do not use a PyPI token here; this project does not publish a Python package yet.
+3. After checks pass, it publishes:
+   - Rust crates `dpcs` and `dpcs-cli` to crates.io (`CARGO_REGISTRY_TOKEN`)
+   - Python package to PyPI (`PYPI_API_TOKEN`)
+   - WASM/JS package to npm (`NPM_TOKEN`)
+   - WASM package to Wasmer (`WASM_TOKEN`)
+4. Create a GitHub Release for the tag using the matching section from [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Workflow
 
@@ -30,8 +32,8 @@ Do not use a PyPI token here; this project does not publish a Python package yet
 
    ```bash
    cargo fmt --all
-   cargo clippy --all-targets --all-features -- -D warnings
-   cargo test --all-features
+   cargo clippy --workspace --all-targets --all-features -- -D warnings
+   cargo test --workspace --all-features
    # or: make ci
    ```
 
@@ -44,18 +46,12 @@ Do not use a PyPI token here; this project does not publish a Python package yet
 | --- | --- |
 | `SPEC.md` | Normative specification |
 | `ROADMAP.md` | Release plan |
-| `src/model` | Canonical Object Model |
-| `src/parser` | YAML/JSON parsing |
-| `src/validation` | Phase-based validation |
-| `src/diagnostics` | Diagnostic types and reports |
-| `src/plan` | Pipeline Plan generation |
-| `src/capabilities` | Capability profiles and matching |
-| `src/binding` | Orchestrator binding scaffolds |
-| `src/compatibility` | Compatibility analysis |
-| `src/conformance` | Conformance claims and profiles |
-| `src/cli` | CLI commands |
-| `examples/` | Example contracts and profiles |
-| `tests/fixtures` | Conformance-oriented fixtures |
+| `crates/dpcs` | Core library |
+| `crates/dpcs-cli` | `dpcs` CLI binary |
+| `bindings/python` | PyO3 / maturin package |
+| `bindings/wasm` | wasm-bindgen package |
+| `schemas/` | Generated JSON Schema and OpenAPI artifacts |
+| `examples/` | Example contracts, packages, and profiles |
 | `docs/` | Design guides |
 | `adr/` | Architecture decisions |
 
@@ -63,10 +59,10 @@ Do not use a PyPI token here; this project does not publish a Python package yet
 
 ```bash
 rustup toolchain install stable
-cargo test --all-features
+cargo test --workspace --all-features
 ```
 
-MSRV is **1.85**. Local parity with CI: `make ci` (lint, test, example smokes including `bind`, release build).
+MSRV is **1.85**. Local parity with CI: `make ci`.
 
 ## Validation diagnostics
 

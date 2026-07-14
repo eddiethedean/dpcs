@@ -1,7 +1,8 @@
-# Non-Goals Beyond 0.9.0
+# Non-Goals Beyond 0.10.0
 
-Completed through 0.9.0: orchestrator binding scaffolds and SPEC Ch 18–25
-document models (including in-process registry validation).
+Completed through 0.10.0: orchestrator binding scaffolds, SPEC Ch 18–25 document
+models, JSON Schema/OpenAPI helpers, reference registry HTTP API, pipeline
+packages, and Python/WASM distribution packages.
 
 Do **not** implement yet:
 
@@ -12,9 +13,8 @@ Do **not** implement yet:
 - ETL execution
 - ODCS validation internals
 - DTCS validation internals
-- Network registry clients / Binding Profiles registry clients (ROADMAP 0.10)
-- Python / WASM bindings, JSON Schema generation (ROADMAP 0.10)
+- TUI / rich HTML reports (ROADMAP 0.11)
 
 DPCS should reference ODCS and DTCS contracts, not implement them internally.
 Binding produces orchestration artifacts; it does not run pipelines.
-Registry document validation does not imply a remote registry protocol.
+The reference registry HTTP API is toolkit-local (ADR-0005), not the sole future SPEC protocol.

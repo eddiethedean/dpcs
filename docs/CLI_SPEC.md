@@ -17,6 +17,12 @@ dpcs capabilities <profile> --plan <contract>
 dpcs bind <contract> --profile <profile> --target <airflow|dagster|prefect|temporal|kubernetes>
 dpcs compatibility <baseline> <candidate>
 dpcs registry validate <path>
+dpcs registry serve --root <dir> [--bind host:port] [--token <secret>]
+dpcs registry pull --url <base> [--token <secret>]
+dpcs registry lookup --url <base> <id> [--version <ver>]
+dpcs registry publish --url <base> <artifact> [--content <file>] [--token <secret>]
+dpcs package validate|show|pack|unpack ...
+dpcs schema json|openapi ...
 dpcs conformance validate <path>
 dpcs version [--json]
 ```
@@ -57,7 +63,10 @@ Notes:
 - `--target` accepts `airflow`, `dagster`, `prefect`, `temporal`, `kubernetes`, and alias `k8s`.
 - `temporal` and `kubernetes` targets are experimental.
 - `compatibility` compares two Pipeline Contracts. Exit `0` when the category is compatible (fully / backward / forward / conditional), `1` when incompatible, `2` on parse/I/O. `--json` emits `CompatibilityReport`.
-- `registry validate` validates an in-process registry document (`DPCS-REG-*`). Network registry clients are out of scope (ROADMAP 0.10).
+- `registry validate` validates an in-process registry document (`DPCS-REG-*`).
+- `registry serve|pull|lookup|publish|…` use the reference HTTP API (ADR-0005).
+- `package` operates on `.dpcspkg` layouts (`DPCS-PKG-*`).
+- `schema` emits JSON Schema / OpenAPI under `schemas/`.
 - `conformance validate` validates a conformance profile and checks claimed levels against this toolkit.
 - `version --json` emits toolkit version, `dpcsSpecVersion`, and the toolkit `ConformanceClaim`.
 - Invalid YAML/JSON documents emit Parse-stage diagnostics (`DPCS-PARSE-*`) and exit `2`. With `--json`, the diagnostic report is printed to stdout for `validate`, `diagnostics`, `inspect`, `graph`, `capabilities`, `bind`, `compatibility`, `registry`, and `conformance` failures.

@@ -1,0 +1,29 @@
+[build-system]
+requires = ["maturin>=1.7,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "dpcs"
+version = "0.10.0"
+description = "Python bindings for the Data Pipeline Contract Standard (DPCS) reference toolkit"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "Apache-2.0 OR MIT" }
+authors = [{ name = "DPCS Contributors" }]
+classifiers = [
+  "Programming Language :: Rust",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: Apache Software License",
+  "License :: OSI Approved :: MIT License",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/eddiethedean/dpcs"
+Repository = "https://github.com/eddiethedean/dpcs"
+
+[tool.maturin]
+manifest-path = "Cargo.toml"
+module-name = "dpcs"
+features = ["pyo3/extension-module"]

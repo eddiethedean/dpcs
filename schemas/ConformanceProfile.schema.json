@@ -1,0 +1,105 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "ConformanceLevel": {
+      "description": "Conformance levels defined by SPEC Ch 23.",
+      "oneOf": [
+        {
+          "description": "Parser conformance.",
+          "enum": [
+            "parser"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Validator conformance.",
+          "enum": [
+            "validator"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Planner conformance.",
+          "enum": [
+            "planner"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Capability evaluator conformance.",
+          "enum": [
+            "capabilityEvaluator"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Orchestrator binder conformance.",
+          "enum": [
+            "orchestratorBinder"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Registry document conformance.",
+          "enum": [
+            "registry"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Complete implementation conformance.",
+          "enum": [
+            "completeImplementation"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "ExtensionValue": true
+  },
+  "description": "Conformance profile document constraining validation / claims.",
+  "properties": {
+    "dpcsVersion": {
+      "description": "Supported DPCS specification version.",
+      "type": "string"
+    },
+    "forbiddenExtensionNamespaces": {
+      "description": "Extension namespaces forbidden on contracts.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "id": {
+      "description": "Profile identity.",
+      "type": "string"
+    },
+    "levels": {
+      "default": [],
+      "description": "Claimed conformance levels.",
+      "items": {
+        "$ref": "#/definitions/ConformanceLevel"
+      },
+      "type": "array"
+    },
+    "requireGovernance": {
+      "description": "When true, contracts must declare a `governance` block.",
+      "type": "boolean"
+    },
+    "requireSecurity": {
+      "description": "When true, contracts must declare a `security` block.",
+      "type": "boolean"
+    },
+    "version": {
+      "description": "Profile version.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "dpcsVersion",
+    "id",
+    "version"
+  ],
+  "title": "ConformanceProfile",
+  "type": "object"
+}

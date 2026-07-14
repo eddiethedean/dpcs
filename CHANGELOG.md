@@ -5,6 +5,27 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-07-14
+
+### Added
+
+- Cargo workspace: `dpcs` library crate and `dpcs-cli` binary crate
+- JSON Schema generation (`jsonschema` feature, `dpcs schema json`) and OpenAPI
+  helpers (`dpcs schema openapi`) with committed `schemas/` artifacts
+- Pipeline package format (`.dpcspkg`): `PackageManifest`, pack/unpack/validate/resolve,
+  CLI `dpcs package`, example `examples/packages/minimal.dpcspkg`
+- Reference registry HTTP API (ADR-0005): file-backed `dpcs registry serve`,
+  `RegistryClient` + cache, CLI pull/lookup/publish/deprecate/retire/cache,
+  diagnostics `DPCS-REGC-*`
+- Python bindings (`bindings/python`, maturin / PyO3) with PyPI release job
+- WASM bindings (`bindings/wasm`, wasm-bindgen) with npm and Wasmer release jobs
+- Docs: `docs/PACKAGE_FORMAT.md`, `docs/REGISTRY_API.md`
+
+### Changed
+
+- Crate version `0.10.0`; default library features are empty (CLI enables `full`)
+- Release workflow publishes crates.io, PyPI, npm, and Wasmer
+
 ## [0.9.0] - 2026-07-14
 
 ### Added
@@ -266,6 +287,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `dpcs` CLI: `validate`, `inspect`, `diagnostics`, `graph`, `version`
 - Examples, fixtures, CI, and contributor documentation
 
+[0.10.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.10.0
+[0.9.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.9.0
 [0.8.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.8.0
 [0.7.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.7.0
 [0.6.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.6.0

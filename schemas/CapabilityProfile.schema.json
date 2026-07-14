@@ -1,0 +1,86 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "CapabilityDecl": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object"
+        }
+      ]
+    },
+    "ExtensionValue": true,
+    "Metadata": {
+      "description": "Descriptive metadata attached to a Pipeline Contract or interface.",
+      "properties": {
+        "description": {
+          "description": "Free-form description.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "owner": {
+          "description": "Owning team or organization.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tags": {
+          "description": "Classification tags.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "description": "Capability profile for an orchestrator (SPEC Ch 16 §6).",
+  "properties": {
+    "capabilities": {
+      "default": [],
+      "description": "Capabilities supported by this profile.\n\nAccepts either capability objects (`{ id: ... }`) or bare id strings.",
+      "items": {
+        "$ref": "#/definitions/CapabilityDecl"
+      },
+      "type": "array"
+    },
+    "dpcsVersion": {
+      "default": "",
+      "description": "Supported DPCS specification version.\n\nDefaults to empty when omitted so legacy stub YAML can load; empty values fail [`validate_profile`] with `DPCS-CAP-004`.",
+      "type": "string"
+    },
+    "identity": {
+      "description": "Orchestrator identity.",
+      "type": "string"
+    },
+    "limitations": {
+      "description": "Known limitations.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "metadata": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/Metadata"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Optional descriptive metadata."
+    }
+  },
+  "required": [
+    "identity"
+  ],
+  "title": "CapabilityProfile",
+  "type": "object"
+}

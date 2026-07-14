@@ -22,3 +22,12 @@ tarpaulin-report.html
 .env
 .env.*
 !.env.example
+
+# Binding build artifacts
+bindings/wasm/pkg/
+bindings/python/target/
+bindings/python/*.so
+bindings/python/*.dylib
+__pycache__/
+.pytest_cache/
+*.egg-info/

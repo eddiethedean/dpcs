@@ -1,0 +1,77 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "PackageArtifactEntry": {
+      "description": "One artifact entry inside a package manifest.",
+      "properties": {
+        "id": {
+          "description": "Artifact identifier (unique within the package).",
+          "type": "string"
+        },
+        "path": {
+          "description": "Path relative to the package root (POSIX separators).",
+          "type": "string"
+        },
+        "type": {
+          "description": "Artifact type (for example `pipelineContract` or `capabilityProfile`).",
+          "type": "string"
+        },
+        "version": {
+          "description": "Artifact version.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "path",
+        "type",
+        "version"
+      ],
+      "type": "object"
+    }
+  },
+  "description": "Top-level manifest for a `.dpcspkg` pipeline package.",
+  "properties": {
+    "artifacts": {
+      "default": [],
+      "description": "Indexed package artifacts.",
+      "items": {
+        "$ref": "#/definitions/PackageArtifactEntry"
+      },
+      "type": "array"
+    },
+    "description": {
+      "description": "Optional description.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "dpcsVersion": {
+      "description": "Supported DPCS specification version.",
+      "type": "string"
+    },
+    "id": {
+      "description": "Stable package identifier.",
+      "type": "string"
+    },
+    "name": {
+      "description": "Optional human-readable name.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "version": {
+      "description": "Package version.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "dpcsVersion",
+    "id",
+    "version"
+  ],
+  "title": "PackageManifest",
+  "type": "object"
+}

@@ -1,0 +1,186 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "Diagnostic": {
+      "description": "A single deterministic diagnostic observation.\n\nDiagnostics describe observations only and must not change pipeline semantics.",
+      "properties": {
+        "category": {
+          "description": "Category of the observation.",
+          "type": "string"
+        },
+        "id": {
+          "description": "Stable diagnostic identifier (for example `DPCS-VAL-001`).",
+          "type": "string"
+        },
+        "message": {
+          "description": "Human-readable message.",
+          "type": "string"
+        },
+        "metadata": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Implementation-specific metadata (string map).",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "objectRef": {
+          "description": "Optional object reference within the contract.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "relatedDiagnostics": {
+          "description": "Related diagnostic identifiers.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "remediation": {
+          "description": "Optional remediation guidance.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "severity": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/Severity"
+            }
+          ],
+          "description": "Severity of the observation."
+        },
+        "sourceLocation": {
+          "description": "Optional source location in the original document.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "stage": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/DiagnosticStage"
+            }
+          ],
+          "description": "Processing stage that produced the diagnostic."
+        }
+      },
+      "required": [
+        "category",
+        "id",
+        "message",
+        "severity",
+        "stage"
+      ],
+      "type": "object"
+    },
+    "DiagnosticStage": {
+      "description": "Stage of the DPCS processing pipeline that produced a diagnostic.",
+      "oneOf": [
+        {
+          "description": "Document parsing.",
+          "enum": [
+            "parse"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Canonical Object Model construction.",
+          "enum": [
+            "canonicalObjectModel"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Semantic and structural validation.",
+          "enum": [
+            "validation"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Compatibility analysis between artifacts.",
+          "enum": [
+            "compatibilityAnalysis"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Pipeline plan generation.",
+          "enum": [
+            "planning"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Orchestrator capability evaluation.",
+          "enum": [
+            "capabilityEvaluation"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Orchestrator binding.",
+          "enum": [
+            "orchestratorBinding"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Execution analysis (reserved; unused in 0.9.0 toolkit scope).",
+          "enum": [
+            "executionAnalysis"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "Severity": {
+      "description": "Severity of a diagnostic observation.",
+      "oneOf": [
+        {
+          "description": "Informational observation that does not affect validity.",
+          "enum": [
+            "information"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Non-fatal issue that should be reviewed.",
+          "enum": [
+            "warning"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Error that makes the contract invalid.",
+          "enum": [
+            "error"
+          ],
+          "type": "string"
+        }
+      ]
+    }
+  },
+  "description": "Deterministic collection of diagnostics produced by validation.",
+  "properties": {
+    "diagnostics": {
+      "description": "Diagnostics in deterministic order.",
+      "items": {
+        "$ref": "#/definitions/Diagnostic"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "diagnostics"
+  ],
+  "title": "ValidationReport",
+  "type": "object"
+}

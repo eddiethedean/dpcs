@@ -113,3 +113,11 @@ Closes SPEC Chapters 18–25:
 - Security and governance metadata
 - Registry document model (ADR-0004; no network client)
 - Conformance profiles/claims and `tests/conformance` suite
+
+## Phase 11 — Ecosystem (complete in 0.10.0)
+
+- JSON Schema / OpenAPI helpers (`schemas/`, `dpcs schema`)
+- Pipeline packages (`.dpcspkg`, `dpcs package`)
+- Reference registry HTTP API / client / server (ADR-0005)
+- Python bindings (PyO3 / maturin)
+- WASM bindings (wasm-bindgen → npm + Wasmer)

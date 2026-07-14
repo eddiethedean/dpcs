@@ -23,20 +23,22 @@ and Kubernetes. Execution runtimes remain out of scope. See [`ROADMAP.md`](ROADM
 
 | Item | Value |
 | --- | --- |
-| Crate version | `0.9.0` |
+| Crate version | `0.10.0` |
 | Spec version | `1.0.0-draft` |
 | Language | Rust 2021 (MSRV 1.85) |
 | License | Apache-2.0 OR MIT |
-| Release focus | Complete specification Ch 18–25 (ROADMAP 0.9.0) |
+| Release focus | Ecosystem: bindings, schemas, registry client, packages (ROADMAP 0.10.0) |
 
 ## Quick start
 
 ### Install
 
 ```bash
-cargo install --path .
+cargo install --path crates/dpcs-cli
 # or, after crates.io publish:
-# cargo install dpcs --version 0.9.0
+# cargo install dpcs-cli --version 0.10.0
+# pip install dpcs
+# npm install @dpcs/dpcs-wasm   # after publish; see bindings/wasm
 ```
 
 ### Validate a pipeline contract
@@ -47,6 +49,8 @@ dpcs validate examples/minimal.dpcs.yaml --json
 dpcs validate examples/minimal.dpcs.yaml --strict
 dpcs compatibility examples/compatibility/baseline.dpcs.yaml examples/compatibility/candidate_compatible.dpcs.yaml
 dpcs registry validate examples/registry.yaml
+dpcs package validate examples/packages/minimal.dpcspkg
+dpcs schema json --out schemas
 dpcs conformance validate examples/conformance.profile.yaml
 dpcs version --json
 ```

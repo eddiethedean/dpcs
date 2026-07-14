@@ -1,0 +1,1170 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "ContractReference": {
+      "description": "Reference to an external contract artifact.",
+      "properties": {
+        "id": {
+          "description": "Stable reference identifier.",
+          "type": "string"
+        },
+        "location": {
+          "description": "Location of the referenced contract.",
+          "type": "string"
+        },
+        "type": {
+          "description": "Contract type (for example `odcs` or `dtcs`).",
+          "type": "string"
+        },
+        "version": {
+          "description": "Optional version constraint.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "location",
+        "type"
+      ],
+      "type": "object"
+    },
+    "DatasetLineage": {
+      "description": "Dataset provenance within a pipeline.",
+      "properties": {
+        "consumedBy": {
+          "description": "Consuming pipeline step identifiers.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "contractRef": {
+          "description": "Associated data contract reference id.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dataset": {
+          "description": "Dataset identity.",
+          "type": "string"
+        },
+        "producedBy": {
+          "description": "Producing pipeline step identifier.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "transformRef": {
+          "description": "Associated transformation contract reference id.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "dataset"
+      ],
+      "type": "object"
+    },
+    "ExecutionEnvironment": {
+      "description": "Characteristics of the execution environment.",
+      "properties": {
+        "container": {
+          "description": "Container requirements.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "operatingSystem": {
+          "description": "Operating system constraints.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "profile": {
+          "description": "Execution profile identifier.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "runtimeDependencies": {
+          "description": "Runtime dependencies.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "softwareCapabilities": {
+          "description": "Software capabilities.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "ExecutionRequirements": {
+      "description": "Declared execution requirements for a Pipeline Contract.",
+      "properties": {
+        "environment": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ExecutionEnvironment"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Execution environment constraints."
+        },
+        "externalDependencies": {
+          "description": "External service dependencies required for execution.",
+          "items": {
+            "$ref": "#/definitions/ExternalDependency"
+          },
+          "type": "array"
+        },
+        "isolation": {
+          "description": "Isolation requirements (e.g. `process`, `container`, `vm`, `network`, `securityDomain`).",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "requiredCapabilities": {
+          "description": "Required runtime capabilities (logical identifiers).",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "resources": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ResourceRequirements"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Logical resource requirements."
+        }
+      },
+      "type": "object"
+    },
+    "ExtensionValue": true,
+    "ExternalDependency": {
+      "description": "External service dependency required for successful execution.",
+      "properties": {
+        "availability": {
+          "description": "Availability expectations.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "capability": {
+          "description": "Required capability of the service.",
+          "type": "string"
+        },
+        "id": {
+          "description": "Logical service identity.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "capability",
+        "id"
+      ],
+      "type": "object"
+    },
+    "FailureResponse": {
+      "type": "string"
+    },
+    "FailureScope": {
+      "description": "Scope of a failure semantics declaration.",
+      "properties": {
+        "kind": {
+          "description": "Scope kind (`pipeline`, `step`, `path`, or extension).",
+          "type": "string"
+        },
+        "path": {
+          "description": "Logical path when kind is `path`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "stepId": {
+          "description": "Target step identifier when kind is `step`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "type": "object"
+    },
+    "FailureSemantics": {
+      "description": "Declared failure behavior for a pipeline scope.",
+      "properties": {
+        "category": {
+          "description": "Optional failure category.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "compensation": {
+          "description": "Optional compensation description.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "id": {
+          "description": "Stable failure-semantics identifier.",
+          "type": "string"
+        },
+        "metadata": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Metadata"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Optional descriptive metadata."
+        },
+        "recovery": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/RecoverySemantics"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Optional recovery semantics."
+        },
+        "responses": {
+          "description": "Required responses when triggered.",
+          "items": {
+            "$ref": "#/definitions/FailureResponse"
+          },
+          "type": "array"
+        },
+        "retry": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/RetrySemantics"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Optional retry semantics."
+        },
+        "scope": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/FailureScope"
+            }
+          ],
+          "description": "Scope to which the semantics apply."
+        },
+        "triggers": {
+          "description": "Conditions that trigger this failure handling.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "responses",
+        "scope",
+        "triggers"
+      ],
+      "type": "object"
+    },
+    "GateOutcome": {
+      "type": "string"
+    },
+    "GatePlacement": {
+      "description": "Placement of a quality gate within a pipeline.",
+      "properties": {
+        "kind": {
+          "description": "Placement kind (`beforePipeline`, `beforeStep`, `afterStep`, `beforeCompletion`, or extension).",
+          "type": "string"
+        },
+        "stepId": {
+          "description": "Target step identifier when kind is `beforeStep` or `afterStep`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "type": "object"
+    },
+    "GraphEdge": {
+      "description": "A single directed edge in the pipeline graph.",
+      "properties": {
+        "from": {
+          "description": "Source node identifier.",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Optional edge kind.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "to": {
+          "description": "Destination node identifier.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ],
+      "type": "object"
+    },
+    "LineageAudit": {
+      "description": "Non-semantic audit metadata for lineage.",
+      "properties": {
+        "contractIds": {
+          "description": "Contract identifiers for audit.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "timestamps": {
+          "description": "Timestamps for audit.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "versionIds": {
+          "description": "Version identifiers for audit.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "Metadata": {
+      "description": "Descriptive metadata attached to a Pipeline Contract or interface.",
+      "properties": {
+        "description": {
+          "description": "Free-form description.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "owner": {
+          "description": "Owning team or organization.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tags": {
+          "description": "Classification tags.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "PipelineGraph": {
+      "description": "Directed graph describing step relationships.",
+      "properties": {
+        "edges": {
+          "default": [],
+          "description": "Graph edges between steps or control points.",
+          "items": {
+            "$ref": "#/definitions/GraphEdge"
+          },
+          "type": "array"
+        },
+        "entryPoints": {
+          "description": "Declared pipeline entry step identifiers.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "exitPoints": {
+          "description": "Declared pipeline exit step identifiers.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "metadata": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Metadata"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Optional graph metadata."
+        }
+      },
+      "type": "object"
+    },
+    "PipelineLineage": {
+      "description": "Declared lineage information for a Pipeline Contract.",
+      "properties": {
+        "audit": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/LineageAudit"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Optional audit metadata (non-semantic)."
+        },
+        "datasets": {
+          "description": "Dataset provenance relationships.",
+          "items": {
+            "$ref": "#/definitions/DatasetLineage"
+          },
+          "type": "array"
+        },
+        "provenance": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/PipelineProvenance"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Pipeline contract provenance."
+        },
+        "steps": {
+          "description": "Step provenance relationships.",
+          "items": {
+            "$ref": "#/definitions/StepLineage"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "PipelineProvenance": {
+      "description": "Provenance describing contract origin and relationships.",
+      "properties": {
+        "imported": {
+          "description": "Imported pipeline contract identifiers.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "nested": {
+          "description": "Nested pipeline contract identifiers.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "originating": {
+          "description": "Originating pipeline contract identifier.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "parents": {
+          "description": "Parent pipeline contract identifiers.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "versionHistory": {
+          "description": "Version history entries.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "PipelineStep": {
+      "description": "Logical unit of work within a Pipeline Contract.",
+      "properties": {
+        "contractRef": {
+          "description": "Reference to a contract that defines step behavior.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "id": {
+          "description": "Stable step identifier unique within the contract.",
+          "type": "string"
+        },
+        "inputs": {
+          "default": [],
+          "description": "Declared step inputs.",
+          "items": {
+            "$ref": "#/definitions/StepPort"
+          },
+          "type": "array"
+        },
+        "name": {
+          "description": "Optional human-readable name.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "outputs": {
+          "default": [],
+          "description": "Declared step outputs.",
+          "items": {
+            "$ref": "#/definitions/StepPort"
+          },
+          "type": "array"
+        },
+        "transformRef": {
+          "description": "Reference to a DTCS transform contract.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "type": {
+          "description": "Step type (for example `dtcs:transform` or an extension type).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type"
+      ],
+      "type": "object"
+    },
+    "PlanDependencyEdge": {
+      "description": "Directed dependency edge captured in a Pipeline Plan.",
+      "properties": {
+        "from": {
+          "description": "Source step identifier.",
+          "type": "string"
+        },
+        "to": {
+          "description": "Destination step identifier.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ],
+      "type": "object"
+    },
+    "QualityCriterion": {
+      "description": "Declarative evaluation criterion for a quality gate.",
+      "properties": {
+        "contractRef": {
+          "description": "Reference to a contract in `contractReferences`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "expression": {
+          "description": "Declarative expression or rule identifier.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "id": {
+          "description": "Optional criterion identifier.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "type": {
+          "description": "Criterion type (for example `odcs`, `dtcs`, `expression`).",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "QualityGate": {
+      "description": "Quality gate attached to a pipeline, step, or interface.",
+      "properties": {
+        "category": {
+          "description": "Optional gate category.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "criteria": {
+          "description": "One or more declarative evaluation criteria.",
+          "items": {
+            "$ref": "#/definitions/QualityCriterion"
+          },
+          "type": "array"
+        },
+        "id": {
+          "description": "Stable quality-gate identifier.",
+          "type": "string"
+        },
+        "metadata": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Metadata"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Optional descriptive metadata."
+        },
+        "onFailure": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/GateOutcome"
+            }
+          ],
+          "description": "Behavior on unsuccessful evaluation."
+        },
+        "onSuccess": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/GateOutcome"
+            }
+          ],
+          "description": "Behavior on successful evaluation."
+        },
+        "placement": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/GatePlacement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Placement of the gate within the pipeline."
+        },
+        "purpose": {
+          "description": "Logical purpose of the gate.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "criteria",
+        "id",
+        "onFailure",
+        "onSuccess",
+        "purpose"
+      ],
+      "type": "object"
+    },
+    "RecoverySemantics": {
+      "description": "Recovery behavior for failure semantics.",
+      "properties": {
+        "checkpoint": {
+          "description": "Checkpoint usage.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "restart": {
+          "description": "Restart behavior.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "resume": {
+          "description": "Resume behavior.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "rollback": {
+          "description": "Rollback expectations.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "stateRestoration": {
+          "description": "State restoration requirements.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "ResourceRequirements": {
+      "description": "Logical resource declarations independent of vendor infrastructure.",
+      "properties": {
+        "accelerator": {
+          "description": "Accelerator requirements.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "bandwidth": {
+          "description": "Bandwidth expectations.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "memory": {
+          "description": "Memory requirements.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "processor": {
+          "description": "Processor requirements (logical quantity or constraint).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "storage": {
+          "description": "Storage capacity requirements.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "RetrySemantics": {
+      "description": "Retry behavior for failure semantics.",
+      "properties": {
+        "conditions": {
+          "description": "Conditions under which retry applies.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "delayPolicy": {
+          "description": "Delay policy between attempts.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "eligible": {
+          "description": "Whether retry is eligible.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "maxAttempts": {
+          "description": "Maximum retry attempts.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "termination": {
+          "description": "Termination conditions for retry.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "SchedulingConstraints": {
+      "description": "Timing and concurrency constraints for scheduling intent.",
+      "properties": {
+        "concurrency": {
+          "description": "Concurrency limitations.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "deadline": {
+          "description": "Execution deadline.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "earliest": {
+          "description": "Earliest execution time.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "latest": {
+          "description": "Latest execution time.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ordering": {
+          "description": "Ordering constraints.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "SchedulingEvent": {
+      "description": "Logical event that may initiate pipeline execution.",
+      "properties": {
+        "condition": {
+          "description": "Triggering conditions.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "id": {
+          "description": "Event identity.",
+          "type": "string"
+        },
+        "source": {
+          "description": "Event source.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "source"
+      ],
+      "type": "object"
+    },
+    "SchedulingIntent": {
+      "description": "Declared scheduling intent for a Pipeline Contract.",
+      "properties": {
+        "blackouts": {
+          "description": "Blackout periods.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "constraints": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/SchedulingConstraints"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Timing and concurrency constraints."
+        },
+        "cron": {
+          "description": "Optional cron-like schedule expression.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "deadlines": {
+          "description": "Execution deadlines.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "events": {
+          "description": "Event declarations for event-driven modes.",
+          "items": {
+            "$ref": "#/definitions/SchedulingEvent"
+          },
+          "type": "array"
+        },
+        "frequency": {
+          "description": "Execution frequency where applicable.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "id": {
+          "description": "Optional stable identifier for this intent declaration.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "mode": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/SchedulingMode"
+            }
+          ],
+          "description": "Scheduling mode (required)."
+        },
+        "policies": {
+          "description": "Applicable execution policies.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "timezone": {
+          "description": "Optional timezone identifier.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "windows": {
+          "description": "Execution windows.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "mode"
+      ],
+      "type": "object"
+    },
+    "SchedulingMode": {
+      "type": "string"
+    },
+    "StepLineage": {
+      "description": "Step provenance within a pipeline.",
+      "properties": {
+        "contractRef": {
+          "description": "Associated contract reference id.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dependencyKind": {
+          "description": "Dependency semantics description.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "predecessors": {
+          "description": "Predecessor step identifiers.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "stepId": {
+          "description": "Step identity.",
+          "type": "string"
+        },
+        "successors": {
+          "description": "Successor step identifiers.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "stepId"
+      ],
+      "type": "object"
+    },
+    "StepPort": {
+      "description": "Input or output port declared on a pipeline step.",
+      "properties": {
+        "contractRef": {
+          "description": "Optional contract reference for the port.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "id": {
+          "description": "Port identifier.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "type": "object"
+    }
+  },
+  "description": "Canonical intermediate representation produced from a validated contract.",
+  "properties": {
+    "contractId": {
+      "description": "Identity of the source pipeline contract.",
+      "type": "string"
+    },
+    "contractReferences": {
+      "description": "Resolved contract references.",
+      "items": {
+        "$ref": "#/definitions/ContractReference"
+      },
+      "type": "array"
+    },
+    "contractVersion": {
+      "description": "Version of the source pipeline contract.",
+      "type": "string"
+    },
+    "dependencyEdges": {
+      "description": "Dependency edges derived from graph, control flow, and data flow.",
+      "items": {
+        "$ref": "#/definitions/PlanDependencyEdge"
+      },
+      "type": "array"
+    },
+    "dpcsVersion": {
+      "description": "DPCS specification version declared by the source contract.",
+      "type": "string"
+    },
+    "execution": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/ExecutionRequirements"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Preserved execution requirements."
+    },
+    "failureSemantics": {
+      "description": "Preserved failure semantics.",
+      "items": {
+        "$ref": "#/definitions/FailureSemantics"
+      },
+      "type": "array"
+    },
+    "graph": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/PipelineGraph"
+        }
+      ],
+      "description": "Resolved pipeline graph."
+    },
+    "lineage": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/PipelineLineage"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Preserved lineage."
+    },
+    "qualityGates": {
+      "description": "Preserved quality gates.",
+      "items": {
+        "$ref": "#/definitions/QualityGate"
+      },
+      "type": "array"
+    },
+    "scheduling": {
+      "description": "Preserved scheduling intents.",
+      "items": {
+        "$ref": "#/definitions/SchedulingIntent"
+      },
+      "type": "array"
+    },
+    "stepOrder": {
+      "description": "Ordered step identifiers in plan order.\n\nOrdering is a deterministic topological sort over the dependency graph. Ready nodes are emitted in sorted step-id order (not declaration order).",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "steps": {
+      "description": "Resolved pipeline steps.",
+      "items": {
+        "$ref": "#/definitions/PipelineStep"
+      },
+      "type": "array"
+    },
+    "version": {
+      "description": "Optional independent Pipeline Plan version (SPEC Ch 20).",
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "contractId",
+    "contractReferences",
+    "contractVersion",
+    "dependencyEdges",
+    "dpcsVersion",
+    "graph",
+    "stepOrder",
+    "steps"
+  ],
+  "title": "PipelinePlan",
+  "type": "object"
+}

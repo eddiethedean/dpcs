@@ -1,31 +1,19 @@
 # Proposed Crate Layout
 
-Recommended layout:
-
 ```text
 .
-├── Cargo.toml
+├── Cargo.toml                 # workspace
 ├── SPEC.md
 ├── README.md
 ├── ROADMAP.md
-├── LICENSE-APACHE
-├── LICENSE-MIT
-├── src/
-│   ├── lib.rs
-│   ├── error.rs
-│   ├── bin/dpcs.rs
-│   ├── model/
-│   ├── parser/
-│   ├── validation/
-│   ├── diagnostics/
-│   ├── plan/
-│   ├── capabilities/
-│   ├── binding/
-│   ├── compatibility/
-│   ├── conformance/
-│   └── cli/
+├── crates/
+│   ├── dpcs/                  # core library
+│   └── dpcs-cli/              # dpcs binary
+├── bindings/
+│   ├── python/                # maturin / PyO3
+│   └── wasm/                  # wasm-bindgen
+├── schemas/                   # generated JSON Schema + OpenAPI
 ├── examples/
-├── tests/fixtures/
 ├── docs/
 └── adr/
 ```

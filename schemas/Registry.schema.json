@@ -1,0 +1,239 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "ExtensionValue": true,
+    "GovernanceMetadata": {
+      "description": "Declarative governance metadata attached to a Pipeline Contract.",
+      "properties": {
+        "governingAuthority": {
+          "description": "Governing authority when distinct from owner.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "owner": {
+          "description": "Owning team or organization (may mirror `metadata.owner`).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "publicationStatus": {
+          "description": "Publication status (for example `draft`, `published`, `deprecated`).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "publishedAt": {
+          "description": "Publication timestamp (implementation-defined string, typically ISO-8601).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tags": {
+          "description": "Stewardship or classification tags.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "IntegrityReference": {
+      "description": "Integrity reference for tamper detection / attestation.",
+      "properties": {
+        "kind": {
+          "description": "Algorithm or kind (for example `sha256` or `cosign`).",
+          "type": "string"
+        },
+        "value": {
+          "description": "Digest, signature reference, or external locator (not an embedded key).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "value"
+      ],
+      "type": "object"
+    },
+    "RegisteredArtifact": {
+      "description": "A single registered artifact entry.",
+      "properties": {
+        "compatibility": {
+          "description": "Optional compatibility metadata summary.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "id": {
+          "description": "Unique artifact identifier within the registry.",
+          "type": "string"
+        },
+        "location": {
+          "description": "Optional location / payload reference.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "publicationStatus": {
+          "description": "Publication status.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "type": {
+          "description": "Artifact type (for example `pipelineContract` or `capabilityProfile`).",
+          "type": "string"
+        },
+        "version": {
+          "description": "Artifact version.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "version"
+      ],
+      "type": "object"
+    },
+    "SecretReference": {
+      "description": "Reference to an externally managed secret.",
+      "properties": {
+        "id": {
+          "description": "Stable identifier for this secret reference.",
+          "type": "string"
+        },
+        "loc": {
+          "description": "External locator (URI, vault path, or provider reference).",
+          "type": "string"
+        },
+        "provider": {
+          "description": "Optional provider hint (for example `vault` or `aws-secrets-manager`).",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "loc"
+      ],
+      "type": "object"
+    },
+    "SecurityMetadata": {
+      "description": "Declarative security metadata attached to a Pipeline Contract.\n\nAuthentication, authorization, and secret-management systems remain outside DPCS scope. This model records portable references and integrity pointers.",
+      "properties": {
+        "auditPolicyRef": {
+          "description": "Optional audit policy identifier or reference.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "integrityRefs": {
+          "description": "Integrity references (hashes, signatures, or attestation pointers).",
+          "items": {
+            "$ref": "#/definitions/IntegrityReference"
+          },
+          "type": "array"
+        },
+        "secretRefs": {
+          "description": "External secret references (URIs or vault paths). Must not embed secret values.",
+          "items": {
+            "$ref": "#/definitions/SecretReference"
+          },
+          "type": "array"
+        },
+        "securityDomain": {
+          "description": "Optional security domain / isolation annotation.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    }
+  },
+  "description": "In-process DPCS registry document.",
+  "properties": {
+    "artifacts": {
+      "default": [],
+      "description": "Registered artifacts.",
+      "items": {
+        "$ref": "#/definitions/RegisteredArtifact"
+      },
+      "type": "array"
+    },
+    "dpcsVersion": {
+      "description": "Supported DPCS specification version.",
+      "type": "string"
+    },
+    "governance": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/GovernanceMetadata"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Optional governance block."
+    },
+    "id": {
+      "description": "Stable registry identifier.",
+      "type": "string"
+    },
+    "owner": {
+      "description": "Ownership / governing authority.",
+      "type": "string"
+    },
+    "publicationStatus": {
+      "description": "Publication metadata.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "publishedAt": {
+      "description": "Optional published-at timestamp.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "security": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/SecurityMetadata"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Optional security block."
+    },
+    "version": {
+      "description": "Registry version.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "dpcsVersion",
+    "id",
+    "owner",
+    "version"
+  ],
+  "title": "Registry",
+  "type": "object"
+}

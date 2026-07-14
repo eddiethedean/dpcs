@@ -1,0 +1,915 @@
+{
+  "components": {
+    "schemas": {
+      "Diagnostic": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "definitions": {
+          "DiagnosticStage": {
+            "description": "Stage of the DPCS processing pipeline that produced a diagnostic.",
+            "oneOf": [
+              {
+                "description": "Document parsing.",
+                "enum": [
+                  "parse"
+                ],
+                "type": "string"
+              },
+              {
+                "description": "Canonical Object Model construction.",
+                "enum": [
+                  "canonicalObjectModel"
+                ],
+                "type": "string"
+              },
+              {
+                "description": "Semantic and structural validation.",
+                "enum": [
+                  "validation"
+                ],
+                "type": "string"
+              },
+              {
+                "description": "Compatibility analysis between artifacts.",
+                "enum": [
+                  "compatibilityAnalysis"
+                ],
+                "type": "string"
+              },
+              {
+                "description": "Pipeline plan generation.",
+                "enum": [
+                  "planning"
+                ],
+                "type": "string"
+              },
+              {
+                "description": "Orchestrator capability evaluation.",
+                "enum": [
+                  "capabilityEvaluation"
+                ],
+                "type": "string"
+              },
+              {
+                "description": "Orchestrator binding.",
+                "enum": [
+                  "orchestratorBinding"
+                ],
+                "type": "string"
+              },
+              {
+                "description": "Execution analysis (reserved; unused in 0.9.0 toolkit scope).",
+                "enum": [
+                  "executionAnalysis"
+                ],
+                "type": "string"
+              }
+            ]
+          },
+          "Severity": {
+            "description": "Severity of a diagnostic observation.",
+            "oneOf": [
+              {
+                "description": "Informational observation that does not affect validity.",
+                "enum": [
+                  "information"
+                ],
+                "type": "string"
+              },
+              {
+                "description": "Non-fatal issue that should be reviewed.",
+                "enum": [
+                  "warning"
+                ],
+                "type": "string"
+              },
+              {
+                "description": "Error that makes the contract invalid.",
+                "enum": [
+                  "error"
+                ],
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "description": "A single deterministic diagnostic observation.\n\nDiagnostics describe observations only and must not change pipeline semantics.",
+        "properties": {
+          "category": {
+            "description": "Category of the observation.",
+            "type": "string"
+          },
+          "id": {
+            "description": "Stable diagnostic identifier (for example `DPCS-VAL-001`).",
+            "type": "string"
+          },
+          "message": {
+            "description": "Human-readable message.",
+            "type": "string"
+          },
+          "metadata": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Implementation-specific metadata (string map).",
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "objectRef": {
+            "description": "Optional object reference within the contract.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "relatedDiagnostics": {
+            "description": "Related diagnostic identifiers.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "remediation": {
+            "description": "Optional remediation guidance.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "severity": {
+            "allOf": [
+              {
+                "$ref": "#/definitions/Severity"
+              }
+            ],
+            "description": "Severity of the observation."
+          },
+          "sourceLocation": {
+            "description": "Optional source location in the original document.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "stage": {
+            "allOf": [
+              {
+                "$ref": "#/definitions/DiagnosticStage"
+              }
+            ],
+            "description": "Processing stage that produced the diagnostic."
+          }
+        },
+        "required": [
+          "category",
+          "id",
+          "message",
+          "severity",
+          "stage"
+        ],
+        "title": "Diagnostic",
+        "type": "object"
+      },
+      "PublishRequest": {
+        "properties": {
+          "artifact": {
+            "$ref": "#/components/schemas/RegisteredArtifact"
+          },
+          "content": {
+            "description": "Optional artifact payload",
+            "type": "string"
+          },
+          "contentEncoding": {
+            "enum": [
+              "utf-8",
+              "base64"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "artifact"
+        ],
+        "type": "object"
+      },
+      "RegisteredArtifact": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "definitions": {
+          "ExtensionValue": true
+        },
+        "description": "A single registered artifact entry.",
+        "properties": {
+          "compatibility": {
+            "description": "Optional compatibility metadata summary.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "description": "Unique artifact identifier within the registry.",
+            "type": "string"
+          },
+          "location": {
+            "description": "Optional location / payload reference.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "publicationStatus": {
+            "description": "Publication status.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "type": {
+            "description": "Artifact type (for example `pipelineContract` or `capabilityProfile`).",
+            "type": "string"
+          },
+          "version": {
+            "description": "Artifact version.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "version"
+        ],
+        "title": "RegisteredArtifact",
+        "type": "object"
+      },
+      "Registry": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "definitions": {
+          "ExtensionValue": true,
+          "GovernanceMetadata": {
+            "description": "Declarative governance metadata attached to a Pipeline Contract.",
+            "properties": {
+              "governingAuthority": {
+                "description": "Governing authority when distinct from owner.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "owner": {
+                "description": "Owning team or organization (may mirror `metadata.owner`).",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "publicationStatus": {
+                "description": "Publication status (for example `draft`, `published`, `deprecated`).",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "publishedAt": {
+                "description": "Publication timestamp (implementation-defined string, typically ISO-8601).",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "tags": {
+                "description": "Stewardship or classification tags.",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "type": "object"
+          },
+          "IntegrityReference": {
+            "description": "Integrity reference for tamper detection / attestation.",
+            "properties": {
+              "kind": {
+                "description": "Algorithm or kind (for example `sha256` or `cosign`).",
+                "type": "string"
+              },
+              "value": {
+                "description": "Digest, signature reference, or external locator (not an embedded key).",
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind",
+              "value"
+            ],
+            "type": "object"
+          },
+          "RegisteredArtifact": {
+            "description": "A single registered artifact entry.",
+            "properties": {
+              "compatibility": {
+                "description": "Optional compatibility metadata summary.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "id": {
+                "description": "Unique artifact identifier within the registry.",
+                "type": "string"
+              },
+              "location": {
+                "description": "Optional location / payload reference.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "publicationStatus": {
+                "description": "Publication status.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "type": {
+                "description": "Artifact type (for example `pipelineContract` or `capabilityProfile`).",
+                "type": "string"
+              },
+              "version": {
+                "description": "Artifact version.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "version"
+            ],
+            "type": "object"
+          },
+          "SecretReference": {
+            "description": "Reference to an externally managed secret.",
+            "properties": {
+              "id": {
+                "description": "Stable identifier for this secret reference.",
+                "type": "string"
+              },
+              "loc": {
+                "description": "External locator (URI, vault path, or provider reference).",
+                "type": "string"
+              },
+              "provider": {
+                "description": "Optional provider hint (for example `vault` or `aws-secrets-manager`).",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "loc"
+            ],
+            "type": "object"
+          },
+          "SecurityMetadata": {
+            "description": "Declarative security metadata attached to a Pipeline Contract.\n\nAuthentication, authorization, and secret-management systems remain outside DPCS scope. This model records portable references and integrity pointers.",
+            "properties": {
+              "auditPolicyRef": {
+                "description": "Optional audit policy identifier or reference.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "integrityRefs": {
+                "description": "Integrity references (hashes, signatures, or attestation pointers).",
+                "items": {
+                  "$ref": "#/definitions/IntegrityReference"
+                },
+                "type": "array"
+              },
+              "secretRefs": {
+                "description": "External secret references (URIs or vault paths). Must not embed secret values.",
+                "items": {
+                  "$ref": "#/definitions/SecretReference"
+                },
+                "type": "array"
+              },
+              "securityDomain": {
+                "description": "Optional security domain / isolation annotation.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "type": "object"
+          }
+        },
+        "description": "In-process DPCS registry document.",
+        "properties": {
+          "artifacts": {
+            "default": [],
+            "description": "Registered artifacts.",
+            "items": {
+              "$ref": "#/definitions/RegisteredArtifact"
+            },
+            "type": "array"
+          },
+          "dpcsVersion": {
+            "description": "Supported DPCS specification version.",
+            "type": "string"
+          },
+          "governance": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/GovernanceMetadata"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional governance block."
+          },
+          "id": {
+            "description": "Stable registry identifier.",
+            "type": "string"
+          },
+          "owner": {
+            "description": "Ownership / governing authority.",
+            "type": "string"
+          },
+          "publicationStatus": {
+            "description": "Publication metadata.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "publishedAt": {
+            "description": "Optional published-at timestamp.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "security": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/SecurityMetadata"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional security block."
+          },
+          "version": {
+            "description": "Registry version.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "dpcsVersion",
+          "id",
+          "owner",
+          "version"
+        ],
+        "title": "Registry",
+        "type": "object"
+      },
+      "ValidationReport": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "definitions": {
+          "Diagnostic": {
+            "description": "A single deterministic diagnostic observation.\n\nDiagnostics describe observations only and must not change pipeline semantics.",
+            "properties": {
+              "category": {
+                "description": "Category of the observation.",
+                "type": "string"
+              },
+              "id": {
+                "description": "Stable diagnostic identifier (for example `DPCS-VAL-001`).",
+                "type": "string"
+              },
+              "message": {
+                "description": "Human-readable message.",
+                "type": "string"
+              },
+              "metadata": {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "Implementation-specific metadata (string map).",
+                "type": [
+                  "object",
+                  "null"
+                ]
+              },
+              "objectRef": {
+                "description": "Optional object reference within the contract.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "relatedDiagnostics": {
+                "description": "Related diagnostic identifiers.",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "remediation": {
+                "description": "Optional remediation guidance.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "severity": {
+                "allOf": [
+                  {
+                    "$ref": "#/definitions/Severity"
+                  }
+                ],
+                "description": "Severity of the observation."
+              },
+              "sourceLocation": {
+                "description": "Optional source location in the original document.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "stage": {
+                "allOf": [
+                  {
+                    "$ref": "#/definitions/DiagnosticStage"
+                  }
+                ],
+                "description": "Processing stage that produced the diagnostic."
+              }
+            },
+            "required": [
+              "category",
+              "id",
+              "message",
+              "severity",
+              "stage"
+            ],
+            "type": "object"
+          },
+          "DiagnosticStage": {
+            "description": "Stage of the DPCS processing pipeline that produced a diagnostic.",
+            "oneOf": [
+              {
+                "description": "Document parsing.",
+                "enum": [
+                  "parse"
+                ],
+                "type": "string"
+              },
+              {
+                "description": "Canonical Object Model construction.",
+                "enum": [
+                  "canonicalObjectModel"
+                ],
+                "type": "string"
+              },
+              {
+                "description": "Semantic and structural validation.",
+                "enum": [
+                  "validation"
+                ],
+                "type": "string"
+              },
+              {
+                "description": "Compatibility analysis between artifacts.",
+                "enum": [
+                  "compatibilityAnalysis"
+                ],
+                "type": "string"
+              },
+              {
+                "description": "Pipeline plan generation.",
+                "enum": [
+                  "planning"
+                ],
+                "type": "string"
+              },
+              {
+                "description": "Orchestrator capability evaluation.",
+                "enum": [
+                  "capabilityEvaluation"
+                ],
+                "type": "string"
+              },
+              {
+                "description": "Orchestrator binding.",
+                "enum": [
+                  "orchestratorBinding"
+                ],
+                "type": "string"
+              },
+              {
+                "description": "Execution analysis (reserved; unused in 0.9.0 toolkit scope).",
+                "enum": [
+                  "executionAnalysis"
+                ],
+                "type": "string"
+              }
+            ]
+          },
+          "Severity": {
+            "description": "Severity of a diagnostic observation.",
+            "oneOf": [
+              {
+                "description": "Informational observation that does not affect validity.",
+                "enum": [
+                  "information"
+                ],
+                "type": "string"
+              },
+              {
+                "description": "Non-fatal issue that should be reviewed.",
+                "enum": [
+                  "warning"
+                ],
+                "type": "string"
+              },
+              {
+                "description": "Error that makes the contract invalid.",
+                "enum": [
+                  "error"
+                ],
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "description": "Deterministic collection of diagnostics produced by validation.",
+        "properties": {
+          "diagnostics": {
+            "description": "Diagnostics in deterministic order.",
+            "items": {
+              "$ref": "#/definitions/Diagnostic"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "diagnostics"
+        ],
+        "title": "ValidationReport",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "description": "Implementation-defined reference registry HTTP API for DPCS 0.10 (see docs/REGISTRY_API.md).",
+    "title": "DPCS Reference Registry API",
+    "version": "1.0.0"
+  },
+  "openapi": "3.0.3",
+  "paths": {
+    "/v1/artifacts": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "type",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RegisteredArtifact"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Artifact list"
+          }
+        },
+        "summary": "Discover artifacts"
+      }
+    },
+    "/v1/artifacts/{id}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "version",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisteredArtifact"
+                }
+              }
+            },
+            "description": "Artifact metadata"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "summary": "Lookup artifact metadata"
+      },
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublishRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisteredArtifact"
+                }
+              }
+            },
+            "description": "Updated artifact"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationReport"
+                }
+              }
+            },
+            "description": "Validation failure"
+          }
+        },
+        "summary": "Publish or update artifact"
+      }
+    },
+    "/v1/artifacts/{id}/content": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "version",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Raw artifact content"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "summary": "Fetch artifact payload"
+      }
+    },
+    "/v1/artifacts/{id}/deprecate": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisteredArtifact"
+                }
+              }
+            },
+            "description": "Updated artifact"
+          }
+        },
+        "summary": "Deprecate artifact"
+      }
+    },
+    "/v1/artifacts/{id}/retire": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisteredArtifact"
+                }
+              }
+            },
+            "description": "Updated artifact"
+          }
+        },
+        "summary": "Retire artifact"
+      }
+    },
+    "/v1/health": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "summary": "Liveness"
+      }
+    },
+    "/v1/registry": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Registry"
+                }
+              }
+            },
+            "description": "Registry document"
+          }
+        },
+        "summary": "Get full registry document"
+      }
+    }
+  }
+}

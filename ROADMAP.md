@@ -168,16 +168,16 @@ Full conformance suite (Appendix E checklist).
 
 ------------------------------------------------------------------------
 
-# 0.10.0 --- Ecosystem
+# 0.10.0 --- Ecosystem (shipped)
 
 ### Deliverables
 
--   Python bindings (PyO3)
--   WASM bindings
--   JSON Schema generation
--   OpenAPI helpers
--   Registry client
--   Package support
+-   Python bindings (PyO3 / maturin → PyPI)
+-   WASM bindings (wasm-bindgen → npm + Wasmer)
+-   JSON Schema generation (`dpcs schema json`)
+-   OpenAPI helpers (`dpcs schema openapi`)
+-   Registry client + reference HTTP server (`dpcs registry serve` / pull / lookup / publish)
+-   Package support (`.dpcspkg` + `dpcs package`)
 
 ------------------------------------------------------------------------
 

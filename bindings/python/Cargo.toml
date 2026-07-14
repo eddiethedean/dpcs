@@ -1,0 +1,18 @@
+[package]
+name = "dpcs-python"
+version = "0.10.0"
+edition = "2021"
+rust-version = "1.85"
+license = "Apache-2.0 OR MIT"
+publish = false
+
+[lib]
+name = "dpcs"
+crate-type = ["cdylib"]
+
+[dependencies]
+dpcs = { path = "../../crates/dpcs" }
+pyo3 = { version = "0.23", features = ["extension-module"] }
+serde_json = "1"
+serde_yaml = "0.9"
+serde = { version = "1", features = ["derive"] }
