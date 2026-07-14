@@ -6,7 +6,7 @@
 //! ODCS/DTCS and other types are resolved to an on-disk (or fetched) path only.
 
 use std::collections::BTreeMap;
-#[cfg(any(test, feature = "registry-client"))]
+#[cfg(test)]
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -515,13 +515,9 @@ fn try_registry_fetch(
         }
     };
     match client.fetch_content(&reference.id, reference.version.as_deref()) {
-        Ok(body) => {
-            let tmp = std::env::temp_dir().join(format!(
-                "dpcs-resolve-{}-{}.yaml",
-                reference.id.replace('/', "_"),
-                reference.version.clone().unwrap_or_else(|| "latest".into())
-            ));
-            if let Err(err) = fs::write(&tmp, body.as_bytes()) {
+        Ok(body) => match write_secure_resolve_cache(&body) {
+            Ok(tmp) => Some(tmp),
+            Err(err) => {
                 report.push(
                     Diagnostic::error(
                         "DPCS-REF-007",
@@ -533,12 +529,52 @@ fn try_registry_fetch(
                     )
                     .with_object_ref(format!("contractReferences[{index}].location")),
                 );
-                return None;
+                None
             }
-            Some(tmp)
-        }
+        },
         Err(_) => None,
     }
+}
+
+/// Write registry-fetched content to a unique new file (O_EXCL / create_new).
+///
+/// Never uses a predictable shared path, so preexisting symlinks cannot be
+/// followed or overwritten (#2).
+#[cfg(feature = "registry-client")]
+fn write_secure_resolve_cache(body: &str) -> std::io::Result<PathBuf> {
+    use std::fs::OpenOptions;
+    use std::io::Write;
+    use std::sync::atomic::{AtomicU64, Ordering};
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    static COUNTER: AtomicU64 = AtomicU64::new(0);
+    let dir = std::env::temp_dir();
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    for attempt in 0..32u32 {
+        let name = format!(
+            "dpcs-resolve-{}-{}-{}-{attempt}.yaml",
+            std::process::id(),
+            nanos,
+            COUNTER.fetch_add(1, Ordering::Relaxed)
+        );
+        let path = dir.join(name);
+        match OpenOptions::new().write(true).create_new(true).open(&path) {
+            Ok(mut file) => {
+                file.write_all(body.as_bytes())?;
+                file.sync_all()?;
+                return Ok(path);
+            }
+            Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(err) => return Err(err),
+        }
+    }
+    Err(std::io::Error::new(
+        std::io::ErrorKind::AlreadyExists,
+        "exhausted unique temp name attempts for registry resolve cache",
+    ))
 }
 
 #[cfg(test)]
@@ -599,5 +635,33 @@ graph:
         assert_eq!(result.nested.len(), 1);
         assert_eq!(result.nested[0].contract.id, "child.pipe");
         assert!(result.nested[0].children.is_empty());
+    }
+}
+
+#[cfg(all(test, feature = "registry-client", unix))]
+mod secure_cache_tests {
+    use super::write_secure_resolve_cache;
+    use std::fs;
+    use std::os::unix::fs::symlink;
+
+    #[test]
+    fn create_new_does_not_follow_preexisting_symlink() {
+        let dir = tempfile::tempdir().unwrap();
+        let victim = dir.path().join("victim.yaml");
+        fs::write(&victim, "SAFE").unwrap();
+        let link = dir.path().join("occupied.yaml");
+        symlink(&victim, &link).unwrap();
+        let err = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&link)
+            .unwrap_err();
+        assert_eq!(err.kind(), std::io::ErrorKind::AlreadyExists);
+        assert_eq!(fs::read_to_string(&victim).unwrap(), "SAFE");
+
+        let path = write_secure_resolve_cache("body").unwrap();
+        assert!(path.is_file());
+        assert_eq!(fs::read_to_string(&path).unwrap(), "body");
+        let _ = fs::remove_file(path);
     }
 }

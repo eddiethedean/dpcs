@@ -5,6 +5,18 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- Registry content paths use case-preserving hex keys so `Demo`/`demo` no longer
+  collide on case-insensitive filesystems (REG-016 / #1)
+- Registry resolve cache writes unique `create_new` temp files instead of a
+  predictable `$TMPDIR` path (symlink overwrite / #2)
+- `compare_contracts` fingerprints include quality criteria, failure
+  responses/retry/recovery, lineage edges/provenance, and scheduling
+  timezone/windows/constraints (#6)
+
 ## [0.13.0] - 2026-07-14
 
 ### Added

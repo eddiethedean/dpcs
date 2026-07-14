@@ -352,3 +352,46 @@ async fn registry_cache_namespaces_are_origin_specific() {
         .get("https://example.invalid:1111/", "demo", "0.1.0")
         .is_none());
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn registry_case_variant_ids_keep_distinct_content() {
+    let root = tempfile::tempdir().unwrap();
+    let (url, server) = spawn_server(root.path().to_path_buf(), Some("secret".into())).await;
+
+    tokio::task::spawn_blocking(move || {
+        let mut client = RegistryClient::new(&url).unwrap().with_token("secret");
+        client
+            .publish(
+                "Demo",
+                &PublishRequest {
+                    artifact: sample_artifact("Demo", "0.1.0"),
+                    content: Some("CONTENT_A".into()),
+                    content_encoding: Some("utf-8".into()),
+                },
+            )
+            .unwrap();
+        client
+            .publish(
+                "demo",
+                &PublishRequest {
+                    artifact: sample_artifact("demo", "0.1.0"),
+                    content: Some("CONTENT_B".into()),
+                    content_encoding: Some("utf-8".into()),
+                },
+            )
+            .unwrap();
+        let mut client = RegistryClient::new(&url).unwrap().with_token("secret");
+        assert_eq!(
+            client.fetch_content("Demo", Some("0.1.0")).unwrap(),
+            "CONTENT_A"
+        );
+        assert_eq!(
+            client.fetch_content("demo", Some("0.1.0")).unwrap(),
+            "CONTENT_B"
+        );
+    })
+    .await
+    .unwrap();
+
+    server.abort();
+}

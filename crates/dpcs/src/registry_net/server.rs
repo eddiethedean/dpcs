@@ -13,7 +13,9 @@ use serde::{Deserialize, Serialize};
 use tokio::net::TcpListener;
 
 use crate::model::{validate_registry, RegisteredArtifact, Registry};
-use crate::paths::{is_safe_path_segment, is_safe_relative, join_under_root};
+use crate::paths::{
+    is_safe_path_segment, is_safe_relative, join_under_root, registry_content_relative_path,
+};
 use crate::registry_net::types::PublishRequest;
 
 /// Options for `dpcs registry serve`.
@@ -282,7 +284,10 @@ async fn publish_artifact(
     }
     let pending_content = request.content;
     if pending_content.is_some() {
-        artifact.location = Some(format!("artifacts/{id}-{}.yaml", artifact.version));
+        artifact.location = Some(registry_content_relative_path(
+            &artifact.id,
+            &artifact.version,
+        ));
     }
     let mut registry = read_registry(&state.root)?;
     if let Some(existing) = registry
@@ -311,6 +316,18 @@ async fn publish_artifact(
         return Ok(Json(existing));
     }
 
+    // Reject FS collisions with an already-registered payload path (defensive;
+    // hex-encoded keys already avoid case-insensitive id@version collisions).
+    if let Some(location) = &artifact.location {
+        if let Ok(path) = contained_file(&state.root, location) {
+            if path.is_file() {
+                return Err(ApiError::conflict(format!(
+                    "DPCS-REG-016: content path `{location}` already exists for another payload"
+                )));
+            }
+        }
+    }
+
     registry.artifacts.push(artifact.clone());
     let report = validate_registry(&registry);
     if !report.is_valid() {
@@ -325,8 +342,33 @@ async fn publish_artifact(
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent).map_err(|err| ApiError::internal(err.to_string()))?;
         }
-        write_registry(&state.root, &registry)?;
-        std::fs::write(&path, content).map_err(|err| ApiError::internal(err.to_string()))?;
+        // Content first then registry reduces "listed without payload" windows;
+        // use create_new so we never truncate an unexpected existing file.
+        {
+            use std::io::Write;
+            let mut file = std::fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&path)
+                .map_err(|err| {
+                    if err.kind() == std::io::ErrorKind::AlreadyExists {
+                        ApiError::conflict(format!(
+                            "DPCS-REG-016: content path `{}` already exists",
+                            path.display()
+                        ))
+                    } else {
+                        ApiError::internal(err.to_string())
+                    }
+                })?;
+            file.write_all(content.as_bytes())
+                .map_err(|err| ApiError::internal(err.to_string()))?;
+            file.sync_all()
+                .map_err(|err| ApiError::internal(err.to_string()))?;
+        }
+        if let Err(err) = write_registry(&state.root, &registry) {
+            let _ = std::fs::remove_file(&path);
+            return Err(err.into());
+        }
     } else {
         write_registry(&state.root, &registry)?;
     }
