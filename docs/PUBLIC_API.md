@@ -145,7 +145,7 @@ match plan(&contract) {
     }
 }
 
-assert!(!dpcs::binding::BindingFramework::is_available());
+assert!(dpcs::binding::BindingFramework::is_available());
 ```
 
 ## Capability evaluation (0.7.0)
@@ -182,6 +182,33 @@ Demand matched against a profile is `requiredCapabilities` plus
 `OrchestratorCapabilities` remains a deprecated name alias for
 `CapabilityProfile`. Prefer `CapabilityProfile`.
 
-Orchestrator binding adapters remain ROADMAP 0.8.0.
+## Orchestrator binding (0.8.0)
+
+Bind a planned pipeline to an orchestrator target after a successful capability
+match. Adapters emit scaffold artifacts (Airflow/Dagster/Prefect; Temporal and
+Kubernetes are experimental):
+
+```rust
+use dpcs::{
+    bind, parse_yaml_file, plan, write_bundle, BindingResult, BindingTarget,
+    CapabilityProfile, PlanResult,
+};
+
+let contract = parse_yaml_file("pipeline.dpcs.yaml")?;
+let profile = CapabilityProfile::from_yaml_file("orchestrator.capabilities.yaml")?;
+let PlanResult::Ok(planned) = plan(&contract) else {
+    panic!("contract must plan");
+};
+
+match bind(&planned, &profile, BindingTarget::Airflow) {
+    BindingResult::Ok(bundle) => {
+        assert!(!bundle.files.is_empty());
+        write_bundle(&bundle, std::path::Path::new("./out"))?;
+    }
+    BindingResult::Err(report) => {
+        assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-BIND-001"));
+    }
+}
+```
 
 [`Error::InvalidDocument`]: ../src/error.rs

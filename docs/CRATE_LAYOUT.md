@@ -20,7 +20,7 @@ Recommended initial layout:
 │   ├── diagnostics/
 │   ├── plan/
 │   ├── capabilities/
-│   ├── binding/
+│   ├── binding/            # Orchestrator binding (SPEC Ch 17)
 │   └── cli/
 ├── examples/
 ├── tests/fixtures/

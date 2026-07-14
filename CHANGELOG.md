@@ -5,6 +5,23 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-07-14
+
+### Added
+
+- Orchestrator binding framework (SPEC Ch 17): `bind`, `bind_contract`, `parse_target`, `write_bundle`
+- `BindingTarget`, `BindingFile`, `BindingBundle`, `BindingResult`, and `BindContext`
+- Scaffold adapters for Airflow, Dagster, Prefect, Temporal (experimental), and Kubernetes (experimental)
+- Capability-gated binding: missing mandatory capabilities refuse bind with `DPCS-BIND-001`
+- Binding diagnostics `DPCS-BIND-001`–`004`, category `binding`, stage `OrchestratorBinding`
+- CLI `dpcs bind <contract> --profile <profile> --target <…> [--out <dir>] [--json]`
+- Binding integration and CLI tests
+
+### Changed
+
+- `BindingFramework::is_available()` returns `true`; `supported_targets()` lists all five adapters
+- Architecture and docs extend through Orchestrator Binding; execution runtimes remain out of scope
+
 ## [0.7.0] - 2026-07-14
 
 ### Added
@@ -192,6 +209,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `dpcs` CLI: `validate`, `inspect`, `diagnostics`, `graph`, `version`
 - Examples, fixtures, CI, and contributor documentation
 
+[0.8.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.8.0
 [0.7.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.7.0
 [0.6.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.6.0
 [0.5.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.5.0

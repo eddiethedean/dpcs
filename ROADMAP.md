@@ -128,7 +128,7 @@ Implements Chapter 16.
 
 ------------------------------------------------------------------------
 
-# 0.8.0 --- Orchestrator Binding
+# 0.8.0 --- Orchestrator Binding (shipped)
 
 Implements Chapter 17.
 

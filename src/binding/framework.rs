@@ -1,0 +1,154 @@
+//! Binding framework: capability gate and adapter dispatch (SPEC Ch 17).
+
+use std::fs;
+use std::path::Path;
+use std::str::FromStr;
+
+use crate::capabilities::{evaluate, CapabilityProfile, CapabilityReport, CapabilityResult};
+use crate::diagnostics::ValidationReport;
+use crate::model::PipelineContract;
+use crate::plan::{self, PipelinePlan, PlanResult};
+
+use super::adapters::adapter_for;
+use super::artifact::{BindingBundle, BindingTarget};
+use super::diagnostics::{self, write_failed};
+
+/// Context passed to orchestrator adapters during translation.
+#[derive(Debug, Clone)]
+pub struct BindContext<'a> {
+    /// Capability profile identity.
+    pub profile_identity: &'a str,
+    /// Successful capability evaluation report.
+    pub capability: &'a CapabilityReport,
+}
+
+/// Result of attempting to bind a Pipeline Plan to an orchestrator target.
+#[derive(Debug, Clone, PartialEq)]
+pub enum BindingResult {
+    /// Binding succeeded and produced a platform artifact bundle.
+    Ok(Box<BindingBundle>),
+    /// Binding refused (capability gate, planning, or translation failure).
+    Err(ValidationReport),
+}
+
+impl BindingResult {
+    /// Returns the bundle when binding succeeded.
+    pub fn bundle(self) -> Option<BindingBundle> {
+        match self {
+            Self::Ok(bundle) => Some(*bundle),
+            Self::Err(_) => None,
+        }
+    }
+
+    /// Returns a reference to the bundle when binding succeeded.
+    pub fn as_bundle(&self) -> Option<&BindingBundle> {
+        match self {
+            Self::Ok(bundle) => Some(bundle),
+            Self::Err(_) => None,
+        }
+    }
+
+    /// Returns whether binding succeeded.
+    pub fn is_ok(&self) -> bool {
+        matches!(self, Self::Ok(_))
+    }
+
+    /// Returns diagnostics when binding failed.
+    pub fn report(&self) -> Option<&ValidationReport> {
+        match self {
+            Self::Ok(_) => None,
+            Self::Err(report) => Some(report),
+        }
+    }
+}
+
+/// Parse a binding target name into [`BindingTarget`].
+///
+/// On failure returns a binding-stage diagnostic report with `DPCS-BIND-002`.
+pub fn parse_target(name: &str) -> Result<BindingTarget, ValidationReport> {
+    BindingTarget::from_str(name)
+        .map_err(|_| diagnostics::report_error(diagnostics::unknown_target(name)))
+}
+
+/// Bind a validated Pipeline Plan to a target orchestrator.
+///
+/// Runs capability evaluation against `profile` first. Missing mandatory
+/// capabilities refuse binding with `DPCS-BIND-001`. On success, translates the
+/// plan into platform-specific scaffold artifacts.
+pub fn bind(
+    plan: &PipelinePlan,
+    profile: &CapabilityProfile,
+    target: BindingTarget,
+) -> BindingResult {
+    let capability = match evaluate(plan, profile) {
+        CapabilityResult::Ok(report) => report,
+        CapabilityResult::Err { diagnostics, .. } => {
+            return BindingResult::Err(diagnostics::report_capability_gate(diagnostics));
+        }
+    };
+
+    let ctx = BindContext {
+        profile_identity: &profile.identity,
+        capability: &capability,
+    };
+
+    let adapter = adapter_for(target);
+    match adapter.translate(plan, &ctx) {
+        Ok(files) => {
+            if files.is_empty() {
+                return BindingResult::Err(diagnostics::report_error(
+                    diagnostics::translation_incomplete("binding adapter produced no artifacts"),
+                ));
+            }
+            BindingResult::Ok(Box::new(BindingBundle {
+                target,
+                contract_id: plan.contract_id.clone(),
+                contract_version: plan.contract_version.clone(),
+                profile_identity: profile.identity.clone(),
+                files,
+                capability: *capability,
+            }))
+        }
+        Err(report) => BindingResult::Err(report),
+    }
+}
+
+/// Plan a contract, then bind it to a target orchestrator.
+///
+/// Planning failures are returned as [`BindingResult::Err`] with the planning
+/// diagnostics (including `DPCS-PLN-001` when validation failed).
+pub fn bind_contract(
+    contract: &PipelineContract,
+    profile: &CapabilityProfile,
+    target: BindingTarget,
+) -> BindingResult {
+    match plan::plan(contract) {
+        PlanResult::Ok(planned) => bind(&planned, profile, target),
+        PlanResult::Err(report) => BindingResult::Err(report),
+    }
+}
+
+/// Write a binding bundle's files under `out_dir`.
+///
+/// Creates parent directories as needed. Returns a binding-stage diagnostic
+/// report on filesystem errors.
+pub fn write_bundle(bundle: &BindingBundle, out_dir: &Path) -> Result<(), ValidationReport> {
+    for file in &bundle.files {
+        let path = out_dir.join(&file.relative_path);
+        if let Some(parent) = path.parent() {
+            if let Err(err) = fs::create_dir_all(parent) {
+                return Err(diagnostics::report_error(write_failed(format!(
+                    "failed to create directory {}: {err}",
+                    parent.display()
+                ))));
+            }
+        }
+        if let Err(err) = fs::write(&path, &file.content) {
+            return Err(diagnostics::report_error(write_failed(format!(
+                "failed to write {}: {err}",
+                path.display()
+            ))));
+        }
+    }
+    Ok(())
+}

@@ -9,7 +9,10 @@ use crate::diagnostics::ValidationReport;
 use crate::error::Error;
 use crate::parser;
 use crate::plan;
-use crate::{evaluate, validate, CapabilityProfile, CapabilityResult, VERSION};
+use crate::{
+    bind, evaluate, parse_target, validate, write_bundle, BindingResult, CapabilityProfile,
+    CapabilityResult, VERSION,
+};
 
 /// Exit code for successful validation.
 pub const EXIT_OK: u8 = 0;
@@ -76,6 +79,25 @@ enum Commands {
         #[arg(long)]
         plan: PathBuf,
         /// Emit the capability report (or diagnostics) as JSON.
+        #[arg(long)]
+        json: bool,
+    },
+    /// Bind a Pipeline Contract to an orchestrator target (scaffold artifacts).
+    Bind {
+        /// Path to a Pipeline Contract document.
+        path: PathBuf,
+        /// Path to an orchestrator capability profile.
+        #[arg(long)]
+        profile: PathBuf,
+        /// Target orchestrator: airflow, dagster, prefect, temporal, kubernetes.
+        ///
+        /// `temporal` and `kubernetes` are experimental.
+        #[arg(long)]
+        target: String,
+        /// Directory to write generated artifacts (default: `./dpcs-bind-<target>/`).
+        #[arg(long)]
+        out: Option<PathBuf>,
+        /// Emit the binding bundle (or diagnostics) as JSON.
         #[arg(long)]
         json: bool,
     },
@@ -351,6 +373,84 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                             println!("missingMandatory: {}", report.missing_mandatory.join(", "));
                         }
                     }
+                    Ok(EXIT_VALIDATION)
+                }
+            }
+        }
+        Commands::Bind {
+            path,
+            profile,
+            target,
+            out,
+            json,
+        } => {
+            let target = match parse_target(&target) {
+                Ok(target) => target,
+                Err(report) => {
+                    print_report(&report, json)?;
+                    return Ok(EXIT_VALIDATION);
+                }
+            };
+            let profile = match CapabilityProfile::from_file(&profile) {
+                Ok(profile) => profile,
+                Err(Error::InvalidDocument { report }) => {
+                    print_report(&report, json)?;
+                    return Ok(EXIT_FAILURE);
+                }
+                Err(err) => return Err(err),
+            };
+            let contract = match parser::parse_file(&path) {
+                Ok(contract) => contract,
+                Err(Error::InvalidDocument { report }) => {
+                    print_report(&report, json)?;
+                    return Ok(EXIT_FAILURE);
+                }
+                Err(err) => return Err(err),
+            };
+
+            let planned = match plan::plan(&contract) {
+                plan::PlanResult::Ok(planned) => planned,
+                plan::PlanResult::Err(report) => {
+                    print_report(&report, json)?;
+                    return Ok(EXIT_VALIDATION);
+                }
+            };
+
+            match bind(&planned, &profile, target) {
+                BindingResult::Ok(bundle) => {
+                    let out_dir = out.unwrap_or_else(|| {
+                        PathBuf::from(format!("dpcs-bind-{}", bundle.target.as_str()))
+                    });
+                    if let Err(report) = write_bundle(&bundle, &out_dir) {
+                        print_report(&report, json)?;
+                        return Ok(EXIT_FAILURE);
+                    }
+                    if json {
+                        let payload = serde_json::to_string_pretty(&*bundle).map_err(|err| {
+                            Error::Serialization(format!(
+                                "failed to serialize binding bundle: {err}"
+                            ))
+                        })?;
+                        println!("{payload}");
+                    } else {
+                        println!("target: {}", bundle.target);
+                        if bundle.target.is_experimental() {
+                            println!("experimental: true");
+                        }
+                        println!("contractId: {}", bundle.contract_id);
+                        println!("contractVersion: {}", bundle.contract_version);
+                        println!("profile: {}", bundle.profile_identity);
+                        println!("out: {}", out_dir.display());
+                        println!("files:");
+                        for file in &bundle.files {
+                            println!("  - {} ({})", file.relative_path, file.media_type);
+                        }
+                        println!("bind: ok");
+                    }
+                    Ok(EXIT_OK)
+                }
+                BindingResult::Err(report) => {
+                    print_report(&report, json)?;
                     Ok(EXIT_VALIDATION)
                 }
             }

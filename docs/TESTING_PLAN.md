@@ -71,6 +71,17 @@ Required test categories:
 - CLI `capabilities` exit codes and `--json` report shape
 - match shipped example pair: `examples/orchestrator.capabilities.yaml` + `examples/with_execution.dpcs.yaml`
 
+## Orchestrator Binding (0.8.0)
+
+- `BindingFramework::is_available()` and five `supported_targets`
+- `bind` succeeds for Airflow/Dagster/Prefect/Temporal/Kubernetes after capability match
+- scaffolds contain contract id and step ids; multi-step plans encode dependencies
+- Kubernetes emits CronJob when scheduling has cron
+- missing mandatory capabilities refuse bind with `DPCS-BIND-001` (+ CAP findings)
+- `bind_contract` refuses invalid contracts via planning diagnostics
+- `write_bundle` materializes relative paths
+- CLI `bind` success, `--json` bundle shape, capability refusal exit 1, unknown target `DPCS-BIND-002`
+
 ## Validation
 
 - reject duplicate step identifiers (`DPCS-COM-005`)
@@ -99,4 +110,5 @@ Required test categories:
 - `diagnostics --json` includes diagnostic ids
 - `graph --json` omits `stepOrder` when planning is refused
 - `capabilities` match success and missing-mandatory failure
+- `bind` writes artifacts, `--json` emits `BindingBundle`, capability/target failures exit 1
 - validate shipped example: `examples/minimal.dpcs.yaml`

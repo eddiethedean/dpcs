@@ -187,3 +187,104 @@ fn capabilities_json_reports_missing_mandatory() {
         .stdout(predicate::str::contains("\"missingMandatory\""))
         .stdout(predicate::str::contains("sql.readwrite"));
 }
+
+#[test]
+fn bind_success_writes_files() {
+    let out = tempfile::tempdir().unwrap();
+    bin()
+        .args([
+            "bind",
+            &fixture("valid/with_execution_model.dpcs.yaml"),
+            "--profile",
+            &fixture("capabilities/valid/matching.profile.yaml"),
+            "--target",
+            "airflow",
+            "--out",
+            out.path().to_str().unwrap(),
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("bind: ok"))
+        .stdout(predicate::str::contains("target: airflow"));
+
+    let entries: Vec<_> = std::fs::read_dir(out.path().join("dags"))
+        .unwrap()
+        .collect();
+    assert!(!entries.is_empty());
+}
+
+#[test]
+fn bind_json_emits_bundle() {
+    let out = tempfile::tempdir().unwrap();
+    bin()
+        .args([
+            "bind",
+            &fixture("valid/with_execution_model.dpcs.yaml"),
+            "--profile",
+            &fixture("capabilities/valid/matching.profile.yaml"),
+            "--target",
+            "prefect",
+            "--out",
+            out.path().to_str().unwrap(),
+            "--json",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("\"target\": \"prefect\""))
+        .stdout(predicate::str::contains("\"contractId\""))
+        .stdout(predicate::str::contains("\"files\""));
+}
+
+#[test]
+fn bind_capability_failure_exits_one() {
+    bin()
+        .args([
+            "bind",
+            &fixture("valid/with_execution_model.dpcs.yaml"),
+            "--profile",
+            &fixture("capabilities/invalid/missing_mandatory.profile.yaml"),
+            "--target",
+            "dagster",
+        ])
+        .assert()
+        .failure()
+        .code(1)
+        .stdout(predicate::str::contains("DPCS-BIND-001"));
+}
+
+#[test]
+fn bind_unknown_target_exits_one() {
+    bin()
+        .args([
+            "bind",
+            &fixture("valid/with_execution_model.dpcs.yaml"),
+            "--profile",
+            &fixture("capabilities/valid/matching.profile.yaml"),
+            "--target",
+            "make",
+        ])
+        .assert()
+        .failure()
+        .code(1)
+        .stdout(predicate::str::contains("DPCS-BIND-002"));
+}
+
+#[test]
+fn bind_experimental_kubernetes() {
+    let out = tempfile::tempdir().unwrap();
+    bin()
+        .args([
+            "bind",
+            &fixture("valid/with_execution_model.dpcs.yaml"),
+            "--profile",
+            &fixture("capabilities/valid/matching.profile.yaml"),
+            "--target",
+            "kubernetes",
+            "--out",
+            out.path().to_str().unwrap(),
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("experimental: true"));
+    assert!(out.path().join("cronjob.yaml").is_file());
+}

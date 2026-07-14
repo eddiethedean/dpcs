@@ -80,6 +80,7 @@ dpcs inspect <path>
 dpcs diagnostics <path>
 dpcs graph <path>
 dpcs capabilities <profile> --plan <contract>
+dpcs bind <contract> --profile <profile> --target <airflow|dagster|prefect|temporal|kubernetes>
 dpcs version
 ```
 
@@ -93,5 +94,10 @@ failure/lineage intents. Planning is gated on successful validation.
 
 `CapabilityProfile` declares orchestrator supply. `evaluate` / `evaluate_requirements`
 match plan or execution demands without mutating the plan. CLI
-`dpcs capabilities` reports match results. Orchestrator binding remains
-ROADMAP 0.8.0.
+`dpcs capabilities` reports match results.
+
+## Phase 9 — Orchestrator Binding (complete in 0.8.0)
+
+`bind` / `bind_contract` capability-gate a plan, then emit scaffold artifacts via
+Airflow, Dagster, Prefect, Temporal, and Kubernetes adapters. CLI `dpcs bind`
+writes artifacts and reports `BindingBundle` JSON when requested.

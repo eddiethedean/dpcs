@@ -34,4 +34,6 @@ pub mod categories {
     pub const PLANNING: &str = "planning";
     /// Capability evaluation issues.
     pub const CAPABILITY: &str = "capability";
+    /// Orchestrator binding issues.
+    pub const BINDING: &str = "binding";
 }

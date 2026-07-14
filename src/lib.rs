@@ -5,7 +5,7 @@
 //! Initial processing pipeline:
 //!
 //! ```text
-//! DPCS Document -> Parser -> Canonical Object Model -> Validator -> Diagnostics
+//! DPCS Document -> Parser -> COM -> Validator -> Plan -> Capabilities -> Binding
 //! ```
 //!
 //! [`SPEC.md`](../SPEC.md) is the authoritative source of truth. When implementation
@@ -37,6 +37,10 @@ pub mod validation;
 #[cfg(feature = "cli")]
 pub mod cli;
 
+pub use binding::{
+    bind, bind_contract, parse_target, write_bundle, BindingBundle, BindingFile, BindingFramework,
+    BindingResult, BindingTarget,
+};
 #[allow(deprecated)]
 pub use capabilities::OrchestratorCapabilities;
 pub use capabilities::{

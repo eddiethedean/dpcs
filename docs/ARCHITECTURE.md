@@ -24,7 +24,7 @@ Orchestrator Binding
 Execution Runtime
 ```
 
-Current implementation scope (through ROADMAP 0.7.0):
+Current implementation scope (through ROADMAP 0.8.0):
 
 ```text
 DPCS Document
@@ -46,6 +46,10 @@ Pipeline Plan (deterministic, validation-gated)
         │
         ▼
 Capability Evaluation (profile match, no plan mutation)
+        │
+        ▼
+Orchestrator Binding (scaffold artifacts; capability-gated)
 ```
 
-Orchestrator binding remains roadmap 0.8.0. Execution runtimes are out of scope.
+Execution runtimes remain out of scope. Binding adapters emit implementation-defined
+scaffold artifacts for Airflow, Dagster, Prefect, Temporal, and Kubernetes.

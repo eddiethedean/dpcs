@@ -29,7 +29,7 @@ pub struct Diagnostic {
 }
 ```
 
-## Categories (0.7.0)
+## Categories (0.8.0)
 
 | Constant | Wire value |
 | --- | --- |
@@ -47,11 +47,13 @@ pub struct Diagnostic {
 | `LINEAGE` | `lineage` |
 | `PLANNING` | `planning` |
 | `CAPABILITY` | `capability` |
+| `BINDING` | `binding` |
 | `EXTENSION` | `extension` |
 | `SYNTAX` | `syntax` |
 
 Planning failures use `DiagnosticStage::Planning` (for example `DPCS-PLN-001`).
 Capability match failures use `DiagnosticStage::CapabilityEvaluation`
-(`DPCS-CAP-001`–`006`).
+(`DPCS-CAP-001`–`006`). Binding failures use `DiagnosticStage::OrchestratorBinding`
+(`DPCS-BIND-001`–`004`).
 
 Diagnostics describe observations only. They must not change pipeline semantics.

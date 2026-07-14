@@ -13,21 +13,21 @@ contract-first data pipeline definitions. The full specification lives in
 [`SPEC.md`](SPEC.md) and is the authoritative source of truth.
 
 ```text
-DPCS Document -> Parser -> COM -> Validator -> Pipeline Plan -> Capability Evaluation
+DPCS Document -> Parser -> COM -> Validator -> Pipeline Plan -> Capability Evaluation -> Orchestrator Binding
 ```
 
-Orchestrator binding, execution runtimes, and Airflow/Dagster/Prefect generation
-are intentionally out of scope until roadmap 0.8.0. See [`ROADMAP.md`](ROADMAP.md).
+Binding adapters emit scaffold artifacts for Airflow, Dagster, Prefect, Temporal,
+and Kubernetes. Execution runtimes remain out of scope. See [`ROADMAP.md`](ROADMAP.md).
 
 ## Status
 
 | Item | Value |
 | --- | --- |
-| Crate version | `0.7.0` |
+| Crate version | `0.8.0` |
 | Spec version | `1.0.0-draft` |
 | Language | Rust 2021 (MSRV 1.85) |
 | License | Apache-2.0 OR MIT |
-| Release focus | Capability model (ROADMAP 0.7.0) |
+| Release focus | Orchestrator binding (ROADMAP 0.8.0) |
 
 ## Quick start
 
@@ -36,7 +36,7 @@ are intentionally out of scope until roadmap 0.8.0. See [`ROADMAP.md`](ROADMAP.m
 ```bash
 cargo install --path .
 # or, after crates.io publish:
-# cargo install dpcs --version 0.7.0
+# cargo install dpcs --version 0.8.0
 ```
 
 ### Validate a pipeline contract
@@ -54,6 +54,7 @@ dpcs inspect examples/minimal.dpcs.yaml
 dpcs diagnostics examples/minimal.dpcs.yaml --json
 dpcs graph examples/minimal.dpcs.yaml
 dpcs capabilities examples/orchestrator.capabilities.yaml --plan examples/with_execution.dpcs.yaml
+dpcs bind examples/with_execution.dpcs.yaml --profile examples/orchestrator.capabilities.yaml --target airflow
 dpcs version
 ```
 
@@ -61,8 +62,8 @@ dpcs version
 
 | Code | Meaning |
 | --- | --- |
-| `0` | `validate`/`diagnostics`: valid; `capabilities`: match ok; `inspect`/`graph`: successful parse |
-| `1` | Validation or capability errors (`validate`/`diagnostics`/`capabilities`) |
+| `0` | `validate`/`diagnostics`: valid; `capabilities`: match ok; `bind`: success; `inspect`/`graph`: successful parse |
+| `1` | Validation, capability, or binding errors (`validate`/`diagnostics`/`capabilities`/`bind`) |
 | `2` | Parse or I/O failure |
 
 ## Library usage
@@ -136,6 +137,19 @@ if let PlanResult::Ok(planned) = plan(&contract) {
 }
 ```
 
+Orchestrator binding (0.8.0):
+
+```rust
+use dpcs::{bind, BindingResult, BindingTarget};
+
+if let PlanResult::Ok(planned) = plan(&contract) {
+    match bind(&planned, &profile, BindingTarget::Airflow) {
+        BindingResult::Ok(bundle) => println!("files: {}", bundle.files.len()),
+        BindingResult::Err(report) => eprintln!("bind failed: {}", report.error_count()),
+    }
+}
+```
+
 ## Repository layout
 
 ```text
@@ -149,7 +163,7 @@ if let PlanResult::Ok(planned) = plan(&contract) {
 │   ├── diagnostics/        # Deterministic diagnostics
 │   ├── plan/               # Deterministic Pipeline Plan IR
 │   ├── capabilities/       # Capability profiles and matcher
-│   ├── binding/            # Binding placeholder (future)
+│   ├── binding/            # Orchestrator binding scaffolds
 │   └── cli/                # CLI implementation
 ├── examples/               # Example contracts and profiles
 ├── tests/fixtures/         # Valid and invalid fixtures
