@@ -20,13 +20,19 @@ All paths are relative to a registry base URL, for example `http://127.0.0.1:808
 | `GET` | `/v1/artifacts` | Discovery (`?type=` / `?status=`) |
 | `GET` | `/v1/artifacts/{id}` | Lookup (`?version=`) |
 | `GET` | `/v1/artifacts/{id}/content` | Fetch payload |
-| `PUT` | `/v1/artifacts/{id}` | Publish / update |
+| `PUT` | `/v1/artifacts/{id}` | Publish (idempotent on identical content) |
 | `POST` | `/v1/artifacts/{id}/deprecate` | Deprecate (`?version=`) |
 | `POST` | `/v1/artifacts/{id}/retire` | Retire (`?version=`) |
 
 Path and query values are percent-encoded by `RegistryClient`. Artifact ids and
 versions used as content filenames must be safe path segments
 (`[A-Za-z0-9._+-]`, including SemVer `+build` metadata).
+
+### Immutability (0.13.0)
+
+`PUT` of an existing `id@version` with **different** content returns
+**HTTP 409** and `DPCS-REG-016`. Identical content is idempotent (HTTP 200).
+Lifecycle status changes use deprecate/retire — not content rewrite.
 
 ## Auth
 

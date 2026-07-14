@@ -4,6 +4,11 @@ Validation is deterministic and phase-based. It returns a `ValidationReport`
 and does not panic on invalid contracts. Phases always complete and findings are
 accumulated, then sorted deterministically.
 
+Deep reference resolution (SPEC Ch 7) is separate from the phase list and runs
+via `validate_resolved` / `plan` / CLI document roots — see
+[`PLANNING.md`](PLANNING.md). Full ID inventory:
+[`diagnostics.catalog.json`](diagnostics.catalog.json).
+
 ## Performance (0.12.0)
 
 - `validate` builds an [`AnalysisContext`] once (step ids, endpoints, dependency
@@ -22,7 +27,8 @@ accumulated, then sorted deterministically.
 2. Canonical Object Model — identity, uniqueness, interface completeness, reserved extension keys, SemVer version syntax (`DPCS-VER-*`)
 3. Structural — empty step `type` (`DPCS-STR-003`), empty step port ids (`DPCS-STR-001`)
 4. Graph — edges, cycles, duplicate edges, unreachable steps, entry/exit integrity
-5. References — resolvable contract / transform / port references
+5. References — declared-id / path-like contract / transform / port references
+   (deep load of nested DPCS uses `dpcs::resolve`; `DPCS-REF-007` / `DPCS-REF-008`)
 6. Data Flow — endpoints, dataset identity, wiring, unreachable datasets
 7. Control Flow — step endpoints, conflicting deps, duplicate control edges
 8. Execution — capability/dependency/resource completeness (`DPCS-EXE-*`)
@@ -112,6 +118,9 @@ Capability matching is separate from contract validation: after a successful
 | `DPCS-LIN-010` | Unknown step lineage stepId |
 | `DPCS-LIN-016` | Legacy upstream/downstream fields |
 | `DPCS-PLN-001` | Plan refused due to validation errors |
+| `DPCS-REF-007` | Nested DPCS reference content missing locally |
+| `DPCS-REF-008` | Nested DPCS reference content failed to parse |
+| `DPCS-REG-016` | Registry artifact content rewrite rejected |
 
 ## Selected diagnostic IDs (0.9 additions)
 

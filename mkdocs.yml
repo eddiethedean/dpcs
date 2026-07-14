@@ -33,6 +33,19 @@ theme:
 plugins:
   - search
 
+# Surface broken nav/links/anchors as warnings (fail via `mkdocs build --strict`
+# and Read the Docs `fail_on_warning: true`).
+validation:
+  nav:
+    omitted_files: warn
+    not_found: warn
+    absolute_links: info
+  links:
+    not_found: warn
+    absolute_links: info
+    unrecognized_links: info
+    anchors: warn
+
 markdown_extensions:
   - admonition
   - pymdownx.details

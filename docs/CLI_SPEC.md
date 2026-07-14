@@ -61,10 +61,13 @@ Exit codes:
 
 Notes:
 
+- `validate`, `diagnostics`, `capabilities`, and `bind` resolve nested DPCS
+  Contract References relative to the **input document directory**
+  (`ResolveOptions::from_document_path`). Companion ODCS/DTCS files may be absent.
 - `validate` and `diagnostics` use the exit codes above.
 - `--format` selects the report renderer (`text`, `json`, `markdown`, `html`; `graph` also
-  accepts `mermaid` and `dot`). When omitted, output is text. `--json` is a soft-deprecated
-  alias for `--format json` and continues to work.
+  accepts `mermaid` and `dot`). When omitted, output is text. `--json` is a permanent
+  alias for `--format json`.
 - `--out <path>` writes the report to a file; when omitted, reports go to stdout.
 - Severity lines in text mode use ANSI color when stdout is a TTY (honors `NO_COLOR`).
 - `validate --profile` applies a validated conformance profile (`requireSecurity`,
@@ -74,7 +77,11 @@ Notes:
   Markdown/HTML use the plain validation diagnostic list.
 - `capabilities` parses the contract, runs `plan()`, then `evaluate` against the profile. Exit `0` on match, `1` on plan refusal or capability errors, `2` on parse/I/O.
 - `capabilities --json` / `--format json` emits a `CapabilityReport` on both success and match failure (failure includes diagnostics and `missingMandatory`).
-- `bind` parses the contract and profile, plans, capability-gates, then translates to scaffold artifacts. Writes under `--out` (default `./dpcs-bind-<target>/`). Exit `0` on success, `1` on plan/capability/binding errors (including unknown `--target`), `2` on parse/I/O or write failure.
+- `bind` parses the contract and profile, plans (with document-relative resolve),
+  capability-gates, then translates to scaffold artifacts **plus**
+  `dpcs_semantics.json`. Writes under `--out` (default `./dpcs-bind-<target>/`).
+  Exit `0` on success, `1` on plan/capability/binding errors (including unknown
+  `--target`), `2` on parse/I/O or write failure.
 - `bind --json` emits a `BindingBundle` on success (and still writes files when `--out` is used or defaulted).
 - `--target` accepts `airflow`, `dagster`, `prefect`, `temporal`, `kubernetes`, and alias `k8s`.
 - `temporal` and `kubernetes` targets are experimental.
@@ -83,6 +90,9 @@ Notes:
 - `registry serve|pull|lookup|publish|deprecate|retire|cache` use the reference HTTP API (ADR-0005).
   Client commands accept `--cache-dir` for a disk-backed `RegistryCache`. Deprecate/retire
   accept optional `--version` (server uses latest listed row when omitted).
+  Publish of an existing `id@version` with **different content** is rejected
+  (HTTP 409 / `DPCS-REG-016`); identical content is idempotent. Status changes
+  use deprecate/retire, not republish.
 - `package` operates on `.dpcspkg` layouts (`DPCS-PKG-*`).
 - `schema` emits JSON Schema / OpenAPI under `schemas/`.
 - `conformance validate` validates a conformance profile and checks claimed levels against this toolkit.

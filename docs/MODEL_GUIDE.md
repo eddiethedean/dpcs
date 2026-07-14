@@ -123,6 +123,16 @@ let graph = DependencyGraph::from_contract(&contract);
 let order = graph.topological_order()?;
 ```
 
+## Contract references and nesting (0.13.0)
+
+[`ContractReference`] locations are deep-resolved before planning (SPEC Ch 7)
+via `dpcs::resolve`. Nested DPCS documents (`type: dpcs` / step
+`dpcs:pipeline`) load into `PipelinePlan.nested` with port lists, step order,
+and recursive children. Companion ODCS/DTCS content may remain external.
+
+Prefer `ResolveOptions::from_document_path` when `location` is relative to the
+contract file. See [`PLANNING.md`](PLANNING.md) and [`PUBLIC_API.md`](PUBLIC_API.md).
+
 ## COM validation
 
 COM invariants run as the first validation phase after document checks:
@@ -166,10 +176,10 @@ matching against orchestrator profiles shipped in roadmap 0.7.0.
 | `ExtensionDefinition` | `id`, `namespace`, `version`, `owner`, `scope`, optional `semantics` |
 | `ConformanceProfile` | `id`, `version`, `dpcsVersion`, `levels`, optional requirements |
 
-[`PipelineGraph`]: ../src/model/graph.rs
-[`DataFlow`]: ../src/model/data_flow.rs
-[`DependencyGraph`]: ../src/model/analysis.rs
-
-[`PipelineInterface`]: ../src/model/interface.rs
-[`InterfacePort`]: ../src/model/interface.rs
-[`Metadata`]: ../src/model/metadata.rs
+[`PipelineGraph`]: https://docs.rs/dpcs/latest/dpcs/struct.PipelineGraph.html
+[`DataFlow`]: https://docs.rs/dpcs/latest/dpcs/struct.DataFlow.html
+[`DependencyGraph`]: https://docs.rs/dpcs/latest/dpcs/struct.DependencyGraph.html
+[`ContractReference`]: https://docs.rs/dpcs/latest/dpcs/struct.ContractReference.html
+[`PipelineInterface`]: https://docs.rs/dpcs/latest/dpcs/struct.PipelineInterface.html
+[`InterfacePort`]: https://docs.rs/dpcs/latest/dpcs/struct.InterfacePort.html
+[`Metadata`]: https://docs.rs/dpcs/latest/dpcs/struct.Metadata.html

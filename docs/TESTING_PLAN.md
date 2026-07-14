@@ -136,6 +136,8 @@ Required test categories:
 - `make conformance` runs `tests/conformance.rs` + `tests/conformance_appendix_e.rs`
 - Nested resolve/plan fixtures under `fixtures/valid/nested/` and
   `fixtures/invalid/nested_missing.dpcs.yaml` (`DPCS-REF-007`)
+- Default `plan()` deep-resolve + recursive nesting with cycle/depth guards
+- Registry HTTP: content-changing republish of `id@version` → 409 / `DPCS-REG-016`
 - Bind bundles include `dpcs_semantics.json` for all targets
 - SPEC coverage matrix zero-Gap for toolkit-actionable SHALLs
 - `toolkit_claim()` includes `CompleteImplementation`

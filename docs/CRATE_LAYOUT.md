@@ -1,4 +1,4 @@
-# Proposed Crate Layout
+# Crate layout
 
 ```text
 .
@@ -8,18 +8,31 @@
 ├── ROADMAP.md
 ├── crates/
 │   ├── dpcs/                  # core library
-│   └── dpcs-cli/              # dpcs binary
+│   │   └── src/
+│   │       ├── model/         # COM
+│   │       ├── parser/
+│   │       ├── validation/
+│   │       ├── resolve/       # Ch 7 reference resolution + nesting (0.13)
+│   │       ├── plan/
+│   │       ├── capabilities/
+│   │       ├── binding/       # scaffolds + dpcs_semantics.json
+│   │       ├── compatibility/
+│   │       ├── conformance/
+│   │       ├── registry_net/  # reference HTTP (optional features)
+│   │       ├── package/
+│   │       ├── report/
+│   │       ├── schema/
+│   │       └── cli/
+│   └── dpcs-cli/              # thin dpcs binary
 ├── bindings/
 │   ├── python/                # maturin / PyO3 → PyPI `dpcs`
 │   └── wasm/                  # wasm-bindgen → npm + Wasmer
 ├── schemas/                   # generated JSON Schema + OpenAPI
 ├── examples/
-├── docs/
-│   ├── BINDINGS.md            # language packages and publish channels
-│   ├── PACKAGE_FORMAT.md
-│   └── REGISTRY_API.md
+├── docs/                      # MkDocs guides (incl. SPEC_COVERAGE.md)
 └── adr/
 ```
 
-Keep the modules aligned with `SPEC.md`. See [`BINDINGS.md`](BINDINGS.md) for
-install and release channel names.
+Keep modules aligned with `SPEC.md`. Install/publish channels:
+[`BINDINGS.md`](BINDINGS.md). Completeness checklist:
+[`SPEC_COVERAGE.md`](SPEC_COVERAGE.md).

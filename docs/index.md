@@ -4,7 +4,8 @@
 [![Rust API](https://img.shields.io/docsrs/dpcs?label=rust%20api)](https://docs.rs/dpcs)
 [![crates.io](https://img.shields.io/crates/v/dpcs.svg)](https://crates.io/crates/dpcs)
 
-Reference toolkit for the **Data Pipeline Contract Standard (DPCS)**.
+Reference toolkit for the **Data Pipeline Contract Standard (DPCS)**
+(crate **0.13.0**, ROADMAP reference implementation).
 
 Rust API docs live on [docs.rs/dpcs](https://docs.rs/dpcs). The normative
 specification is [`SPEC.md`](https://github.com/eddiethedean/dpcs/blob/main/SPEC.md)
@@ -26,9 +27,13 @@ npm install @eddiethedean/dpcs
 dpcs validate pipeline.dpcs.yaml
 dpcs inspect pipeline.dpcs.yaml --format markdown
 dpcs graph pipeline.dpcs.yaml --format mermaid
+dpcs bind pipeline.dpcs.yaml --profile orch.yaml --target airflow
 dpcs tui pipeline.dpcs.yaml
 dpcs version --json
 ```
+
+`validate` / `bind` resolve nested DPCS refs relative to the document path.
+Bind also writes `dpcs_semantics.json` beside scaffold artifacts.
 
 ## Where to go next
 

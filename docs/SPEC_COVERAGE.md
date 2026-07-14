@@ -7,7 +7,7 @@ the `dpcs` toolkit. Status values:
 | Status | Meaning |
 | --- | --- |
 | **Implemented** | Toolkit-actionable SHALL satisfied and covered by tests |
-| **Gap** | Toolkit-actionable SHALL not yet satisfied (must be zero for 0.13 ship) |
+| **Gap** | Toolkit-actionable SHALL not yet satisfied (none remaining for 0.13.0) |
 | **Spec-OOS** | Explicitly out of scope of DPCS (Ch 1 §4) or project NON_GOALS |
 | **Process-advisory** | Organizational SHOULD/SHALL in Ch 24/25 that apply to operators/standards bodies, not library behavior |
 | **Informative** | Appendix / recommended practice |

@@ -118,28 +118,36 @@ let yaml = contract.to_yaml_str()?;
 let json = contract.to_json_str()?;
 ```
 
-Graph analysis (0.4.0) and planning (0.6.0):
+Graph analysis and planning (deep resolve on `plan()`; prefer
+`plan_with_resolve` + `ResolveOptions::from_document_path` for file-relative nests):
 
 ```rust
-use dpcs::{parse_yaml_file, plan, DependencyGraph, PlanResult};
+use dpcs::{
+    parse_yaml_file, plan, plan_with_resolve, DependencyGraph, PlanResult, ResolveOptions,
+};
 
-let contract = parse_yaml_file("pipeline.dpcs.yaml")?;
+let path = "pipeline.dpcs.yaml";
+let contract = parse_yaml_file(path)?;
 let graph = DependencyGraph::from_contract(&contract);
 
 if let Ok(order) = graph.topological_order() {
     println!("step order: {:?}", order);
 }
-if let Some(cycle) = graph.find_cycle() {
-    eprintln!("cycle: {:?}", cycle);
-}
 
-match plan(&contract) {
-    PlanResult::Ok(planned) => println!("plan steps: {:?}", planned.step_order),
+let opts = ResolveOptions::from_document_path(path);
+match plan_with_resolve(&contract, Some(&opts)) {
+    PlanResult::Ok(planned) => {
+        println!("plan steps: {:?}", planned.step_order);
+        println!("nested: {}", planned.nested.len());
+    }
     PlanResult::Err(report) => eprintln!("planning refused: {} errors", report.error_count()),
 }
+
+// Bare plan() also deep-resolves (paths relative to process CWD)
+let _ = plan(&contract);
 ```
 
-Capability evaluation (0.7.0):
+Capability evaluation:
 
 ```rust
 use dpcs::{evaluate, CapabilityProfile, CapabilityResult, PlanResult};
@@ -155,7 +163,7 @@ if let PlanResult::Ok(planned) = plan(&contract) {
 }
 ```
 
-Orchestrator binding (0.8.0):
+Orchestrator binding (scaffolds + `dpcs_semantics.json`):
 
 ```rust
 use dpcs::{bind, BindingResult, BindingTarget};
@@ -218,16 +226,15 @@ cargo build --release
 
 Useful docs:
 
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
-- [`docs/BINDINGS.md`](docs/BINDINGS.md)
-- [`docs/CRATE_LAYOUT.md`](docs/CRATE_LAYOUT.md)
+- [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md)
 - [`docs/PUBLIC_API.md`](docs/PUBLIC_API.md)
+- [`docs/PLANNING.md`](docs/PLANNING.md)
+- [`docs/SPEC_COVERAGE.md`](docs/SPEC_COVERAGE.md)
+- [`docs/CONFORMANCE.md`](docs/CONFORMANCE.md)
 - [`docs/CLI_SPEC.md`](docs/CLI_SPEC.md)
-- [`docs/PACKAGE_FORMAT.md`](docs/PACKAGE_FORMAT.md)
-- [`docs/REGISTRY_API.md`](docs/REGISTRY_API.md)
-- [`docs/TESTING_PLAN.md`](docs/TESTING_PLAN.md)
-- [`docs/IMPLEMENTATION_PHASES.md`](docs/IMPLEMENTATION_PHASES.md)
-- [`docs/NON_GOALS.md`](docs/NON_GOALS.md)
+- [`docs/BINDINGS.md`](docs/BINDINGS.md)
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+- Guides index: [dpcs.readthedocs.io](https://dpcs.readthedocs.io/en/latest/)
 
 ## Design principles
 
