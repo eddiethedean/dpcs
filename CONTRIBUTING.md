@@ -62,7 +62,7 @@ rustup toolchain install stable
 cargo test --workspace --all-features
 ```
 
-MSRV is **1.85**. Local parity with CI: `make ci`.
+MSRV is **1.86**. Local parity with CI: `make ci`.
 
 ## Validation diagnostics
 

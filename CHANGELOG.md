@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Crate version `0.10.0`; default library features are empty (CLI enables `full`)
 - Release workflow publishes crates.io, PyPI, npm, and Wasmer
+- Raise MSRV to 1.86 for locked `url`/`idna`/`icu_*` dependency builds
 
 ## [0.9.0] - 2026-07-14
 
