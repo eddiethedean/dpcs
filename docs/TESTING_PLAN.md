@@ -28,8 +28,7 @@ Required test categories:
 - reject invalid entry/exit points (`DPCS-GRP-007`, `DPCS-GRP-008`)
 - invalid data-flow ports do not create spurious graph dependencies
 - cycles do not emit redundant unreachable-step diagnostics
-- plan preserves declaration-order steps omitted from topological order
-- CLI `graph --json` includes entry/exit points and step order
+- CLI `graph --json` includes entry/exit points and step order for valid contracts
 - graph features round-trip (`entryPoints`, `exitPoints`, `dataFlow.contractRef`)
 
 ## Validation Engine (0.5.0)
@@ -47,6 +46,19 @@ Required test categories:
 - cycles do not suppress unreachable-dataset diagnostics
 - invalid entry points do not flood unreachable-step diagnostics
 - graph features fixture validates with interface-rooted data flow
+
+## Execution Model (0.6.0)
+
+- validate execution capabilities, isolation, external deps, resources, environment (`DPCS-EXE-*`)
+- validate scheduling modes, events, and ISO-8601 timing constraints (`DPCS-SCH-*`)
+- validate quality gate purpose/criteria/outcomes/placement (`DPCS-QG-*`)
+- validate failure scope/triggers/responses/retry (`DPCS-FS-*`)
+- validate lineage datasets/steps/refs and reject legacy upstream/downstream stubs (`DPCS-LIN-*`)
+- `plan()` refuses invalid contracts with `DPCS-PLN-001`
+- independent steps use deterministic sorted-id topo tie-break
+- CLI `inspect`/`graph` omit fake `stepOrder` and signal `planningRefused`
+- execution-model YAML/JSON round-trip
+- validate shipped example: `examples/with_execution.dpcs.yaml`
 
 ## Validation
 
@@ -72,6 +84,7 @@ Required test categories:
 ## CLI
 
 - CLI success/failure exit codes (`0` / `1` / `2`)
-- `inspect --json` summary shape
+- `inspect --json` summary shape including planning status
 - `diagnostics --json` includes diagnostic ids
+- `graph --json` omits `stepOrder` when planning is refused
 - validate shipped example: `examples/minimal.dpcs.yaml`

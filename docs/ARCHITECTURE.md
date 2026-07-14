@@ -24,7 +24,7 @@ Orchestrator Binding
 Execution Runtime
 ```
 
-Initial implementation scope:
+Current implementation scope (through ROADMAP 0.6.0):
 
 ```text
 DPCS Document
@@ -40,6 +40,10 @@ Validator
         │
         ▼
 Diagnostics
+        │
+        ▼
+Pipeline Plan (deterministic, validation-gated)
 ```
 
-The first Rust crate should stop at diagnostics and add only a lightweight Pipeline Plan skeleton.
+Capability evaluation and orchestrator binding remain roadmap 0.7.0–0.8.0.
+Execution runtimes are out of scope.

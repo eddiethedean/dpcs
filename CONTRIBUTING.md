@@ -14,9 +14,10 @@ Thanks for helping build the DPCS reference implementation.
 
 Tagged releases use `.github/workflows/release.yml`:
 
-1. Push a version tag matching `v*.*.*` (for example `v0.5.0`).
+1. Push a version tag matching `v*.*.*` (for example `v0.6.0`).
 2. The release workflow runs the same CI checks as pull requests (`ci-checks.yml`).
 3. After checks pass, it publishes the Rust crate to crates.io.
+4. Create a GitHub Release for the tag (title `v0.6.0`) using the `[0.6.0]` section from [`CHANGELOG.md`](CHANGELOG.md).
 
 Store a crates.io API token in the repository secret named `CARGO_REGISTRY_TOKEN`.
 Do not use a PyPI token here; this project does not publish a Python package yet.
