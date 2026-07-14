@@ -38,6 +38,8 @@ pub mod parser;
 pub mod plan;
 pub mod validation;
 
+mod paths;
+
 #[cfg(feature = "cli")]
 pub mod cli;
 #[cfg(any(feature = "registry-client", feature = "registry-server"))]
@@ -102,8 +104,10 @@ pub use schema::{
     write_openapi_documents, OpenApiKind,
 };
 
+#[cfg(any(feature = "registry-client", feature = "registry-server"))]
+pub use registry_net::PublishRequest;
 #[cfg(feature = "registry-client")]
-pub use registry_net::{PublishRequest, RegistryCache, RegistryClient, RegistryClientError};
+pub use registry_net::{RegistryCache, RegistryClient, RegistryClientError};
 
 #[cfg(feature = "registry-server")]
 pub use registry_net::{serve, serve_listener, ServeOptions};

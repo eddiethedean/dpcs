@@ -14,5 +14,11 @@ fn openapi_kinds_emit_openapi_version() {
     for kind in [OpenApiKind::Documents, OpenApiKind::Registry] {
         let doc = openapi_document(kind).unwrap();
         assert_eq!(doc["openapi"], "3.0.3");
+        let schemas = doc["components"]["schemas"].as_object().unwrap();
+        let encoded = serde_json::to_string(schemas).unwrap();
+        assert!(
+            !encoded.contains("#/definitions/"),
+            "OpenAPI schemas must rewrite schemars definitions refs"
+        );
     }
 }

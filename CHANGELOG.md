@@ -21,11 +21,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - WASM bindings (`bindings/wasm`, wasm-bindgen) with npm and Wasmer release jobs
 - Docs: `docs/PACKAGE_FORMAT.md`, `docs/REGISTRY_API.md`
 
+### Fixed
+
+- Registry HTTP: path containment for publish locations, validate-before-write,
+  write registry file in its existing path/format, versioned deprecate/retire,
+  utf-8-only `contentEncoding`, case-insensitive status filters
+- Package pack/unpack/resolve: reject path escapes, symlinks, and archives under
+  the package root; unversioned resolve uses the last matching artifact
+- `RegistryClient` percent-encodes path/query segments, reads disk cache on
+  versioned lookup, and passes `?version=` for deprecate/retire
+- CLI registry transport / HTTP 5xx failures exit `2`; `--cache-dir` wires a
+  disk cache; deprecate/retire accept `--version`
+- OpenAPI generators rewrite schemars `#/definitions/` refs to
+  `#/components/schemas/`
+- `registry-server` builds without `registry-client` (`PublishRequest` shared)
+- Bindings merge evaluate failure diagnostics; Wasmer package uses `abi = "none"`
+- Release/CI: crates.io retry, version-from-tag guards, Python abi3 + CI job
+
 ### Changed
 
 - Crate version `0.10.0`; default library features are empty (CLI enables `full`)
 - Release workflow publishes crates.io, PyPI, npm, and Wasmer
 - Raise MSRV to 1.86 for locked `url`/`idna`/`icu_*` dependency builds
+- `cli` feature enables `jsonschema` + registry client/server; `full` aliases `cli`
 
 ## [0.9.0] - 2026-07-14
 

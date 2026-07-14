@@ -1,9 +1,10 @@
 //! PyO3 bindings for `dpcs`.
 
-use dpcs::{
-    bind, compare_contracts, evaluate, parse_json, parse_yaml, plan, to_json, to_yaml, validate,
-    validate_registry, CapabilityProfile, ConformanceProfile, PipelineContract, Registry, VERSION,
-    DPCS_SPEC_VERSION,
+use ::dpcs::{
+    bind, compare_contracts, evaluate, parse_json, parse_target, parse_yaml, plan, to_json,
+    to_yaml, validate, validate_conformance_profile, validate_registry, BindingResult,
+    CapabilityProfile, CapabilityResult, CompatibilityResult, ConformanceProfile, PipelineContract,
+    PlanResult, Registry, DPCS_SPEC_VERSION, VERSION,
 };
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
@@ -59,8 +60,8 @@ fn validate_file(py: Python<'_>, path: &str) -> PyResult<PyObject> {
 fn plan_yaml(py: Python<'_>, source: &str) -> PyResult<PyObject> {
     let contract = parse_yaml(source).map_err(|err| PyValueError::new_err(err.to_string()))?;
     match plan(&contract) {
-        dpcs::PlanResult::Ok(p) => report_dict(py, &*p),
-        dpcs::PlanResult::Err(report) => report_dict(py, report),
+        PlanResult::Ok(p) => report_dict(py, &*p),
+        PlanResult::Err(report) => report_dict(py, report),
     }
 }
 
@@ -75,12 +76,16 @@ fn evaluate_capabilities(
     let contract =
         parse_yaml(contract_yaml).map_err(|err| PyValueError::new_err(err.to_string()))?;
     let planned = match plan(&contract) {
-        dpcs::PlanResult::Ok(p) => *p,
-        dpcs::PlanResult::Err(report) => return report_dict(py, report),
+        PlanResult::Ok(p) => *p,
+        PlanResult::Err(report) => return report_dict(py, report),
     };
     match evaluate(&planned, &profile) {
-        dpcs::CapabilityResult::Ok(report) => report_dict(py, &*report),
-        dpcs::CapabilityResult::Err { report, .. } => report_dict(py, &*report),
+        CapabilityResult::Ok(report) => report_dict(py, &*report),
+        CapabilityResult::Err { report, diagnostics } => {
+            let mut payload = (*report).clone();
+            payload.diagnostics = diagnostics.diagnostics;
+            report_dict(py, payload)
+        }
     }
 }
 
@@ -90,8 +95,8 @@ fn compare_contract_yaml(py: Python<'_>, baseline: &str, candidate: &str) -> PyR
     let candidate =
         parse_yaml(candidate).map_err(|err| PyValueError::new_err(err.to_string()))?;
     match compare_contracts(&baseline, &candidate) {
-        dpcs::CompatibilityResult::Ok(report) => report_dict(py, &*report),
-        dpcs::CompatibilityResult::Err { report, .. } => report_dict(py, &*report),
+        CompatibilityResult::Ok(report) => report_dict(py, &*report),
+        CompatibilityResult::Err { report, .. } => report_dict(py, &*report),
     }
 }
 
@@ -106,7 +111,7 @@ fn validate_registry_yaml(py: Python<'_>, source: &str) -> PyResult<PyObject> {
 fn validate_conformance_profile_yaml(py: Python<'_>, source: &str) -> PyResult<PyObject> {
     let profile = ConformanceProfile::from_yaml_str(source)
         .map_err(|err| PyValueError::new_err(err.to_string()))?;
-    report_dict(py, dpcs::validate_conformance_profile(&profile))
+    report_dict(py, validate_conformance_profile(&profile))
 }
 
 #[pyfunction]
@@ -121,16 +126,16 @@ fn bind_yaml(
     let profile = CapabilityProfile::from_yaml_str(profile_yaml)
         .map_err(|err| PyValueError::new_err(err.to_string()))?;
     let planned = match plan(&contract) {
-        dpcs::PlanResult::Ok(p) => *p,
-        dpcs::PlanResult::Err(report) => return report_dict(py, report),
+        PlanResult::Ok(p) => *p,
+        PlanResult::Err(report) => return report_dict(py, report),
     };
-    let target = match dpcs::parse_target(target) {
+    let target = match parse_target(target) {
         Ok(t) => t,
         Err(report) => return report_dict(py, report),
     };
     match bind(&planned, &profile, target) {
-        dpcs::BindingResult::Ok(bundle) => report_dict(py, &*bundle),
-        dpcs::BindingResult::Err { diagnostics, .. } => report_dict(py, diagnostics),
+        BindingResult::Ok(bundle) => report_dict(py, &*bundle),
+        BindingResult::Err { diagnostics, .. } => report_dict(py, diagnostics),
     }
 }
 

@@ -6,7 +6,7 @@ Implementation-defined pipeline package layout for ROADMAP 0.10 (Appendix G).
 
 ```text
 name.dpcspkg/
-  manifest.yaml
+  manifest.yaml   # also accepts manifest.yml / manifest.json
   artifacts/
     contracts/...
     plans/...
@@ -14,7 +14,8 @@ name.dpcspkg/
     registry.yaml   # optional
 ```
 
-Directory packages may also be zipped (`.dpcspkg.zip`).
+Directory packages may also be zipped (`.dpcspkg.zip`). Prefer writing the zip
+**outside** the package directory (`dpcs package pack DIR --archive /tmp/out.zip`).
 
 ## Manifest
 
@@ -29,7 +30,11 @@ Directory packages may also be zipped (`.dpcspkg.zip`).
 | `description` | no | Description |
 | `artifacts[]` | no | Indexed artifacts with `id`, `type`, `version`, `path` |
 
-Artifact paths are relative to the package root and must not contain `..`.
+Artifact paths are relative to the package root and must not contain `..` or be
+absolute. Symlinked artifact files are rejected.
+
+Manifest filename precedence: `manifest.yaml`, then `manifest.yml`, then
+`manifest.json`.
 
 ## CLI
 
@@ -39,6 +44,8 @@ dpcs package show examples/packages/minimal.dpcspkg --json
 dpcs package pack examples/packages/minimal.dpcspkg --archive /tmp/minimal.dpcspkg.zip
 dpcs package unpack /tmp/minimal.dpcspkg.zip /tmp/out
 ```
+
+`pack` without `--archive` validates the package directory but does not write a zip.
 
 ## Library
 

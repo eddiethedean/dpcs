@@ -141,7 +141,5 @@ impl RegistryCache {
 }
 
 fn sanitize(key: &str) -> String {
-    key.chars()
-        .map(|c| if c.is_ascii_alphanumeric() { c } else { '_' })
-        .collect()
+    key.as_bytes().iter().map(|b| format!("{b:02x}")).collect()
 }

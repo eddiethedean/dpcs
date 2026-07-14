@@ -25,10 +25,18 @@ jobs:
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: cargo publish -p dpcs --locked
+      - name: Wait for crates.io index
+        run: sleep 45
       - name: Publish dpcs-cli
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: cargo publish -p dpcs-cli --locked
+        run: |
+          for i in 1 2 3 4 5; do
+            cargo publish -p dpcs-cli --locked && exit 0
+            echo "publish attempt $i failed; waiting..."
+            sleep 30
+          done
+          exit 1
 
   publish-pypi:
     name: Publish PyPI
@@ -90,20 +98,21 @@ jobs:
       - name: Build wasm
         working-directory: bindings/wasm
         run: |
-          wasm-pack build --target web --release --out-dir pkg
-          # Point wasmer package at generated wasm
+          VERSION="${GITHUB_REF_NAME#v}"
+          wasm-pack build --target web --release --out-dir pkg --out-name dpcs
           WASM=$(ls pkg/*_bg.wasm | head -1)
           cat > wasmer.toml << EOF
           [package]
           name = "dpcs"
-          version = "0.10.0"
-          description = "DPCS WebAssembly toolkit"
+          version = "${VERSION}"
+          description = "DPCS WebAssembly toolkit (wasm-bindgen; host JS required)"
           license = "Apache-2.0 OR MIT"
+          readme = "README.md"
 
           [[module]]
           name = "dpcs"
-          source = "$WASM"
-          abi = "wasm32-unknown-unknown"
+          source = "${WASM}"
+          abi = "none"
           EOF
       - name: Publish
         working-directory: bindings/wasm
@@ -111,5 +120,5 @@ jobs:
           WASMER_TOKEN: ${{ secrets.WASM_TOKEN }}
         run: |
           export PATH="$HOME/.wasmer/bin:$PATH"
-          wasmer login --token "$WASMER_TOKEN" || true
+          wasmer login --token "$WASMER_TOKEN"
           wasmer publish

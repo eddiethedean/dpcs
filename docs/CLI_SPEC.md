@@ -18,9 +18,12 @@ dpcs bind <contract> --profile <profile> --target <airflow|dagster|prefect|tempo
 dpcs compatibility <baseline> <candidate>
 dpcs registry validate <path>
 dpcs registry serve --root <dir> [--bind host:port] [--token <secret>]
-dpcs registry pull --url <base> [--token <secret>]
-dpcs registry lookup --url <base> <id> [--version <ver>]
-dpcs registry publish --url <base> <artifact> [--content <file>] [--token <secret>]
+dpcs registry pull --url <base> [--token <secret>] [--cache-dir <dir>]
+dpcs registry lookup --url <base> <id> [--version <ver>] [--token <secret>] [--cache-dir <dir>]
+dpcs registry publish --url <base> <artifact> [--content <file>] [--token <secret>] [--cache-dir <dir>]
+dpcs registry deprecate --url <base> <id> [--version <ver>] [--token <secret>] [--cache-dir <dir>]
+dpcs registry retire --url <base> <id> [--version <ver>] [--token <secret>] [--cache-dir <dir>]
+dpcs registry cache --dir <dir> [--clear]
 dpcs package validate|show|pack|unpack ...
 dpcs schema json|openapi ...
 dpcs conformance validate <path>
@@ -46,8 +49,8 @@ dpcs version --json
 Exit codes:
 
 - `0` valid / capability match ok / bind ok / compatible / registry or conformance ok
-- `1` validation, capability, binding, compatibility, registry, or conformance errors
-- `2` parse or IO failure
+- `1` validation, capability, binding, compatibility, registry, or conformance errors (including HTTP 4xx from the registry API)
+- `2` parse or IO failure (including registry transport errors and HTTP 5xx)
 
 Notes:
 
@@ -64,7 +67,9 @@ Notes:
 - `temporal` and `kubernetes` targets are experimental.
 - `compatibility` compares two Pipeline Contracts. Exit `0` when the category is compatible (fully / backward / forward / conditional), `1` when incompatible, `2` on parse/I/O. `--json` emits `CompatibilityReport`.
 - `registry validate` validates an in-process registry document (`DPCS-REG-*`).
-- `registry serve|pull|lookup|publish|…` use the reference HTTP API (ADR-0005).
+- `registry serve|pull|lookup|publish|deprecate|retire|cache` use the reference HTTP API (ADR-0005).
+  Client commands accept `--cache-dir` for a disk-backed `RegistryCache`. Deprecate/retire
+  accept optional `--version` (server uses latest listed row when omitted).
 - `package` operates on `.dpcspkg` layouts (`DPCS-PKG-*`).
 - `schema` emits JSON Schema / OpenAPI under `schemas/`.
 - `conformance validate` validates a conformance profile and checks claimed levels against this toolkit.

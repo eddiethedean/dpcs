@@ -16,11 +16,19 @@ exclude = [".github/"]
 
 [features]
 default = []
-cli = ["dep:clap"]
+cli = ["dep:clap", "jsonschema", "registry-client", "registry-server"]
 jsonschema = ["dep:schemars"]
 registry-client = ["dep:reqwest", "dep:url"]
 registry-server = ["dep:axum", "dep:tokio", "dep:tower-http", "dep:url"]
-full = ["cli", "jsonschema", "registry-client", "registry-server"]
+full = ["cli"]
+
+[[test]]
+name = "schema"
+required-features = ["jsonschema"]
+
+[[test]]
+name = "registry_net"
+required-features = ["registry-client", "registry-server"]
 
 [dependencies]
 serde = { workspace = true }

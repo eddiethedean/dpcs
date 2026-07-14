@@ -4,11 +4,12 @@ use std::time::Duration;
 
 use reqwest::blocking::Client;
 use reqwest::StatusCode;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use url::Url;
 
 use crate::diagnostics::{categories, Diagnostic, ValidationReport};
 use crate::model::{RegisteredArtifact, Registry};
+use crate::registry_net::types::PublishRequest;
 use crate::registry_net::RegistryCache;
 
 /// Client errors for registry network operations.
@@ -65,20 +66,16 @@ impl RegistryClientError {
         }
         report
     }
-}
 
-/// Publish / update request body.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct PublishRequest {
-    /// Artifact metadata (id in path must match `artifact.id` when present).
-    pub artifact: RegisteredArtifact,
-    /// Optional UTF-8 payload content.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub content: Option<String>,
-    /// Content encoding (`utf-8` default).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub content_encoding: Option<String>,
+    /// True when the failure is transport-level (network / DNS / timeout).
+    pub fn is_transport(&self) -> bool {
+        matches!(self, Self::Transport(_))
+    }
+
+    /// True when the HTTP status indicates a server / gateway failure.
+    pub fn is_server_error(&self) -> bool {
+        matches!(self, Self::Http { status, .. } if *status >= 500)
+    }
 }
 
 /// Blocking HTTP client for the reference registry API.
@@ -91,10 +88,17 @@ pub struct RegistryClient {
 }
 
 impl RegistryClient {
-    /// Create a client targeting `base_url` (for example `http://127.0.0.1:8080`).
+    /// Create a client targeting `base_url` (for example `http://127.0.0.1:8080/`).
+    ///
+    /// The base URL path is normalized to end with `/` so joins append under the
+    /// configured path prefix (for example `/proxy/` stays as a prefix).
     pub fn new(base_url: impl AsRef<str>) -> Result<Self, RegistryClientError> {
-        let base = Url::parse(base_url.as_ref())
+        let mut base = Url::parse(base_url.as_ref())
             .map_err(|err| RegistryClientError::Transport(format!("invalid base URL: {err}")))?;
+        if !base.path().ends_with('/') {
+            let path = format!("{}/", base.path().trim_end_matches('/'));
+            base.set_path(&path);
+        }
         let http = Client::builder()
             .timeout(Duration::from_secs(30))
             .build()
@@ -124,29 +128,63 @@ impl RegistryClient {
         &mut self.cache
     }
 
-    fn url(&self, path: &str) -> Result<Url, RegistryClientError> {
-        self.base
-            .join(path.trim_start_matches('/'))
-            .map_err(|err| RegistryClientError::Transport(err.to_string()))
+    /// Stable namespace for cache keys derived from the base URL.
+    fn cache_namespace(&self) -> String {
+        format!(
+            "{}{}",
+            self.base.host_str().unwrap_or("localhost"),
+            self.base.path()
+        )
     }
 
-    fn request(
+    fn absolute(
         &self,
-        method: reqwest::Method,
-        path: &str,
-    ) -> Result<reqwest::blocking::RequestBuilder, RegistryClientError> {
-        let url = self.url(path)?;
+        segments: &[&str],
+        query: &[(&str, &str)],
+    ) -> Result<Url, RegistryClientError> {
+        let mut url = self.base.clone();
+        {
+            let mut path = url
+                .path_segments_mut()
+                .map_err(|_| RegistryClientError::Transport("cannot-be-a-base URL".into()))?;
+            path.pop_if_empty();
+            for segment in segments {
+                path.push(segment);
+            }
+        }
+        if !query.is_empty() {
+            let mut pairs = url.query_pairs_mut();
+            for (key, value) in query {
+                pairs.append_pair(key, value);
+            }
+        }
+        Ok(url)
+    }
+
+    fn artifact_url(
+        &self,
+        id: &str,
+        extra_segments: &[&str],
+        query: &[(&str, &str)],
+    ) -> Result<Url, RegistryClientError> {
+        let mut segments = vec!["v1", "artifacts", id];
+        segments.extend_from_slice(extra_segments);
+        self.absolute(&segments, query)
+    }
+
+    fn request_url(&self, method: reqwest::Method, url: Url) -> reqwest::blocking::RequestBuilder {
         let mut req = self.http.request(method, url);
         if let Some(token) = &self.token {
             req = req.bearer_auth(token);
         }
-        Ok(req)
+        req
     }
 
     /// `GET /v1/registry`
     pub fn get_registry(&self) -> Result<Registry, RegistryClientError> {
+        let url = self.absolute(&["v1", "registry"], &[])?;
         let response = self
-            .request(reqwest::Method::GET, "/v1/registry")?
+            .request_url(reqwest::Method::GET, url)
             .send()
             .map_err(|err| RegistryClientError::Transport(err.to_string()))?;
         Self::json(response)
@@ -158,20 +196,16 @@ impl RegistryClient {
         artifact_type: Option<&str>,
         status: Option<&str>,
     ) -> Result<Vec<RegisteredArtifact>, RegistryClientError> {
-        let mut path = "/v1/artifacts".to_owned();
         let mut query = Vec::new();
         if let Some(t) = artifact_type {
-            query.push(format!("type={t}"));
+            query.push(("type", t));
         }
         if let Some(s) = status {
-            query.push(format!("status={s}"));
+            query.push(("status", s));
         }
-        if !query.is_empty() {
-            path.push('?');
-            path.push_str(&query.join("&"));
-        }
+        let url = self.absolute(&["v1", "artifacts"], &query)?;
         let response = self
-            .request(reqwest::Method::GET, &path)?
+            .request_url(reqwest::Method::GET, url)
             .send()
             .map_err(|err| RegistryClientError::Transport(err.to_string()))?;
         Self::json(response)
@@ -183,21 +217,24 @@ impl RegistryClient {
         id: &str,
         version: Option<&str>,
     ) -> Result<RegisteredArtifact, RegistryClientError> {
-        let mut path = format!("/v1/artifacts/{id}");
-        if let Some(v) = version {
-            path.push_str(&format!("?version={v}"));
+        let ns = self.cache_namespace();
+        if let Some(version) = version {
+            if let Some((artifact, _, _)) = self.cache.get(&ns, id, version) {
+                return Ok(artifact);
+            }
         }
+
+        let mut query = Vec::new();
+        if let Some(v) = version {
+            query.push(("version", v));
+        }
+        let url = self.artifact_url(id, &[], &query)?;
         let response = self
-            .request(reqwest::Method::GET, &path)?
+            .request_url(reqwest::Method::GET, url)
             .send()
             .map_err(|err| RegistryClientError::Transport(err.to_string()))?;
         let artifact: RegisteredArtifact = Self::json(response)?;
-        let registry = self.get_registry().ok();
-        let registry_id = registry
-            .as_ref()
-            .map(|r| r.id.as_str())
-            .unwrap_or("unknown");
-        let _ = self.cache.put(registry_id, artifact.clone(), None, None);
+        let _ = self.cache.put(&ns, artifact.clone(), None, None);
         Ok(artifact)
     }
 
@@ -207,12 +244,20 @@ impl RegistryClient {
         id: &str,
         version: Option<&str>,
     ) -> Result<String, RegistryClientError> {
-        let mut path = format!("/v1/artifacts/{id}/content");
-        if let Some(v) = version {
-            path.push_str(&format!("?version={v}"));
+        let ns = self.cache_namespace();
+        if let Some(version) = version {
+            if let Some((_, Some(content), _)) = self.cache.get(&ns, id, version) {
+                return Ok(content);
+            }
         }
+
+        let mut query = Vec::new();
+        if let Some(v) = version {
+            query.push(("version", v));
+        }
+        let url = self.artifact_url(id, &["content"], &query)?;
         let response = self
-            .request(reqwest::Method::GET, &path)?
+            .request_url(reqwest::Method::GET, url)
             .send()
             .map_err(|err| RegistryClientError::Transport(err.to_string()))?;
         let status = response.status();
@@ -226,6 +271,11 @@ impl RegistryClient {
                 report: None,
             });
         }
+        if let Some(version) = version {
+            if let Some((artifact, _, etag)) = self.cache.get(&ns, id, version) {
+                let _ = self.cache.put(&ns, artifact, Some(body.clone()), etag);
+            }
+        }
         Ok(body)
     }
 
@@ -235,8 +285,9 @@ impl RegistryClient {
         id: &str,
         request: &PublishRequest,
     ) -> Result<RegisteredArtifact, RegistryClientError> {
+        let url = self.artifact_url(id, &[], &[])?;
         let response = self
-            .request(reqwest::Method::PUT, &format!("/v1/artifacts/{id}"))?
+            .request_url(reqwest::Method::PUT, url)
             .json(request)
             .send()
             .map_err(|err| RegistryClientError::Transport(err.to_string()))?;
@@ -244,21 +295,36 @@ impl RegistryClient {
     }
 
     /// `POST /v1/artifacts/{id}/deprecate`
-    pub fn deprecate(&self, id: &str) -> Result<RegisteredArtifact, RegistryClientError> {
+    pub fn deprecate(
+        &self,
+        id: &str,
+        version: Option<&str>,
+    ) -> Result<RegisteredArtifact, RegistryClientError> {
+        let mut query = Vec::new();
+        if let Some(v) = version {
+            query.push(("version", v));
+        }
+        let url = self.artifact_url(id, &["deprecate"], &query)?;
         let response = self
-            .request(
-                reqwest::Method::POST,
-                &format!("/v1/artifacts/{id}/deprecate"),
-            )?
+            .request_url(reqwest::Method::POST, url)
             .send()
             .map_err(|err| RegistryClientError::Transport(err.to_string()))?;
         Self::json(response)
     }
 
     /// `POST /v1/artifacts/{id}/retire`
-    pub fn retire(&self, id: &str) -> Result<RegisteredArtifact, RegistryClientError> {
+    pub fn retire(
+        &self,
+        id: &str,
+        version: Option<&str>,
+    ) -> Result<RegisteredArtifact, RegistryClientError> {
+        let mut query = Vec::new();
+        if let Some(v) = version {
+            query.push(("version", v));
+        }
+        let url = self.artifact_url(id, &["retire"], &query)?;
         let response = self
-            .request(reqwest::Method::POST, &format!("/v1/artifacts/{id}/retire"))?
+            .request_url(reqwest::Method::POST, url)
             .send()
             .map_err(|err| RegistryClientError::Transport(err.to_string()))?;
         Self::json(response)

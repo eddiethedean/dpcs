@@ -94,6 +94,80 @@ fn insert(map: &mut BTreeMap<String, Value>, name: &str, schema: RootSchema) -> 
     Ok(())
 }
 
+fn rewrite_json_schema_refs(value: Value) -> Value {
+    match value {
+        Value::Object(mut map) => {
+            if let Some(Value::String(reference)) = map.get_mut("$ref") {
+                if let Some(name) = reference.strip_prefix("#/definitions/") {
+                    *reference = format!("#/components/schemas/{name}");
+                }
+            }
+            for value in map.values_mut() {
+                *value = rewrite_json_schema_refs(std::mem::take(value));
+            }
+            Value::Object(map)
+        }
+        Value::Array(items) => {
+            Value::Array(items.into_iter().map(rewrite_json_schema_refs).collect())
+        }
+        other => other,
+    }
+}
+
+fn root_schema_as_oas_component(
+    name: &str,
+    root: RootSchema,
+) -> Result<serde_json::Map<String, Value>> {
+    let mut components = serde_json::Map::new();
+    let mut value = schema_to_value(&root)?;
+    if let Some(Value::Object(defs)) = value.get("definitions").cloned() {
+        for (def_name, def_schema) in defs {
+            components.insert(def_name, rewrite_json_schema_refs(def_schema));
+        }
+    }
+    if let Some(obj) = value.as_object_mut() {
+        obj.remove("$schema");
+        obj.remove("definitions");
+        obj.remove("title");
+    }
+    components.insert(name.to_owned(), rewrite_json_schema_refs(value));
+    Ok(components)
+}
+
+fn document_oas_components() -> Result<serde_json::Map<String, Value>> {
+    let mut components = serde_json::Map::new();
+    let roots: [(&str, RootSchema); 13] = [
+        ("PipelineContract", json_schema_for::<PipelineContract>()),
+        ("PipelinePlan", json_schema_for::<PipelinePlan>()),
+        ("CapabilityProfile", json_schema_for::<CapabilityProfile>()),
+        ("CapabilityReport", json_schema_for::<CapabilityReport>()),
+        ("Registry", json_schema_for::<Registry>()),
+        (
+            "RegisteredArtifact",
+            json_schema_for::<RegisteredArtifact>(),
+        ),
+        (
+            "ConformanceProfile",
+            json_schema_for::<ConformanceProfile>(),
+        ),
+        ("ConformanceClaim", json_schema_for::<ConformanceClaim>()),
+        ("ValidationReport", json_schema_for::<ValidationReport>()),
+        ("Diagnostic", json_schema_for::<Diagnostic>()),
+        (
+            "CompatibilityReport",
+            json_schema_for::<CompatibilityReport>(),
+        ),
+        ("BindingBundle", json_schema_for::<BindingBundle>()),
+        ("PackageManifest", json_schema_for::<PackageManifest>()),
+    ];
+    for (name, root) in roots {
+        for (key, schema) in root_schema_as_oas_component(name, root)? {
+            components.insert(key, schema);
+        }
+    }
+    Ok(components)
+}
+
 /// Write document JSON Schemas into `out_dir` as `<Name>.schema.json`.
 pub fn write_document_schemas(out_dir: impl AsRef<Path>) -> Result<Vec<String>> {
     let out_dir = out_dir.as_ref();
@@ -133,11 +207,7 @@ pub fn openapi_document(kind: OpenApiKind) -> Result<Value> {
 }
 
 fn openapi_documents() -> Result<Value> {
-    let schemas = document_schemas()?;
-    let mut components = serde_json::Map::new();
-    for (name, schema) in schemas {
-        components.insert(name, schema);
-    }
+    let components = document_oas_components()?;
     Ok(json!({
         "openapi": "3.0.3",
         "info": {
@@ -177,15 +247,37 @@ fn openapi_documents() -> Result<Value> {
 }
 
 fn openapi_registry() -> Result<Value> {
-    let registry = schema_to_value(&json_schema_for::<Registry>())?;
-    let artifact = schema_to_value(&json_schema_for::<RegisteredArtifact>())?;
-    let diagnostic = schema_to_value(&json_schema_for::<Diagnostic>())?;
-    let report = schema_to_value(&json_schema_for::<ValidationReport>())?;
+    let mut components = serde_json::Map::new();
+    for (name, root) in [
+        ("Registry", json_schema_for::<Registry>()),
+        (
+            "RegisteredArtifact",
+            json_schema_for::<RegisteredArtifact>(),
+        ),
+        ("Diagnostic", json_schema_for::<Diagnostic>()),
+        ("ValidationReport", json_schema_for::<ValidationReport>()),
+    ] {
+        for (key, schema) in root_schema_as_oas_component(name, root)? {
+            components.insert(key, schema);
+        }
+    }
+    components.insert(
+        "PublishRequest".to_owned(),
+        json!({
+            "type": "object",
+            "required": ["artifact"],
+            "properties": {
+                "artifact": { "$ref": "#/components/schemas/RegisteredArtifact" },
+                "content": { "type": "string", "description": "Optional UTF-8 artifact payload" },
+                "contentEncoding": { "type": "string", "enum": ["utf-8"] }
+            }
+        }),
+    );
     Ok(json!({
         "openapi": "3.0.3",
         "info": {
             "title": "DPCS Reference Registry API",
-            "version": "1.0.0",
+            "version": VERSION,
             "description": "Implementation-defined reference registry HTTP API for DPCS 0.10 (see docs/REGISTRY_API.md)."
         },
         "paths": {
@@ -253,6 +345,7 @@ fn openapi_registry() -> Result<Value> {
                 },
                 "put": {
                     "summary": "Publish or update artifact",
+                    "security": [{ "bearerAuth": [] }],
                     "parameters": [
                         { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
                     ],
@@ -280,7 +373,8 @@ fn openapi_registry() -> Result<Value> {
                                     "schema": { "$ref": "#/components/schemas/ValidationReport" }
                                 }
                             }
-                        }
+                        },
+                        "401": { "description": "Unauthorized" }
                     }
                 }
             },
@@ -300,8 +394,10 @@ fn openapi_registry() -> Result<Value> {
             "/v1/artifacts/{id}/deprecate": {
                 "post": {
                     "summary": "Deprecate artifact",
+                    "security": [{ "bearerAuth": [] }],
                     "parameters": [
-                        { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+                        { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+                        { "name": "version", "in": "query", "schema": { "type": "string" } }
                     ],
                     "responses": {
                         "200": {
@@ -311,15 +407,18 @@ fn openapi_registry() -> Result<Value> {
                                     "schema": { "$ref": "#/components/schemas/RegisteredArtifact" }
                                 }
                             }
-                        }
+                        },
+                        "401": { "description": "Unauthorized" }
                     }
                 }
             },
             "/v1/artifacts/{id}/retire": {
                 "post": {
                     "summary": "Retire artifact",
+                    "security": [{ "bearerAuth": [] }],
                     "parameters": [
-                        { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+                        { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+                        { "name": "version", "in": "query", "schema": { "type": "string" } }
                     ],
                     "responses": {
                         "200": {
@@ -329,27 +428,14 @@ fn openapi_registry() -> Result<Value> {
                                     "schema": { "$ref": "#/components/schemas/RegisteredArtifact" }
                                 }
                             }
-                        }
+                        },
+                        "401": { "description": "Unauthorized" }
                     }
                 }
             }
         },
         "components": {
-            "schemas": {
-                "Registry": registry,
-                "RegisteredArtifact": artifact,
-                "Diagnostic": diagnostic,
-                "ValidationReport": report,
-                "PublishRequest": {
-                    "type": "object",
-                    "required": ["artifact"],
-                    "properties": {
-                        "artifact": { "$ref": "#/components/schemas/RegisteredArtifact" },
-                        "content": { "type": "string", "description": "Optional artifact payload" },
-                        "contentEncoding": { "type": "string", "enum": ["utf-8", "base64"] }
-                    }
-                }
-            },
+            "schemas": components,
             "securitySchemes": {
                 "bearerAuth": {
                     "type": "http",

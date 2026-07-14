@@ -16,7 +16,7 @@ use crate::{
     validate_package, validate_registry, write_bundle, write_document_schemas,
     write_openapi_documents, BindingResult, CapabilityProfile, CapabilityResult,
     ConformanceProfile, OpenApiKind, PackageLayout, PublishRequest, Registry, RegistryCache,
-    RegistryClient, ServeOptions, VERSION,
+    RegistryClient, RegistryClientError, ServeOptions, VERSION,
 };
 
 /// Exit code for successful validation.
@@ -177,6 +177,9 @@ enum RegistryCommands {
         /// Optional bearer token.
         #[arg(long)]
         token: Option<String>,
+        /// Optional on-disk client cache directory.
+        #[arg(long)]
+        cache_dir: Option<PathBuf>,
         /// Emit JSON.
         #[arg(long)]
         json: bool,
@@ -194,6 +197,9 @@ enum RegistryCommands {
         /// Optional bearer token.
         #[arg(long)]
         token: Option<String>,
+        /// Optional on-disk client cache directory.
+        #[arg(long)]
+        cache_dir: Option<PathBuf>,
         /// Emit JSON.
         #[arg(long)]
         json: bool,
@@ -211,6 +217,9 @@ enum RegistryCommands {
         /// Optional bearer token.
         #[arg(long)]
         token: Option<String>,
+        /// Optional on-disk client cache directory.
+        #[arg(long)]
+        cache_dir: Option<PathBuf>,
         /// Emit JSON.
         #[arg(long)]
         json: bool,
@@ -222,9 +231,15 @@ enum RegistryCommands {
         url: String,
         /// Artifact id.
         id: String,
+        /// Optional artifact version (defaults to latest listed).
+        #[arg(long)]
+        version: Option<String>,
         /// Optional bearer token.
         #[arg(long)]
         token: Option<String>,
+        /// Optional on-disk client cache directory.
+        #[arg(long)]
+        cache_dir: Option<PathBuf>,
         /// Emit JSON.
         #[arg(long)]
         json: bool,
@@ -236,9 +251,15 @@ enum RegistryCommands {
         url: String,
         /// Artifact id.
         id: String,
+        /// Optional artifact version (defaults to latest listed).
+        #[arg(long)]
+        version: Option<String>,
         /// Optional bearer token.
         #[arg(long)]
         token: Option<String>,
+        /// Optional on-disk client cache directory.
+        #[arg(long)]
+        cache_dir: Option<PathBuf>,
         /// Emit JSON.
         #[arg(long)]
         json: bool,
@@ -822,13 +843,15 @@ fn execute(cli: Cli) -> Result<u8, Error> {
             Ok(EXIT_OK)
         }
         Commands::Registry {
-            command: RegistryCommands::Pull { url, token, json },
+            command:
+                RegistryCommands::Pull {
+                    url,
+                    token,
+                    cache_dir,
+                    json,
+                },
         } => {
-            let mut client =
-                RegistryClient::new(&url).map_err(|err| Error::Serialization(err.to_string()))?;
-            if let Some(token) = token {
-                client = client.with_token(token);
-            }
+            let client = build_registry_client(&url, token, cache_dir)?;
             match client.get_registry() {
                 Ok(registry) => {
                     if json {
@@ -844,9 +867,10 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                     Ok(EXIT_OK)
                 }
                 Err(err) => {
+                    let code = exit_code_for_registry_error(&err);
                     let report = err.into_diagnostics();
                     print_report(&report, json)?;
-                    Ok(EXIT_VALIDATION)
+                    Ok(code)
                 }
             }
         }
@@ -857,14 +881,11 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                     id,
                     version,
                     token,
+                    cache_dir,
                     json,
                 },
         } => {
-            let mut client =
-                RegistryClient::new(&url).map_err(|err| Error::Serialization(err.to_string()))?;
-            if let Some(token) = token {
-                client = client.with_token(token);
-            }
+            let mut client = build_registry_client(&url, token, cache_dir)?;
             match client.lookup(&id, version.as_deref()) {
                 Ok(artifact) => {
                     if json {
@@ -880,9 +901,10 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                     Ok(EXIT_OK)
                 }
                 Err(err) => {
+                    let code = exit_code_for_registry_error(&err);
                     let report = err.into_diagnostics();
                     print_report(&report, json)?;
-                    Ok(EXIT_VALIDATION)
+                    Ok(code)
                 }
             }
         }
@@ -893,6 +915,7 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                     path,
                     content,
                     token,
+                    cache_dir,
                     json,
                 },
         } => {
@@ -929,11 +952,7 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                 content,
                 content_encoding: Some("utf-8".into()),
             };
-            let mut client =
-                RegistryClient::new(&url).map_err(|err| Error::Serialization(err.to_string()))?;
-            if let Some(token) = token {
-                client = client.with_token(token);
-            }
+            let client = build_registry_client(&url, token, cache_dir)?;
             match client.publish(&id, &request) {
                 Ok(artifact) => {
                     if json {
@@ -947,9 +966,10 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                     Ok(EXIT_OK)
                 }
                 Err(err) => {
+                    let code = exit_code_for_registry_error(&err);
                     let report = err.into_diagnostics();
                     print_report(&report, json)?;
-                    Ok(EXIT_VALIDATION)
+                    Ok(code)
                 }
             }
         }
@@ -958,16 +978,14 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                 RegistryCommands::Deprecate {
                     url,
                     id,
+                    version,
                     token,
+                    cache_dir,
                     json,
                 },
         } => {
-            let mut client =
-                RegistryClient::new(&url).map_err(|err| Error::Serialization(err.to_string()))?;
-            if let Some(token) = token {
-                client = client.with_token(token);
-            }
-            match client.deprecate(&id) {
+            let client = build_registry_client(&url, token, cache_dir)?;
+            match client.deprecate(&id, version.as_deref()) {
                 Ok(artifact) => {
                     if json {
                         let payload = serde_json::to_string_pretty(&artifact).map_err(|err| {
@@ -975,14 +993,15 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                         })?;
                         println!("{payload}");
                     } else {
-                        println!("deprecated: {}", artifact.id);
+                        println!("deprecated: {}@{}", artifact.id, artifact.version);
                     }
                     Ok(EXIT_OK)
                 }
                 Err(err) => {
+                    let code = exit_code_for_registry_error(&err);
                     let report = err.into_diagnostics();
                     print_report(&report, json)?;
-                    Ok(EXIT_VALIDATION)
+                    Ok(code)
                 }
             }
         }
@@ -991,16 +1010,14 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                 RegistryCommands::Retire {
                     url,
                     id,
+                    version,
                     token,
+                    cache_dir,
                     json,
                 },
         } => {
-            let mut client =
-                RegistryClient::new(&url).map_err(|err| Error::Serialization(err.to_string()))?;
-            if let Some(token) = token {
-                client = client.with_token(token);
-            }
-            match client.retire(&id) {
+            let client = build_registry_client(&url, token, cache_dir)?;
+            match client.retire(&id, version.as_deref()) {
                 Ok(artifact) => {
                     if json {
                         let payload = serde_json::to_string_pretty(&artifact).map_err(|err| {
@@ -1008,14 +1025,15 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                         })?;
                         println!("{payload}");
                     } else {
-                        println!("retired: {}", artifact.id);
+                        println!("retired: {}@{}", artifact.id, artifact.version);
                     }
                     Ok(EXIT_OK)
                 }
                 Err(err) => {
+                    let code = exit_code_for_registry_error(&err);
                     let report = err.into_diagnostics();
                     print_report(&report, json)?;
-                    Ok(EXIT_VALIDATION)
+                    Ok(code)
                 }
             }
         }
@@ -1201,6 +1219,30 @@ fn print_diagnostic_report(report: &DiagnosticReport) -> Result<(), Error> {
     })?;
     println!("{payload}");
     Ok(())
+}
+
+fn build_registry_client(
+    url: &str,
+    token: Option<String>,
+    cache_dir: Option<PathBuf>,
+) -> Result<RegistryClient, Error> {
+    let mut client =
+        RegistryClient::new(url).map_err(|err| Error::Serialization(err.to_string()))?;
+    if let Some(token) = token {
+        client = client.with_token(token);
+    }
+    if let Some(dir) = cache_dir {
+        client = client.with_cache(RegistryCache::disk(dir)?);
+    }
+    Ok(client)
+}
+
+fn exit_code_for_registry_error(err: &RegistryClientError) -> u8 {
+    if err.is_transport() || err.is_server_error() {
+        EXIT_FAILURE
+    } else {
+        EXIT_VALIDATION
+    }
 }
 
 fn exit_code_for_report(report: &ValidationReport, strict: bool) -> u8 {

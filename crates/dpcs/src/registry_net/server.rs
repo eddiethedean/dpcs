@@ -13,7 +13,8 @@ use serde::{Deserialize, Serialize};
 use tokio::net::TcpListener;
 
 use crate::model::{validate_registry, RegisteredArtifact, Registry};
-use crate::registry_net::client::PublishRequest;
+use crate::paths::{is_safe_path_segment, is_safe_relative, join_under_root};
+use crate::registry_net::types::PublishRequest;
 
 /// Options for `dpcs registry serve`.
 #[derive(Debug, Clone)]
@@ -133,9 +134,14 @@ fn read_registry(root: &Path) -> Result<Registry, String> {
 }
 
 fn write_registry(root: &Path, registry: &Registry) -> Result<(), String> {
-    let path = root.join("registry.yaml");
-    let yaml = serde_yaml::to_string(registry).map_err(|err| err.to_string())?;
-    std::fs::write(path, yaml).map_err(|err| err.to_string())
+    let path = registry_path(root);
+    if path.extension().and_then(|e| e.to_str()) == Some("json") {
+        let json = serde_json::to_string_pretty(registry).map_err(|err| err.to_string())?;
+        std::fs::write(path, json).map_err(|err| err.to_string())
+    } else {
+        let yaml = serde_yaml::to_string(registry).map_err(|err| err.to_string())?;
+        std::fs::write(path, yaml).map_err(|err| err.to_string())
+    }
 }
 
 fn authorize(headers: &HeaderMap, token: &Option<String>) -> Result<(), ApiError> {
@@ -146,12 +152,23 @@ fn authorize(headers: &HeaderMap, token: &Option<String>) -> Result<(), ApiError
         .get(axum::http::header::AUTHORIZATION)
         .and_then(|v| v.to_str().ok())
         .unwrap_or("");
-    let got = auth.strip_prefix("Bearer ").unwrap_or("").trim();
+    let got = auth
+        .strip_prefix("Bearer ")
+        .or_else(|| auth.strip_prefix("bearer "))
+        .unwrap_or("")
+        .trim();
     if got == expected {
         Ok(())
     } else {
         Err(ApiError::unauthorized())
     }
+}
+
+fn contained_file(root: &Path, relative: &str) -> Result<PathBuf, ApiError> {
+    if !is_safe_relative(relative) {
+        return Err(ApiError::bad_message("unsafe artifact location"));
+    }
+    join_under_root(root, relative).map_err(|err| ApiError::bad_message(err.to_string()))
 }
 
 async fn get_registry(State(state): State<AppState>) -> Result<Json<Registry>, ApiError> {
@@ -184,7 +201,11 @@ async fn list_artifacts(
                 && query
                     .status
                     .as_ref()
-                    .map(|s| a.publication_status.as_ref() == Some(s))
+                    .map(|s| {
+                        a.publication_status
+                            .as_ref()
+                            .is_some_and(|status| status.eq_ignore_ascii_case(s))
+                    })
                     .unwrap_or(true)
         })
         .collect();
@@ -218,7 +239,7 @@ async fn fetch_content(
     let artifact =
         find_artifact(&registry, &id, query.version.as_deref()).ok_or_else(ApiError::not_found)?;
     let location = artifact.location.as_ref().ok_or_else(ApiError::not_found)?;
-    let path = state.root.join(location);
+    let path = contained_file(&state.root, location)?;
     let body = std::fs::read_to_string(&path).map_err(|_| ApiError::not_found())?;
     Ok((StatusCode::OK, body))
 }
@@ -231,18 +252,37 @@ async fn publish_artifact(
 ) -> Result<Json<RegisteredArtifact>, ApiError> {
     authorize(&headers, &state.token)?;
     let _guard = state.lock.lock().map_err(|_| ApiError::internal("lock"))?;
+    if !is_safe_path_segment(&id) {
+        return Err(ApiError::bad_message(
+            "artifact id must be a safe path segment [A-Za-z0-9._+-]",
+        ));
+    }
     let mut artifact = request.artifact;
     if artifact.id != id {
-        artifact.id = id.clone();
+        return Err(ApiError::bad_message(
+            "path id must match artifact.id in the request body",
+        ));
     }
-    if let Some(content) = request.content {
-        let rel = format!("artifacts/{id}-{}.yaml", artifact.version);
-        let path = state.root.join(&rel);
-        if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent).map_err(|err| ApiError::internal(err.to_string()))?;
-        }
-        std::fs::write(&path, content).map_err(|err| ApiError::internal(err.to_string()))?;
-        artifact.location = Some(rel);
+    if !is_safe_path_segment(&artifact.version) {
+        return Err(ApiError::bad_message(
+            "artifact version must be a safe path segment",
+        ));
+    }
+    if let Some(location) = &artifact.location {
+        let _ = contained_file(&state.root, location)?;
+    }
+    if request
+        .content_encoding
+        .as_deref()
+        .is_some_and(|enc| !enc.eq_ignore_ascii_case("utf-8"))
+    {
+        return Err(ApiError::bad_message(
+            "only contentEncoding=utf-8 is supported",
+        ));
+    }
+    let pending_content = request.content;
+    if pending_content.is_some() {
+        artifact.location = Some(format!("artifacts/{id}-{}.yaml", artifact.version));
     }
     let mut registry = read_registry(&state.root)?;
     if let Some(existing) = registry
@@ -258,6 +298,17 @@ async fn publish_artifact(
     if !report.is_valid() {
         return Err(ApiError::bad_request(report));
     }
+    if let Some(content) = pending_content {
+        let rel = artifact
+            .location
+            .as_deref()
+            .ok_or_else(|| ApiError::internal("missing location"))?;
+        let path = contained_file(&state.root, rel)?;
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent).map_err(|err| ApiError::internal(err.to_string()))?;
+        }
+        std::fs::write(&path, content).map_err(|err| ApiError::internal(err.to_string()))?;
+    }
     write_registry(&state.root, &registry)?;
     Ok(Json(artifact))
 }
@@ -266,22 +317,25 @@ async fn deprecate_artifact(
     State(state): State<AppState>,
     headers: HeaderMap,
     AxumPath(id): AxumPath<String>,
+    Query(query): Query<VersionQuery>,
 ) -> Result<Json<RegisteredArtifact>, ApiError> {
-    set_status(state, headers, id, "deprecated").await
+    set_status(state, headers, id, query.version, "deprecated").await
 }
 
 async fn retire_artifact(
     State(state): State<AppState>,
     headers: HeaderMap,
     AxumPath(id): AxumPath<String>,
+    Query(query): Query<VersionQuery>,
 ) -> Result<Json<RegisteredArtifact>, ApiError> {
-    set_status(state, headers, id, "retired").await
+    set_status(state, headers, id, query.version, "retired").await
 }
 
 async fn set_status(
     state: AppState,
     headers: HeaderMap,
     id: String,
+    version: Option<String>,
     status: &str,
 ) -> Result<Json<RegisteredArtifact>, ApiError> {
     authorize(&headers, &state.token)?;
@@ -291,7 +345,7 @@ async fn set_status(
         .artifacts
         .iter_mut()
         .rev()
-        .find(|a| a.id == id)
+        .find(|a| a.id == id && version.as_deref().map(|v| a.version == v).unwrap_or(true))
         .ok_or_else(ApiError::not_found)?;
     artifact.publication_status = Some(status.to_owned());
     let out = artifact.clone();
@@ -350,6 +404,14 @@ impl ApiError {
         Self {
             status: StatusCode::BAD_REQUEST,
             body: ApiBody::Report(report),
+        }
+    }
+    fn bad_message(message: impl Into<String>) -> Self {
+        Self {
+            status: StatusCode::BAD_REQUEST,
+            body: ApiBody::Message {
+                error: message.into(),
+            },
         }
     }
     fn internal(message: impl Into<String>) -> Self {

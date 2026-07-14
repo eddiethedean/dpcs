@@ -1,12 +1,17 @@
-[package]
-name = "dpcs"
-version = "0.10.0"
-description = "WebAssembly bindings for the Data Pipeline Contract Standard (DPCS)"
-license = "Apache-2.0 OR MIT"
-repository = "https://github.com/eddiethedean/dpcs"
-readme = "README.md"
-authors = ["DPCS Contributors"]
+# dpcs (WebAssembly)
 
-[dependencies]
-# Produced by wasm-pack; this file is a template for the published npm package metadata.
-# Actual package.json is generated under pkg/ by wasm-pack.
+JavaScript/TypeScript bindings for the DPCS Rust toolkit via `wasm-bindgen`.
+
+```bash
+npm install dpcs
+# from this repo after wasm-pack build:
+# npm install ./bindings/wasm/pkg
+```
+
+```js
+const dpcs = require("dpcs");
+const report = dpcs.validate_yaml(yamlSource);
+console.log(report.diagnostics);
+```
+
+Build: `wasm-pack build --target bundler --out-dir pkg --out-name dpcs`

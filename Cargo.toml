@@ -5,6 +5,9 @@ members = [
     "crates/dpcs-cli",
     "bindings/wasm",
 ]
+exclude = [
+    "bindings/python",
+]
 default-members = [
     "crates/dpcs",
     "crates/dpcs-cli",

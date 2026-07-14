@@ -1,11 +1,12 @@
 //! Package validation.
 
 use std::collections::BTreeSet;
-use std::path::{Component, Path};
+use std::path::Path;
 
 use crate::diagnostics::{categories, Diagnostic, ValidationReport};
 use crate::model::is_valid_version;
 use crate::package::{PackageLayout, PackageManifest};
+use crate::paths::{is_safe_relative, join_under_root};
 
 /// Validate a package directory.
 pub fn validate_package(root: impl AsRef<Path>) -> ValidationReport {
@@ -73,16 +74,42 @@ pub fn validate_package(root: impl AsRef<Path>) -> ValidationReport {
             );
             continue;
         }
-        let path = layout.root.join(&entry.path);
-        if !path.is_file() {
-            report.push(
-                Diagnostic::error(
-                    "DPCS-PKG-006",
-                    categories::PACKAGE,
-                    format!("artifact file missing: {}", entry.path),
-                )
-                .with_object_ref(format!("artifacts[{idx}].path")),
-            );
+        let path = match join_under_root(&layout.root, &entry.path) {
+            Ok(path) => path,
+            Err(err) => {
+                report.push(
+                    Diagnostic::error(
+                        "DPCS-PKG-005",
+                        categories::PACKAGE,
+                        format!("artifact path escapes package root `{}`: {err}", entry.path),
+                    )
+                    .with_object_ref(format!("artifacts[{idx}].path")),
+                );
+                continue;
+            }
+        };
+        match std::fs::symlink_metadata(&path) {
+            Ok(meta) if meta.file_type().is_symlink() => {
+                report.push(
+                    Diagnostic::error(
+                        "DPCS-PKG-010",
+                        categories::PACKAGE,
+                        format!("artifact path must not be a symlink: {}", entry.path),
+                    )
+                    .with_object_ref(format!("artifacts[{idx}].path")),
+                );
+            }
+            Ok(meta) if meta.is_file() => {}
+            Ok(_) | Err(_) => {
+                report.push(
+                    Diagnostic::error(
+                        "DPCS-PKG-006",
+                        categories::PACKAGE,
+                        format!("artifact file missing: {}", entry.path),
+                    )
+                    .with_object_ref(format!("artifacts[{idx}].path")),
+                );
+            }
         }
     }
     report
@@ -119,12 +146,4 @@ fn validate_manifest(manifest: &PackageManifest, report: &mut ValidationReport) 
             .with_object_ref("dpcsVersion"),
         );
     }
-}
-
-fn is_safe_relative(path: &str) -> bool {
-    let p = Path::new(path);
-    if p.is_absolute() {
-        return false;
-    }
-    !p.components().any(|c| matches!(c, Component::ParentDir))
 }

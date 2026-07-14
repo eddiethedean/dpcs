@@ -255,7 +255,9 @@ write_document_schemas("schemas")?;
 ```
 
 Optional features: `cli`, `jsonschema`, `registry-client`, `registry-server`, and `full`.
-Enable `jsonschema` for `openapi_document` / `write_openapi_documents`, and
-`registry-client` / `registry-server` for `RegistryClient` and `serve`.
+Enable `jsonschema` for `openapi_document` / `write_openapi_documents`.
+Enable `registry-client` for `RegistryClient` / `RegistryCache`, and
+`registry-server` for `serve` / `serve_listener`. Both registry features share
+`PublishRequest` (server no longer depends on the client feature).
 
 [`Error::InvalidDocument`]: ../crates/dpcs/src/error.rs

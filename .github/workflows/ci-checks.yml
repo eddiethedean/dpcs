@@ -62,13 +62,42 @@ jobs:
           targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
       - name: Check wasm crate
-        run: cargo check -p dpcs-wasm
+        run: cargo check -p dpcs-wasm --target wasm32-unknown-unknown
       - name: Install wasm-pack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
       - name: Build wasm package
         working-directory: bindings/wasm
-        run: wasm-pack build --target nodejs --dev --out-dir pkg
+        run: wasm-pack build --target nodejs --dev --out-dir pkg --out-name dpcs
       - name: Node smoke
         working-directory: bindings/wasm
         run: |
-          node -e "const d=require('./pkg'); console.log(d.version()); const fs=require('fs'); const y=fs.readFileSync('../../examples/minimal.dpcs.yaml','utf8'); const r=d.validate_yaml(y); if(!r.diagnostics) throw new Error('no diagnostics');"
+          node <<'EOF'
+          const d = require('./pkg');
+          const fs = require('fs');
+          if (typeof d.version() !== 'string') throw new Error('bad version');
+          const y = fs.readFileSync('../../examples/minimal.dpcs.yaml', 'utf8');
+          const r = d.validate_yaml(y);
+          if (!Array.isArray(r.diagnostics)) throw new Error('diagnostics missing');
+          const profile = fs.readFileSync('../../examples/orchestrator.capabilities.yaml', 'utf8');
+          const contract = fs.readFileSync('../../examples/with_execution.dpcs.yaml', 'utf8');
+          const cap = d.evaluate_capabilities(profile, contract);
+          if (!cap || typeof cap !== 'object') throw new Error('evaluate failed');
+          console.log('wasm smoke ok', d.version());
+          EOF
+
+  python:
+    name: Python
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install maturin and pytest
+        run: pip install maturin pytest
+      - name: Develop and test
+        working-directory: bindings/python
+        run: |
+          maturin develop
+          pytest -q

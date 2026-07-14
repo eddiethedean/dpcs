@@ -26,6 +26,7 @@ tarpaulin-report.html
 # Binding build artifacts
 bindings/wasm/pkg/
 bindings/python/target/
+bindings/python/.venv/
 bindings/python/*.so
 bindings/python/*.dylib
 __pycache__/

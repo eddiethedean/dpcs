@@ -61,7 +61,14 @@ pub fn evaluate_capabilities(profile_yaml: &str, contract_yaml: &str) -> Result<
     };
     match evaluate(&planned, &profile) {
         dpcs::CapabilityResult::Ok(report) => to_js(&*report),
-        dpcs::CapabilityResult::Err { report, .. } => to_js(&*report),
+        dpcs::CapabilityResult::Err {
+            report,
+            diagnostics,
+        } => {
+            let mut payload = (*report).clone();
+            payload.diagnostics = diagnostics.diagnostics;
+            to_js(&payload)
+        }
     }
 }
 

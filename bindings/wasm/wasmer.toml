@@ -1,12 +1,12 @@
 [package]
 name = "dpcs"
 version = "0.10.0"
-description = "DPCS WebAssembly toolkit"
+description = "DPCS WebAssembly toolkit (wasm-bindgen)"
 license = "Apache-2.0 OR MIT"
 readme = "README.md"
 repository = "https://github.com/eddiethedean/dpcs"
 
 [[module]]
 name = "dpcs"
-source = "pkg/dpcs_wasm_bg.wasm"
-abi = "wasm32-wasi"
+source = "pkg/dpcs_bg.wasm"
+abi = "none"

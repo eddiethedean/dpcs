@@ -2,18 +2,20 @@
 
 use std::fs::{self, File};
 use std::io::{Read, Write};
-use std::path::{Component, Path, PathBuf};
+use std::path::{Path, PathBuf};
 
 use walkdir::WalkDir;
 
 use super::manifest::{PackageArtifactEntry, PackageManifest};
+use super::validate::validate_package;
 use crate::error::{Error, Result};
 use crate::model::ExtensionMap;
+use crate::paths::{is_safe_relative, join_under_root};
 
 /// On-disk layout of an unpacked `.dpcspkg`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PackageLayout {
-    /// Absolute path to the package directory.
+    /// Absolute (canonical when possible) path to the package directory.
     pub root: PathBuf,
     /// Parsed manifest.
     pub manifest: PackageManifest,
@@ -22,7 +24,15 @@ pub struct PackageLayout {
 impl PackageLayout {
     /// Load an unpacked package directory.
     pub fn open(root: impl AsRef<Path>) -> Result<Self> {
-        let root = root.as_ref().to_path_buf();
+        let root_input = root.as_ref();
+        let root = if root_input.exists() {
+            root_input.canonicalize().map_err(|err| Error::Io {
+                path: root_input.to_path_buf(),
+                source: err,
+            })?
+        } else {
+            root_input.to_path_buf()
+        };
         let manifest_path = root.join("manifest.yaml");
         let alt = root.join("manifest.yml");
         let json = root.join("manifest.json");
@@ -62,12 +72,21 @@ impl PackageLayout {
     }
 
     /// Resolve an artifact path by id (and optional version).
+    ///
+    /// When `version` is omitted and multiple entries share an id, the last
+    /// matching manifest entry is used (same “latest listed” convention as the
+    /// reference registry).
+    ///
+    /// Returns `None` when the id/version is missing or the declared path escapes
+    /// the package root.
     pub fn resolve_path(&self, id: &str, version: Option<&str>) -> Option<PathBuf> {
-        self.manifest
+        let entry = self
+            .manifest
             .artifacts
             .iter()
-            .find(|a| a.id == id && version.map(|v| a.version == v).unwrap_or(true))
-            .map(|a| self.root.join(&a.path))
+            .rev()
+            .find(|a| a.id == id && version.map(|v| a.version == v).unwrap_or(true))?;
+        join_under_root(&self.root, &entry.path).ok()
     }
 }
 
@@ -80,7 +99,7 @@ pub fn resolve_artifact(
     let layout = PackageLayout::open(package_root)?;
     layout.resolve_path(id, version).ok_or_else(|| {
         Error::Serialization(format!(
-            "artifact `{id}`{} not found in package",
+            "artifact `{id}`{} not found in package (or path escapes package root)",
             version.map(|v| format!("@{v}")).unwrap_or_default()
         ))
     })
@@ -88,12 +107,18 @@ pub fn resolve_artifact(
 
 /// Create a package directory from a manifest and source files already at `root`.
 ///
-/// `root` must already contain `manifest.yaml` and referenced artifact files.
-/// When `archive` is `Some`, also writes a zip archive at that path.
+/// `root` must already contain a manifest and referenced artifact files.
+/// When `archive` is `Some`, also writes a zip archive at that path (must not be
+/// under the package root).
 pub fn pack(root: impl AsRef<Path>, archive: Option<&Path>) -> Result<PackageLayout> {
     let layout = PackageLayout::open(root)?;
+    let report = validate_package(&layout.root);
+    if !report.is_valid() {
+        return Err(Error::InvalidDocument { report });
+    }
     validate_layout_paths(&layout)?;
     if let Some(archive_path) = archive {
+        ensure_archive_outside_root(&layout.root, archive_path)?;
         write_zip(&layout.root, archive_path)?;
     }
     Ok(layout)
@@ -104,6 +129,7 @@ pub fn unpack(source: impl AsRef<Path>, dest: impl AsRef<Path>) -> Result<Packag
     let source = source.as_ref();
     let dest = dest.as_ref();
     if source.is_dir() {
+        ensure_dest_not_under_src(source, dest)?;
         copy_dir(source, dest)?;
     } else {
         extract_zip(source, dest)?;
@@ -111,32 +137,126 @@ pub fn unpack(source: impl AsRef<Path>, dest: impl AsRef<Path>) -> Result<Packag
     PackageLayout::open(dest)
 }
 
-fn validate_layout_paths(layout: &PackageLayout) -> Result<()> {
-    for entry in &layout.manifest.artifacts {
-        validate_relative_path(&entry.path)?;
-        let path = layout.root.join(&entry.path);
-        if !path.is_file() {
-            return Err(Error::Io {
-                path,
-                source: std::io::Error::new(std::io::ErrorKind::NotFound, "artifact file missing"),
-            });
-        }
+fn ensure_archive_outside_root(root: &Path, archive: &Path) -> Result<()> {
+    let root_abs = root.canonicalize().map_err(|err| Error::Io {
+        path: root.to_path_buf(),
+        source: err,
+    })?;
+    let candidate = resolve_archive_candidate(archive)?;
+    if candidate.starts_with(&root_abs) {
+        return Err(Error::Serialization(
+            "archive path must be outside the package root".to_owned(),
+        ));
     }
     Ok(())
 }
 
-fn validate_relative_path(path: &str) -> Result<()> {
-    let p = Path::new(path);
-    if p.is_absolute() {
-        return Err(Error::Serialization(format!(
-            "artifact path must be relative: {path}"
-        )));
+/// Resolve an archive path to an absolute location without requiring the full
+/// path to exist. Uses the deepest existing ancestor's canonical path so
+/// platform symlink prefixes (for example `/var` → `/private/var` on macOS)
+/// compare consistently with a canonicalized package root.
+fn resolve_archive_candidate(archive: &Path) -> Result<PathBuf> {
+    use std::ffi::OsString;
+    use std::path::Component;
+
+    let joined = if archive.is_absolute() {
+        archive.to_path_buf()
+    } else {
+        let cwd = std::env::current_dir().map_err(|err| Error::Io {
+            path: PathBuf::from("."),
+            source: err,
+        })?;
+        cwd.join(archive)
+    };
+
+    let mut suffix: Vec<OsString> = Vec::new();
+    let mut cursor = joined.as_path();
+    loop {
+        if cursor.exists() {
+            let mut abs = cursor.canonicalize().map_err(|err| Error::Io {
+                path: cursor.to_path_buf(),
+                source: err,
+            })?;
+            for segment in suffix.iter().rev() {
+                abs.push(segment);
+            }
+            return Ok(abs);
+        }
+        match cursor.file_name() {
+            Some(name) => {
+                suffix.push(name.to_os_string());
+                match cursor.parent() {
+                    Some(parent) if !parent.as_os_str().is_empty() => cursor = parent,
+                    _ => break,
+                }
+            }
+            None => break,
+        }
     }
-    for component in p.components() {
-        if matches!(component, Component::ParentDir) {
+
+    let mut out = PathBuf::new();
+    for component in joined.components() {
+        match component {
+            Component::Prefix(prefix) => out.push(prefix.as_os_str()),
+            Component::RootDir => out.push(component.as_os_str()),
+            Component::CurDir => {}
+            Component::ParentDir => {
+                if !out.pop() {
+                    return Err(Error::Serialization(
+                        "archive path escapes filesystem root".to_owned(),
+                    ));
+                }
+            }
+            Component::Normal(seg) => out.push(seg),
+        }
+    }
+    Ok(out)
+}
+
+fn ensure_dest_not_under_src(src: &Path, dest: &Path) -> Result<()> {
+    let src_abs = src.canonicalize().unwrap_or_else(|_| src.to_path_buf());
+    let dest_abs = if dest.exists() {
+        dest.canonicalize().unwrap_or_else(|_| dest.to_path_buf())
+    } else if let Some(parent) = dest.parent() {
+        parent
+            .canonicalize()
+            .unwrap_or_else(|_| parent.to_path_buf())
+            .join(dest.file_name().unwrap_or_default())
+    } else {
+        dest.to_path_buf()
+    };
+    if dest_abs.starts_with(&src_abs) {
+        return Err(Error::Serialization(
+            "destination must not be inside the source package directory".to_owned(),
+        ));
+    }
+    Ok(())
+}
+
+fn validate_layout_paths(layout: &PackageLayout) -> Result<()> {
+    for entry in &layout.manifest.artifacts {
+        if !is_safe_relative(&entry.path) {
             return Err(Error::Serialization(format!(
-                "artifact path must not contain '..': {path}"
+                "artifact path must be relative without '..': {}",
+                entry.path
             )));
+        }
+        let path = join_under_root(&layout.root, &entry.path)?;
+        let meta = fs::symlink_metadata(&path).map_err(|err| Error::Io {
+            path: path.clone(),
+            source: err,
+        })?;
+        if meta.file_type().is_symlink() {
+            return Err(Error::Serialization(format!(
+                "artifact path must not be a symlink: {}",
+                entry.path
+            )));
+        }
+        if !meta.is_file() {
+            return Err(Error::Io {
+                path,
+                source: std::io::Error::new(std::io::ErrorKind::NotFound, "artifact file missing"),
+            });
         }
     }
     Ok(())
@@ -149,6 +269,10 @@ fn write_zip(root: &Path, archive: &Path) -> Result<()> {
             source: err,
         })?;
     }
+    let archive_abs = archive
+        .parent()
+        .and_then(|p| p.canonicalize().ok())
+        .map(|p| p.join(archive.file_name().unwrap_or_default()));
     let file = File::create(archive).map_err(|err| Error::Io {
         path: archive.to_path_buf(),
         source: err,
@@ -156,10 +280,28 @@ fn write_zip(root: &Path, archive: &Path) -> Result<()> {
     let mut zip = zip::ZipWriter::new(file);
     let options = zip::write::SimpleFileOptions::default()
         .compression_method(zip::CompressionMethod::Deflated);
-    for entry in WalkDir::new(root).into_iter().filter_map(|e| e.ok()) {
+    for entry in WalkDir::new(root) {
+        let entry = entry.map_err(|err| {
+            Error::Serialization(format!("failed walking package directory: {err}"))
+        })?;
         let path = entry.path();
         if path.is_dir() {
             continue;
+        }
+        if let Some(archive_abs) = &archive_abs {
+            if path == archive_abs {
+                continue;
+            }
+        }
+        let meta = fs::symlink_metadata(path).map_err(|err| Error::Io {
+            path: path.to_path_buf(),
+            source: err,
+        })?;
+        if meta.file_type().is_symlink() {
+            return Err(Error::Serialization(format!(
+                "refusing to pack symlink: {}",
+                path.display()
+            )));
         }
         let rel = path.strip_prefix(root).map_err(|_| {
             Error::Serialization(format!(
@@ -193,6 +335,10 @@ fn extract_zip(archive: &Path, dest: &Path) -> Result<()> {
         path: dest.to_path_buf(),
         source: err,
     })?;
+    let dest_abs = dest.canonicalize().map_err(|err| Error::Io {
+        path: dest.to_path_buf(),
+        source: err,
+    })?;
     let file = File::open(archive).map_err(|err| Error::Io {
         path: archive.to_path_buf(),
         source: err,
@@ -207,7 +353,8 @@ fn extract_zip(archive: &Path, dest: &Path) -> Result<()> {
             .enclosed_name()
             .ok_or_else(|| Error::Serialization("zip entry has unsafe path".to_owned()))?
             .to_path_buf();
-        let out = dest.join(&name);
+        let name_str = name.to_string_lossy().replace('\\', "/");
+        let out = join_under_root(&dest_abs, &name_str)?;
         if file.is_dir() {
             fs::create_dir_all(&out).map_err(|err| Error::Io {
                 path: out.clone(),
@@ -226,9 +373,19 @@ fn extract_zip(archive: &Path, dest: &Path) -> Result<()> {
             source: err,
         })?;
         std::io::copy(&mut file, &mut outfile).map_err(|err| Error::Io {
-            path: out,
+            path: out.clone(),
             source: err,
         })?;
+        let canon = out.canonicalize().map_err(|err| Error::Io {
+            path: out.clone(),
+            source: err,
+        })?;
+        if !canon.starts_with(&dest_abs) {
+            let _ = fs::remove_file(&canon);
+            return Err(Error::Serialization(
+                "zip entry resolved outside destination".to_owned(),
+            ));
+        }
     }
     Ok(())
 }
@@ -238,18 +395,35 @@ fn copy_dir(src: &Path, dest: &Path) -> Result<()> {
         path: dest.to_path_buf(),
         source: err,
     })?;
-    for entry in WalkDir::new(src).into_iter().filter_map(|e| e.ok()) {
+    for entry in WalkDir::new(src) {
+        let entry = entry.map_err(|err| {
+            Error::Serialization(format!("failed walking source directory: {err}"))
+        })?;
         let path = entry.path();
         let rel = path
             .strip_prefix(src)
             .map_err(|_| Error::Serialization("failed to relativize source path".to_owned()))?;
-        let target = dest.join(rel);
+        let rel_str = rel.to_string_lossy().replace('\\', "/");
+        if rel_str.is_empty() {
+            continue;
+        }
+        let target = join_under_root(dest, &rel_str)?;
         if path.is_dir() {
             fs::create_dir_all(&target).map_err(|err| Error::Io {
                 path: target,
                 source: err,
             })?;
         } else {
+            let meta = fs::symlink_metadata(path).map_err(|err| Error::Io {
+                path: path.to_path_buf(),
+                source: err,
+            })?;
+            if meta.file_type().is_symlink() {
+                return Err(Error::Serialization(format!(
+                    "refusing to copy symlink: {}",
+                    path.display()
+                )));
+            }
             if let Some(parent) = target.parent() {
                 fs::create_dir_all(parent).map_err(|err| Error::Io {
                     path: parent.to_path_buf(),
