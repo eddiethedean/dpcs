@@ -9,7 +9,7 @@ dpcs
 Commands:
 
 ```bash
-dpcs validate <path>
+dpcs validate <path> [--json] [--strict] [--profile <conformance-profile>]
 dpcs inspect <path>
 dpcs diagnostics <path>
 dpcs graph <path>
@@ -46,6 +46,10 @@ Exit codes:
 Notes:
 
 - `validate` and `diagnostics` use the exit codes above.
+- `validate --profile` applies a validated conformance profile (`requireSecurity`,
+  `requireGovernance`, forbidden extension namespaces) via `apply_profile_to_contract`.
+- `validate --json` and `diagnostics --json` emit a `DiagnosticReport` (processing result,
+  artifact id, implementation metadata, and diagnostics).
 - `capabilities` parses the contract, runs `plan()`, then `evaluate` against the profile. Exit `0` on match, `1` on plan refusal or capability errors, `2` on parse/I/O.
 - `capabilities --json` emits a `CapabilityReport` on both success and match failure (failure includes diagnostics and `missingMandatory`).
 - `bind` parses the contract and profile, plans, capability-gates, then translates to scaffold artifacts. Writes under `--out` (default `./dpcs-bind-<target>/`). Exit `0` on success, `1` on plan/capability/binding errors (including unknown `--target`), `2` on parse/I/O or write failure.

@@ -6,10 +6,11 @@ The repository contains a single `SPEC.md` document with the full 26-chapter DPC
 
 Treat `SPEC.md` as authoritative.
 
-Processing pipeline through ROADMAP 0.8.0:
+Processing pipeline through ROADMAP 0.9.0:
 
 ```text
 DPCS Document -> Parser -> COM -> Validator -> Pipeline Plan -> Capability Evaluation -> Orchestrator Binding
+(+ Compatibility / Registry documents / Conformance profiles)
 ```
 
 Implemented:
@@ -17,16 +18,19 @@ Implemented:
 1. Rust crate skeleton
 2. Canonical Object Model
 3. YAML and JSON parsing
-4. Diagnostics model
-5. Phase-based validation
+4. Diagnostics model (including DiagnosticReport)
+5. Phase-based validation (including extensions, security, governance)
 6. Pipeline graph validation
 7. Data Flow / Control Flow validation
 8. Pipeline Plan
 9. Capability profiles and matching
 10. Orchestrator binding scaffolds (Airflow, Dagster, Prefect, Temporal, Kubernetes)
-11. CLI
-12. Tests and fixtures
+11. Compatibility analysis
+12. Registry document validation (no network client)
+13. Conformance claims and Appendix E suite
+14. CLI
+15. Tests and fixtures
 
-Do not implement execution runtimes or production-grade operator libraries.
+Do not implement execution runtimes, network registry clients, or production-grade operator libraries.
 
 Use Rust best practices and keep names aligned with `SPEC.md`.

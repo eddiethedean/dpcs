@@ -211,7 +211,16 @@ pub fn validate_registry(registry: &Registry) -> ValidationReport {
         );
     }
     if let Some(status) = &registry.publication_status {
-        if !is_known_publication_status(status) {
+        if status.trim().is_empty() {
+            report.push(
+                Diagnostic::error(
+                    "DPCS-REG-015",
+                    categories::REGISTRY,
+                    "registry publicationStatus must not be empty when declared",
+                )
+                .with_object_ref("publicationStatus"),
+            );
+        } else if !is_known_publication_status(status) {
             report.push(
                 Diagnostic::warning(
                     "DPCS-REG-008",

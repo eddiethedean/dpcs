@@ -117,7 +117,8 @@ pub fn plan(contract: &PipelineContract) -> PlanResult {
                 categories::PLANNING,
                 "pipeline plan requires a successfully validated contract",
             )
-            .with_remediation("Resolve validation errors before planning"),
+            .with_remediation("Resolve validation errors before planning")
+            .with_related(report.errors().map(|d| d.id.clone())),
         );
         planning_report.extend(report);
         planning_report.sort_deterministic();

@@ -75,7 +75,7 @@ pub fn validate_with_options(
             ) {
                 report.push(
                     Diagnostic::warning(
-                        "DPCS-COMPAT-010",
+                        "DPCS-COMPAT-050",
                         categories::COMPATIBILITY,
                         format!("compatibility mode `{mode}` is not a standard category"),
                     )

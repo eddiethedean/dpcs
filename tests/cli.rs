@@ -130,7 +130,72 @@ fn diagnostics_json() {
         ])
         .assert()
         .failure()
-        .stdout(predicate::str::contains("DPCS-COM-005"));
+        .stdout(predicate::str::contains("DPCS-COM-005"))
+        .stdout(predicate::str::contains("processingResult"))
+        .stdout(predicate::str::contains("implementation"));
+}
+
+#[test]
+fn validate_strict_fails_on_warnings() {
+    // DOC-002 is a warning for unsupported major versions.
+    let yaml = format!("{}/strict_doc_warn.yaml", std::env::temp_dir().display());
+    std::fs::write(
+        &yaml,
+        r#"
+dpcsVersion: "9.0.0"
+id: "warn.pipeline"
+version: "0.1.0"
+interface:
+  inputs: []
+  outputs: []
+steps:
+  - id: "a"
+    type: "extension:noop"
+graph:
+  edges: []
+"#,
+    )
+    .unwrap();
+    bin()
+        .args(["validate", &yaml])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("DPCS-DOC-002"));
+    bin()
+        .args(["validate", &yaml, "--strict"])
+        .assert()
+        .failure()
+        .code(1);
+}
+
+#[test]
+fn validate_with_conformance_profile_requires_security() {
+    let profile = format!(
+        "{}/require_security.profile.yaml",
+        std::env::temp_dir().display()
+    );
+    std::fs::write(
+        &profile,
+        r#"
+id: "require.security"
+version: "0.1.0"
+dpcsVersion: "1.0.0-draft"
+levels: [validator]
+requireSecurity: true
+"#,
+    )
+    .unwrap();
+    bin()
+        .args([
+            "validate",
+            &fixture("valid/minimal.dpcs.yaml"),
+            "--profile",
+            &profile,
+        ])
+        .assert()
+        .failure()
+        .code(1)
+        .stdout(predicate::str::contains("DPCS-CONF-012"));
 }
 
 #[test]

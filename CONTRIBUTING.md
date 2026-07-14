@@ -8,16 +8,16 @@ Thanks for helping build the DPCS reference implementation.
 2. If a design doc conflicts with `SPEC.md`, follow `SPEC.md`.
 3. Prefer the smallest conservative behavior when the specification is ambiguous.
 4. Add a `TODO` referencing the relevant SPEC section when deferring behavior.
-5. Do not implement execution runtimes; binding scaffolds shipped in 0.8.0.
+5. Do not implement execution runtimes; binding scaffolds shipped in 0.8.0; Ch 18–25 document models shipped in 0.9.0 (registry network client remains 0.10).
 
 ## Releases
 
 Tagged releases use `.github/workflows/release.yml`:
 
-1. Push a version tag matching `v*.*.*` (for example `v0.8.0`).
+1. Push a version tag matching `v*.*.*` (for example `v0.9.0`).
 2. The release workflow runs the same CI checks as pull requests (`ci-checks.yml`).
 3. After checks pass, it publishes the Rust crate to crates.io.
-4. Create a GitHub Release for the tag (title `v0.8.0`) using the `[0.8.0]` section from [`CHANGELOG.md`](CHANGELOG.md).
+4. Create a GitHub Release for the tag (title `v0.9.0`) using the `[0.9.0]` section from [`CHANGELOG.md`](CHANGELOG.md).
 
 Store a crates.io API token in the repository secret named `CARGO_REGISTRY_TOKEN`.
 Do not use a PyPI token here; this project does not publish a Python package yet.
@@ -51,6 +51,8 @@ Do not use a PyPI token here; this project does not publish a Python package yet
 | `src/plan` | Pipeline Plan generation |
 | `src/capabilities` | Capability profiles and matching |
 | `src/binding` | Orchestrator binding scaffolds |
+| `src/compatibility` | Compatibility analysis |
+| `src/conformance` | Conformance claims and profiles |
 | `src/cli` | CLI commands |
 | `examples/` | Example contracts and profiles |
 | `tests/fixtures` | Conformance-oriented fixtures |

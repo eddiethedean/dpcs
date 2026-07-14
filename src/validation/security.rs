@@ -56,7 +56,7 @@ pub fn validate_security(security: &SecurityMetadata) -> ValidationReport {
         for (key, value) in &secret.extensions {
             if key_suggests_secret(key) {
                 if let Some(text) = value.as_str() {
-                    if looks_like_embedded_secret(text) || !text.trim().is_empty() {
+                    if looks_like_embedded_secret(text) {
                         report.push(
                             Diagnostic::error(
                                 "DPCS-SEC-003",

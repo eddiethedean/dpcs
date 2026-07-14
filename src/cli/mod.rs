@@ -5,14 +5,14 @@ use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
 
-use crate::diagnostics::ValidationReport;
+use crate::diagnostics::{DiagnosticReport, ValidationReport};
 use crate::error::Error;
 use crate::parser;
 use crate::plan;
 use crate::DPCS_SPEC_VERSION;
 use crate::{
-    bind, compare_contracts, evaluate, parse_target, toolkit_claim, validate, validate_claim,
-    validate_conformance_profile, validate_registry, write_bundle, BindingResult,
+    apply_profile_to_contract, bind, compare_contracts, evaluate, parse_target, toolkit_claim,
+    validate, validate_conformance_profile, validate_registry, write_bundle, BindingResult,
     CapabilityProfile, CapabilityResult, ConformanceProfile, Registry, VERSION,
 };
 
@@ -48,6 +48,9 @@ enum Commands {
         /// Treat warnings as errors.
         #[arg(long)]
         strict: bool,
+        /// Optional conformance profile constraining extensions/security/governance.
+        #[arg(long)]
+        profile: Option<PathBuf>,
     },
     /// Inspect a Pipeline Contract and print a summary.
     Inspect {
@@ -206,7 +209,12 @@ fn execute(cli: Cli) -> Result<u8, Error> {
             }
             Ok(EXIT_OK)
         }
-        Commands::Validate { path, json, strict } => {
+        Commands::Validate {
+            path,
+            json,
+            strict,
+            profile,
+        } => {
             let contract = match parser::parse_file(&path) {
                 Ok(contract) => contract,
                 Err(Error::InvalidDocument { report }) => {
@@ -215,8 +223,32 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                 }
                 Err(err) => return Err(err),
             };
-            let report = validate(&contract);
-            print_report(&report, json)?;
+            let mut report = validate(&contract);
+            if let Some(profile_path) = profile {
+                let profile = match ConformanceProfile::from_file(&profile_path) {
+                    Ok(profile) => profile,
+                    Err(Error::InvalidDocument { report }) => {
+                        print_report(&report, json)?;
+                        return Ok(EXIT_FAILURE);
+                    }
+                    Err(err) => return Err(err),
+                };
+                let profile_report = validate_conformance_profile(&profile);
+                if !profile_report.is_valid() {
+                    print_report(&profile_report, json)?;
+                    return Ok(EXIT_VALIDATION);
+                }
+                report.extend(apply_profile_to_contract(&contract, &profile));
+                report.sort_deterministic();
+            }
+            if json {
+                print_diagnostic_report(&DiagnosticReport::from_validation(
+                    report.clone(),
+                    Some(contract.id.clone()),
+                ))?;
+            } else {
+                print_report(&report, false)?;
+            }
             Ok(exit_code_for_report(&report, strict))
         }
         Commands::Inspect { path, json } => {
@@ -295,7 +327,14 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                 Err(err) => return Err(err),
             };
             let report = validate(&contract);
-            print_report(&report, json)?;
+            if json {
+                print_diagnostic_report(&DiagnosticReport::from_validation(
+                    report.clone(),
+                    Some(contract.id.clone()),
+                ))?;
+            } else {
+                print_report(&report, false)?;
+            }
             Ok(exit_code_for_report(&report, false))
         }
         Commands::Graph { path, json } => {
@@ -613,20 +652,7 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                 }
                 Err(err) => return Err(err),
             };
-            let mut report = validate_conformance_profile(&profile);
-            report.extend(validate_claim(&toolkit_claim()));
-            // Prefer profile validity; also ensure toolkit claim stays valid.
-            let mut claim_report = validate_claim(&crate::ConformanceClaim {
-                implementation: "claimed".to_owned(),
-                implementation_version: VERSION.to_owned(),
-                dpcs_version: profile.dpcs_version.clone(),
-                levels: profile.levels.clone(),
-                extensions: Default::default(),
-            });
-            // Only keep claim findings that indicate unimplemented levels for the profile.
-            claim_report.diagnostics.retain(|d| d.id == "DPCS-CONF-010");
-            report.extend(claim_report);
-            report.sort_deterministic();
+            let report = validate_conformance_profile(&profile);
             print_report(&report, json)?;
             Ok(exit_code_for_report(&report, false))
         }
@@ -673,10 +699,19 @@ fn print_report(report: &ValidationReport, json: bool) -> Result<(), Error> {
     }
 
     println!(
-        "summary: {} error(s), {} warning(s)",
+        "summary: {} error(s), {} warning(s), {} information(s)",
         report.error_count(),
-        report.warning_count()
+        report.warning_count(),
+        report.information_count()
     );
+    Ok(())
+}
+
+fn print_diagnostic_report(report: &DiagnosticReport) -> Result<(), Error> {
+    let payload = serde_json::to_string_pretty(report).map_err(|err| {
+        Error::Serialization(format!("failed to serialize diagnostic report: {err}"))
+    })?;
+    println!("{payload}");
     Ok(())
 }
 

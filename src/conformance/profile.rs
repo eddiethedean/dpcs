@@ -219,6 +219,32 @@ pub fn validate_profile(profile: &ConformanceProfile) -> ValidationReport {
             )
             .with_object_ref("dpcsVersion"),
         );
+    } else if !crate::model::versions_compatible(&profile.dpcs_version, DPCS_SPEC_VERSION) {
+        report.push(
+            Diagnostic::error(
+                "DPCS-CONF-009",
+                categories::CONFORMANCE,
+                format!(
+                    "conformance profile dpcsVersion `{}` is incompatible with toolkit `{DPCS_SPEC_VERSION}`",
+                    profile.dpcs_version
+                ),
+            )
+            .with_object_ref("dpcsVersion"),
+        );
+    }
+
+    let supported: std::collections::BTreeSet<_> = implemented_levels().iter().copied().collect();
+    for level in &profile.levels {
+        if !supported.contains(level) {
+            report.push(
+                Diagnostic::error(
+                    "DPCS-CONF-010",
+                    categories::CONFORMANCE,
+                    format!("conformance level `{level}` is not implemented by this toolkit"),
+                )
+                .with_object_ref("levels"),
+            );
+        }
     }
     if profile.levels.is_empty() {
         report.push(

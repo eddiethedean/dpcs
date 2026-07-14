@@ -40,6 +40,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Capability profile / evaluate reuse shared `versions_compatible` helper
+- Compatibility now diffs step ports / `transformRef`, control-flow `kind`, and
+  interface `name`/`purpose`; classifies additive plan changes as backwardCompatible;
+  compares execution/scheduling/quality/failure via order-insensitive fingerprints
+- `DPCS-SEC-003` no longer rejects non-empty non-secret annotation values
+- Renamed nonstandard compatibility-mode warning to `DPCS-COMPAT-050` (was colliding with
+  contract-reference removal `DPCS-COMPAT-010`)
+- Conformance profile validation checks toolkit version compatibility and claimed levels
+- `dpcs validate --profile` applies conformance constraints; validate/diagnostics `--json`
+  emit `DiagnosticReport`
+- `DPCS-PLN-001` links related validation error ids; empty registry `publicationStatus`
+  is an error (`DPCS-REG-015`)
 
 ## [0.8.0] - 2026-07-14
 

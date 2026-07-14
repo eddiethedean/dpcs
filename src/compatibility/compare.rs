@@ -5,7 +5,10 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde::{Deserialize, Serialize};
 
 use crate::diagnostics::{categories, Diagnostic, ValidationReport};
-use crate::model::{InterfacePort, PipelineContract, PipelineStep};
+use crate::model::{
+    ExecutionRequirements, FailureSemantics, InterfacePort, PipelineContract, PipelineStep,
+    QualityGate, SchedulingIntent, StepPort,
+};
 use crate::plan::PipelinePlan;
 
 /// Compatibility category between two artifacts.
@@ -16,7 +19,7 @@ pub enum CompatibilityCategory {
     FullyCompatible,
     /// Candidate preserves baseline observable semantics (additive OK).
     BackwardCompatible,
-    /// Baseline preserves candidate semantics (unusual; candidate removes optional).
+    /// Candidate removes optional content while preserving core semantics.
     ForwardCompatible,
     /// Compatible only under declared conditions / warnings.
     ConditionallyCompatible,
@@ -90,6 +93,15 @@ impl CompatibilityResult {
     }
 }
 
+/// Counters used to classify compatibility.
+#[derive(Default)]
+struct CompatCounters {
+    breaking: usize,
+    additive: usize,
+    removed_optional: usize,
+    conditional: usize,
+}
+
 /// Compare two Pipeline Contracts for semantic compatibility.
 ///
 /// Version identifiers alone never decide the category.
@@ -98,10 +110,7 @@ pub fn compare_contracts(
     candidate: &PipelineContract,
 ) -> CompatibilityResult {
     let mut diagnostics = ValidationReport::new();
-    let mut breaking = 0usize;
-    let mut additive = 0usize;
-    let mut removed_optional = 0usize;
-    let mut conditional = 0usize;
+    let mut counters = CompatCounters::default();
 
     if baseline.id != candidate.id {
         diagnostics.push(
@@ -115,7 +124,7 @@ pub fn compare_contracts(
             )
             .with_object_ref("id"),
         );
-        conditional += 1;
+        counters.conditional += 1;
     }
 
     compare_ports(
@@ -123,27 +132,21 @@ pub fn compare_contracts(
         &baseline.interface.inputs,
         &candidate.interface.inputs,
         &mut diagnostics,
-        &mut breaking,
-        &mut additive,
-        &mut removed_optional,
+        &mut counters,
     );
     compare_ports(
         "interface.outputs",
         &baseline.interface.outputs,
         &candidate.interface.outputs,
         &mut diagnostics,
-        &mut breaking,
-        &mut additive,
-        &mut removed_optional,
+        &mut counters,
     );
 
     compare_steps(
         &baseline.steps,
         &candidate.steps,
         &mut diagnostics,
-        &mut breaking,
-        &mut additive,
-        &mut removed_optional,
+        &mut counters,
     );
 
     compare_string_pairs(
@@ -151,121 +154,72 @@ pub fn compare_contracts(
         edge_set(baseline),
         edge_set(candidate),
         &mut diagnostics,
-        &mut breaking,
-        &mut additive,
-        &mut removed_optional,
+        &mut counters,
     );
     compare_string_pairs(
         "dataFlow",
         flow_set(baseline),
         flow_set(candidate),
         &mut diagnostics,
-        &mut breaking,
-        &mut additive,
-        &mut removed_optional,
+        &mut counters,
     );
     compare_string_pairs(
         "controlFlow",
         control_set(baseline),
         control_set(candidate),
         &mut diagnostics,
-        &mut breaking,
-        &mut additive,
-        &mut removed_optional,
+        &mut counters,
     );
 
-    compare_refs(
-        baseline,
-        candidate,
+    compare_refs(baseline, candidate, &mut diagnostics, &mut counters);
+
+    compare_execution(
+        baseline.execution.as_ref(),
+        candidate.execution.as_ref(),
         &mut diagnostics,
-        &mut breaking,
-        &mut additive,
-        &mut removed_optional,
+        &mut counters,
+    );
+    compare_scheduling(
+        &baseline.scheduling,
+        &candidate.scheduling,
+        &mut diagnostics,
+        &mut counters,
+    );
+    compare_quality_gates(
+        &baseline.quality_gates,
+        &candidate.quality_gates,
+        &mut diagnostics,
+        &mut counters,
+    );
+    compare_failure_semantics(
+        &baseline.failure_semantics,
+        &candidate.failure_semantics,
+        &mut diagnostics,
+        &mut counters,
     );
 
-    if baseline.execution != candidate.execution {
-        if baseline.execution.is_some() && candidate.execution.is_none() {
-            diagnostics.push(breaking_diag(
-                "DPCS-COMPAT-020",
-                "execution requirements removed",
-                "execution",
-            ));
-            breaking += 1;
-        } else if baseline.execution.is_none() && candidate.execution.is_some() {
-            diagnostics.push(info_additive(
-                "DPCS-COMPAT-021",
-                "execution requirements added",
-                "execution",
-            ));
-            additive += 1;
-        } else {
-            diagnostics.push(breaking_diag(
-                "DPCS-COMPAT-022",
-                "execution requirements changed incompatibly",
-                "execution",
-            ));
-            breaking += 1;
-        }
-    }
-
-    if baseline.scheduling != candidate.scheduling {
-        if candidate.scheduling.is_empty() && !baseline.scheduling.is_empty() {
-            diagnostics.push(breaking_diag(
-                "DPCS-COMPAT-023",
-                "scheduling intents removed",
-                "scheduling",
-            ));
-            breaking += 1;
-        } else if baseline.scheduling.is_empty() && !candidate.scheduling.is_empty() {
-            additive += 1;
-            diagnostics.push(info_additive(
-                "DPCS-COMPAT-024",
-                "scheduling intents added",
-                "scheduling",
-            ));
-        } else {
-            diagnostics.push(breaking_diag(
-                "DPCS-COMPAT-025",
-                "scheduling intents changed incompatibly",
-                "scheduling",
-            ));
-            breaking += 1;
-        }
-    }
-
-    if baseline.quality_gates != candidate.quality_gates {
-        diagnostics.push(breaking_diag(
-            "DPCS-COMPAT-026",
-            "quality gates changed",
-            "qualityGates",
-        ));
-        breaking += 1;
-    }
-    if baseline.failure_semantics != candidate.failure_semantics {
-        diagnostics.push(breaking_diag(
-            "DPCS-COMPAT-027",
-            "failure semantics changed",
-            "failureSemantics",
-        ));
-        breaking += 1;
-    }
-    if baseline.lineage != candidate.lineage {
-        if baseline.lineage.is_some() && candidate.lineage.is_none() {
+    match (&baseline.lineage, &candidate.lineage) {
+        (None, None) => {}
+        (Some(_), None) => {
             diagnostics.push(breaking_diag(
                 "DPCS-COMPAT-028",
                 "lineage removed",
                 "lineage",
             ));
-            breaking += 1;
-        } else if baseline.lineage.is_none() && candidate.lineage.is_some() {
-            additive += 1;
-        } else {
-            diagnostics.push(breaking_diag(
-                "DPCS-COMPAT-029",
-                "lineage changed incompatibly",
-                "lineage",
-            ));
-            breaking += 1;
+            counters.breaking += 1;
+        }
+        (None, Some(_)) => {
+            counters.additive += 1;
+        }
+        (Some(a), Some(b)) => {
+            if lineage_fingerprint(a) != lineage_fingerprint(b) {
+                diagnostics.push(breaking_diag(
+                    "DPCS-COMPAT-029",
+                    "lineage changed incompatibly",
+                    "lineage",
+                ));
+                counters.breaking += 1;
+            }
         }
     }
 
@@ -280,15 +234,15 @@ pub fn compare_contracts(
             )
             .with_object_ref(key.as_str()),
         );
-        conditional += 1;
+        // Extension removals are optional content → forward-compatible when alone.
+        counters.removed_optional += 1;
     }
-    for key in candidate_ext.difference(&baseline_ext) {
-        additive += 1;
-        let _ = key;
+    for _key in candidate_ext.difference(&baseline_ext) {
+        counters.additive += 1;
     }
 
     diagnostics.sort_deterministic();
-    let category = classify(breaking, additive, removed_optional, conditional);
+    let category = classify(&counters);
     finish(
         baseline.id.clone(),
         baseline.version.clone(),
@@ -302,10 +256,7 @@ pub fn compare_contracts(
 /// Compare two Pipeline Plans for dependency / step-order compatibility.
 pub fn compare_plans(baseline: &PipelinePlan, candidate: &PipelinePlan) -> CompatibilityResult {
     let mut diagnostics = ValidationReport::new();
-    let mut breaking = 0usize;
-    let mut additive = 0usize;
-    let removed_optional = 0usize;
-    let mut conditional = 0usize;
+    let mut counters = CompatCounters::default();
 
     if baseline.contract_id != candidate.contract_id {
         diagnostics.push(
@@ -316,27 +267,28 @@ pub fn compare_plans(baseline: &PipelinePlan, candidate: &PipelinePlan) -> Compa
             )
             .with_object_ref("contractId"),
         );
-        conditional += 1;
+        counters.conditional += 1;
     }
 
     let baseline_steps: BTreeSet<_> = baseline.steps.iter().map(|s| s.id.clone()).collect();
     let candidate_steps: BTreeSet<_> = candidate.steps.iter().map(|s| s.id.clone()).collect();
+    let steps_changed = baseline_steps != candidate_steps;
+
     for id in baseline_steps.difference(&candidate_steps) {
         diagnostics.push(breaking_diag(
             "DPCS-COMPAT-041",
             format!("plan step `{id}` removed"),
             format!("steps.{id}"),
         ));
-        breaking += 1;
+        counters.breaking += 1;
     }
     for id in candidate_steps.difference(&baseline_steps) {
-        additive += 1;
+        counters.additive += 1;
         diagnostics.push(info_additive(
             "DPCS-COMPAT-042",
             format!("plan step `{id}` added"),
             format!("steps.{id}"),
         ));
-        let _ = id;
     }
 
     let baseline_edges: BTreeSet<_> = baseline
@@ -349,33 +301,39 @@ pub fn compare_plans(baseline: &PipelinePlan, candidate: &PipelinePlan) -> Compa
         .iter()
         .map(|e| format!("{}->{}", e.from, e.to))
         .collect();
+    let edges_changed = baseline_edges != candidate_edges;
+
     for edge in baseline_edges.difference(&candidate_edges) {
         diagnostics.push(breaking_diag(
             "DPCS-COMPAT-043",
             format!("dependency edge `{edge}` removed"),
             "dependencyEdges",
         ));
-        breaking += 1;
+        counters.breaking += 1;
     }
-    for edge in candidate_edges.difference(&baseline_edges) {
-        additive += 1;
-        let _ = edge;
+    for _edge in candidate_edges.difference(&baseline_edges) {
+        counters.additive += 1;
     }
 
-    if baseline.step_order != candidate.step_order && breaking == 0 {
+    // Only flag stepOrder when step set and edges are unchanged (pure reorder).
+    if baseline.step_order != candidate.step_order
+        && counters.breaking == 0
+        && !steps_changed
+        && !edges_changed
+    {
         diagnostics.push(
             Diagnostic::compatibility_warning(
                 "DPCS-COMPAT-044",
                 categories::COMPATIBILITY,
-                "stepOrder differs while dependency edges remain compatible",
+                "stepOrder differs while step set and dependency edges remain equal",
             )
             .with_object_ref("stepOrder"),
         );
-        conditional += 1;
+        counters.conditional += 1;
     }
 
     diagnostics.sort_deterministic();
-    let category = classify(breaking, additive, removed_optional, conditional);
+    let category = classify(&counters);
     finish(
         baseline.contract_id.clone(),
         baseline.contract_version.clone(),
@@ -412,21 +370,16 @@ fn finish(
     }
 }
 
-fn classify(
-    breaking: usize,
-    additive: usize,
-    removed_optional: usize,
-    conditional: usize,
-) -> CompatibilityCategory {
-    if breaking > 0 {
+fn classify(counters: &CompatCounters) -> CompatibilityCategory {
+    if counters.breaking > 0 {
         CompatibilityCategory::Incompatible
-    } else if conditional > 0 {
+    } else if counters.conditional > 0 {
         CompatibilityCategory::ConditionallyCompatible
-    } else if additive > 0 && removed_optional == 0 {
+    } else if counters.additive > 0 && counters.removed_optional == 0 {
         CompatibilityCategory::BackwardCompatible
-    } else if removed_optional > 0 && additive == 0 {
+    } else if counters.removed_optional > 0 && counters.additive == 0 {
         CompatibilityCategory::ForwardCompatible
-    } else if additive > 0 && removed_optional > 0 {
+    } else if counters.additive > 0 && counters.removed_optional > 0 {
         CompatibilityCategory::ConditionallyCompatible
     } else {
         CompatibilityCategory::FullyCompatible
@@ -438,10 +391,25 @@ fn compare_ports(
     baseline: &[InterfacePort],
     candidate: &[InterfacePort],
     diagnostics: &mut ValidationReport,
-    breaking: &mut usize,
-    additive: &mut usize,
-    removed_optional: &mut usize,
+    counters: &mut CompatCounters,
 ) {
+    if has_duplicate_ids(baseline.iter().map(|p| p.id.as_str())) {
+        diagnostics.push(breaking_diag(
+            "DPCS-COMPAT-012",
+            format!("baseline `{path}` contains duplicate port ids"),
+            path,
+        ));
+        counters.breaking += 1;
+    }
+    if has_duplicate_ids(candidate.iter().map(|p| p.id.as_str())) {
+        diagnostics.push(breaking_diag(
+            "DPCS-COMPAT-012",
+            format!("candidate `{path}` contains duplicate port ids"),
+            path,
+        ));
+        counters.breaking += 1;
+    }
+
     let baseline_map: BTreeMap<_, _> = baseline.iter().map(|p| (p.id.clone(), p)).collect();
     let candidate_map: BTreeMap<_, _> = candidate.iter().map(|p| (p.id.clone(), p)).collect();
 
@@ -450,11 +418,10 @@ fn compare_ports(
             None => {
                 diagnostics.push(breaking_diag(
                     "DPCS-COMPAT-002",
-                    format!("required interface port `{id}` removed"),
+                    format!("interface port `{id}` removed"),
                     format!("{path}.{id}"),
                 ));
-                *breaking += 1;
-                let _ = port;
+                counters.breaking += 1;
             }
             Some(other) => {
                 if port.contract_ref != other.contract_ref {
@@ -463,14 +430,30 @@ fn compare_ports(
                         format!("interface port `{id}` contractRef changed"),
                         format!("{path}.{id}.contractRef"),
                     ));
-                    *breaking += 1;
+                    counters.breaking += 1;
+                }
+                if port.name != other.name {
+                    diagnostics.push(breaking_diag(
+                        "DPCS-COMPAT-013",
+                        format!("interface port `{id}` name changed"),
+                        format!("{path}.{id}.name"),
+                    ));
+                    counters.breaking += 1;
+                }
+                if port.purpose != other.purpose {
+                    diagnostics.push(breaking_diag(
+                        "DPCS-COMPAT-014",
+                        format!("interface port `{id}` purpose changed"),
+                        format!("{path}.{id}.purpose"),
+                    ));
+                    counters.breaking += 1;
                 }
             }
         }
     }
     for id in candidate_map.keys() {
         if !baseline_map.contains_key(id) {
-            *additive += 1;
+            counters.additive += 1;
             diagnostics.push(info_additive(
                 "DPCS-COMPAT-004",
                 format!("interface port `{id}` added"),
@@ -478,17 +461,25 @@ fn compare_ports(
             ));
         }
     }
-    let _ = removed_optional;
 }
 
 fn compare_steps(
     baseline: &[PipelineStep],
     candidate: &[PipelineStep],
     diagnostics: &mut ValidationReport,
-    breaking: &mut usize,
-    additive: &mut usize,
-    removed_optional: &mut usize,
+    counters: &mut CompatCounters,
 ) {
+    if has_duplicate_ids(baseline.iter().map(|s| s.id.as_str()))
+        || has_duplicate_ids(candidate.iter().map(|s| s.id.as_str()))
+    {
+        diagnostics.push(breaking_diag(
+            "DPCS-COMPAT-015",
+            "duplicate step ids prevent reliable compatibility analysis",
+            "steps",
+        ));
+        counters.breaking += 1;
+    }
+
     let baseline_map: BTreeMap<_, _> = baseline.iter().map(|s| (s.id.clone(), s)).collect();
     let candidate_map: BTreeMap<_, _> = candidate.iter().map(|s| (s.id.clone(), s)).collect();
 
@@ -500,7 +491,7 @@ fn compare_steps(
                     format!("step `{id}` removed"),
                     format!("steps.{id}"),
                 ));
-                *breaking += 1;
+                counters.breaking += 1;
             }
             Some(other) => {
                 if step.step_type != other.step_type {
@@ -509,7 +500,7 @@ fn compare_steps(
                         format!("step `{id}` type changed"),
                         format!("steps.{id}.type"),
                     ));
-                    *breaking += 1;
+                    counters.breaking += 1;
                 }
                 if step.contract_ref != other.contract_ref {
                     diagnostics.push(breaking_diag(
@@ -517,14 +508,38 @@ fn compare_steps(
                         format!("step `{id}` contractRef changed"),
                         format!("steps.{id}.contractRef"),
                     ));
-                    *breaking += 1;
+                    counters.breaking += 1;
                 }
+                if step.transform_ref != other.transform_ref {
+                    diagnostics.push(breaking_diag(
+                        "DPCS-COMPAT-016",
+                        format!("step `{id}` transformRef changed"),
+                        format!("steps.{id}.transformRef"),
+                    ));
+                    counters.breaking += 1;
+                }
+                compare_step_ports(
+                    id,
+                    "inputs",
+                    &step.inputs,
+                    &other.inputs,
+                    diagnostics,
+                    counters,
+                );
+                compare_step_ports(
+                    id,
+                    "outputs",
+                    &step.outputs,
+                    &other.outputs,
+                    diagnostics,
+                    counters,
+                );
             }
         }
     }
     for id in candidate_map.keys() {
         if !baseline_map.contains_key(id) {
-            *additive += 1;
+            counters.additive += 1;
             diagnostics.push(info_additive(
                 "DPCS-COMPAT-008",
                 format!("step `{id}` added"),
@@ -532,7 +547,44 @@ fn compare_steps(
             ));
         }
     }
-    let _ = removed_optional;
+}
+
+fn compare_step_ports(
+    step_id: &str,
+    side: &str,
+    baseline: &[StepPort],
+    candidate: &[StepPort],
+    diagnostics: &mut ValidationReport,
+    counters: &mut CompatCounters,
+) {
+    let baseline_map: BTreeMap<_, _> = baseline.iter().map(|p| (p.id.clone(), p)).collect();
+    let candidate_map: BTreeMap<_, _> = candidate.iter().map(|p| (p.id.clone(), p)).collect();
+    for (id, port) in &baseline_map {
+        match candidate_map.get(id) {
+            None => {
+                diagnostics.push(breaking_diag(
+                    "DPCS-COMPAT-017",
+                    format!("step `{step_id}` {side} port `{id}` removed"),
+                    format!("steps.{step_id}.{side}.{id}"),
+                ));
+                counters.breaking += 1;
+            }
+            Some(other) if port.contract_ref != other.contract_ref => {
+                diagnostics.push(breaking_diag(
+                    "DPCS-COMPAT-018",
+                    format!("step `{step_id}` {side} port `{id}` contractRef changed"),
+                    format!("steps.{step_id}.{side}.{id}.contractRef"),
+                ));
+                counters.breaking += 1;
+            }
+            _ => {}
+        }
+    }
+    for id in candidate_map.keys() {
+        if !baseline_map.contains_key(id) {
+            counters.additive += 1;
+        }
+    }
 }
 
 fn compare_string_pairs(
@@ -540,9 +592,7 @@ fn compare_string_pairs(
     baseline: BTreeSet<String>,
     candidate: BTreeSet<String>,
     diagnostics: &mut ValidationReport,
-    breaking: &mut usize,
-    additive: &mut usize,
-    removed_optional: &mut usize,
+    counters: &mut CompatCounters,
 ) {
     for edge in baseline.difference(&candidate) {
         diagnostics.push(breaking_diag(
@@ -550,22 +600,18 @@ fn compare_string_pairs(
             format!("`{path}` relation `{edge}` removed"),
             path,
         ));
-        *breaking += 1;
+        counters.breaking += 1;
     }
-    for edge in candidate.difference(&baseline) {
-        *additive += 1;
-        let _ = edge;
+    for _edge in candidate.difference(&baseline) {
+        counters.additive += 1;
     }
-    let _ = removed_optional;
 }
 
 fn compare_refs(
     baseline: &PipelineContract,
     candidate: &PipelineContract,
     diagnostics: &mut ValidationReport,
-    breaking: &mut usize,
-    additive: &mut usize,
-    removed_optional: &mut usize,
+    counters: &mut CompatCounters,
 ) {
     let baseline_map: BTreeMap<_, _> = baseline
         .contract_references
@@ -586,7 +632,7 @@ fn compare_refs(
                     format!("contract reference `{id}` removed"),
                     format!("contractReferences.{id}"),
                 ));
-                *breaking += 1;
+                counters.breaking += 1;
             }
             Some(other) => {
                 if reference.reference_type != other.reference_type
@@ -597,17 +643,184 @@ fn compare_refs(
                         format!("contract reference `{id}` type/location changed"),
                         format!("contractReferences.{id}"),
                     ));
-                    *breaking += 1;
+                    counters.breaking += 1;
                 }
             }
         }
     }
     for id in candidate_map.keys() {
         if !baseline_map.contains_key(id) {
-            *additive += 1;
+            counters.additive += 1;
         }
     }
-    let _ = removed_optional;
+}
+
+fn compare_execution(
+    baseline: Option<&ExecutionRequirements>,
+    candidate: Option<&ExecutionRequirements>,
+    diagnostics: &mut ValidationReport,
+    counters: &mut CompatCounters,
+) {
+    match (baseline, candidate) {
+        (None, None) => {}
+        (Some(_), None) => {
+            diagnostics.push(breaking_diag(
+                "DPCS-COMPAT-020",
+                "execution requirements removed",
+                "execution",
+            ));
+            counters.breaking += 1;
+        }
+        (None, Some(_)) => {
+            diagnostics.push(info_additive(
+                "DPCS-COMPAT-021",
+                "execution requirements added",
+                "execution",
+            ));
+            counters.additive += 1;
+        }
+        (Some(a), Some(b)) => {
+            if execution_fingerprint(a) != execution_fingerprint(b) {
+                diagnostics.push(breaking_diag(
+                    "DPCS-COMPAT-022",
+                    "execution requirements changed incompatibly",
+                    "execution",
+                ));
+                counters.breaking += 1;
+            }
+        }
+    }
+}
+
+fn compare_scheduling(
+    baseline: &[SchedulingIntent],
+    candidate: &[SchedulingIntent],
+    diagnostics: &mut ValidationReport,
+    counters: &mut CompatCounters,
+) {
+    let baseline_set = scheduling_fingerprints(baseline);
+    let candidate_set = scheduling_fingerprints(candidate);
+    if baseline_set == candidate_set {
+        return;
+    }
+    if candidate.is_empty() && !baseline.is_empty() {
+        diagnostics.push(breaking_diag(
+            "DPCS-COMPAT-023",
+            "scheduling intents removed",
+            "scheduling",
+        ));
+        counters.breaking += 1;
+    } else if baseline.is_empty() && !candidate.is_empty() {
+        counters.additive += 1;
+        diagnostics.push(info_additive(
+            "DPCS-COMPAT-024",
+            "scheduling intents added",
+            "scheduling",
+        ));
+    } else {
+        diagnostics.push(breaking_diag(
+            "DPCS-COMPAT-025",
+            "scheduling intents changed incompatibly",
+            "scheduling",
+        ));
+        counters.breaking += 1;
+    }
+}
+
+fn compare_quality_gates(
+    baseline: &[QualityGate],
+    candidate: &[QualityGate],
+    diagnostics: &mut ValidationReport,
+    counters: &mut CompatCounters,
+) {
+    if quality_fingerprints(baseline) != quality_fingerprints(candidate) {
+        diagnostics.push(breaking_diag(
+            "DPCS-COMPAT-026",
+            "quality gates changed",
+            "qualityGates",
+        ));
+        counters.breaking += 1;
+    }
+}
+
+fn compare_failure_semantics(
+    baseline: &[FailureSemantics],
+    candidate: &[FailureSemantics],
+    diagnostics: &mut ValidationReport,
+    counters: &mut CompatCounters,
+) {
+    if failure_fingerprints(baseline) != failure_fingerprints(candidate) {
+        diagnostics.push(breaking_diag(
+            "DPCS-COMPAT-027",
+            "failure semantics changed",
+            "failureSemantics",
+        ));
+        counters.breaking += 1;
+    }
+}
+
+fn execution_fingerprint(execution: &ExecutionRequirements) -> String {
+    let caps: BTreeSet<_> = execution
+        .required_capabilities
+        .iter()
+        .map(|c| c.trim().to_owned())
+        .collect();
+    let isolation: BTreeSet<_> = execution.isolation.iter().cloned().collect();
+    let deps: BTreeSet<_> = execution
+        .external_dependencies
+        .iter()
+        .map(|d| format!("{}:{}", d.id, d.capability))
+        .collect();
+    let resources = execution.resources.as_ref().map(|r| {
+        format!(
+            "{:?}/{:?}/{:?}/{:?}/{:?}",
+            r.processor, r.memory, r.storage, r.accelerator, r.bandwidth
+        )
+    });
+    let environment = execution.environment.as_ref().map(|e| {
+        let runtime: BTreeSet<_> = e.runtime_dependencies.iter().cloned().collect();
+        let software: BTreeSet<_> = e.software_capabilities.iter().cloned().collect();
+        format!(
+            "{:?}/{:?}/{:?}/{:?}",
+            e.operating_system, runtime, software, e.container
+        )
+    });
+    format!("{caps:?}|{isolation:?}|{deps:?}|{resources:?}|{environment:?}")
+}
+
+fn scheduling_fingerprints(items: &[SchedulingIntent]) -> BTreeSet<String> {
+    items
+        .iter()
+        .map(|s| format!("{:?}|{:?}|{:?}|{:?}", s.mode, s.cron, s.frequency, s.events))
+        .collect()
+}
+
+fn quality_fingerprints(items: &[QualityGate]) -> BTreeSet<String> {
+    items
+        .iter()
+        .map(|g| {
+            format!(
+                "{}|{}|{:?}|{:?}|{:?}",
+                g.id, g.purpose, g.on_success, g.on_failure, g.placement
+            )
+        })
+        .collect()
+}
+
+fn failure_fingerprints(items: &[FailureSemantics]) -> BTreeSet<String> {
+    items
+        .iter()
+        .map(|f| {
+            let triggers: BTreeSet<_> = f.triggers.iter().cloned().collect();
+            format!("{}|{:?}|{:?}", f.id, f.scope, triggers)
+        })
+        .collect()
+}
+
+fn lineage_fingerprint(lineage: &crate::model::PipelineLineage) -> String {
+    let datasets: BTreeSet<_> = lineage.datasets.iter().map(|d| d.dataset.clone()).collect();
+    let steps: BTreeSet<_> = lineage.steps.iter().map(|s| s.step_id.clone()).collect();
+    format!("{datasets:?}|{steps:?}")
 }
 
 fn edge_set(contract: &PipelineContract) -> BTreeSet<String> {
@@ -638,8 +851,18 @@ fn control_set(contract: &PipelineContract) -> BTreeSet<String> {
     contract
         .control_flow
         .iter()
-        .map(|f| format!("{}=>{}", f.from, f.to))
+        .map(|f| format!("{}=>{}:{}", f.from, f.to, f.kind.as_deref().unwrap_or("")))
         .collect()
+}
+
+fn has_duplicate_ids<'a>(ids: impl Iterator<Item = &'a str>) -> bool {
+    let mut seen = BTreeSet::new();
+    for id in ids {
+        if !seen.insert(id) {
+            return true;
+        }
+    }
+    false
 }
 
 fn breaking_diag(
@@ -668,5 +891,239 @@ fn info_additive(
         source_location: None,
         related_diagnostics: Vec::new(),
         metadata: None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::parser::parse_yaml;
+    use crate::plan::{plan, PlanResult};
+
+    fn contract(yaml: &str) -> PipelineContract {
+        parse_yaml(yaml).unwrap()
+    }
+
+    #[test]
+    fn additive_step_is_backward_compatible() {
+        let baseline = contract(
+            r#"
+dpcsVersion: "1.0.0"
+id: "p"
+version: "1.0.0"
+interface:
+  inputs: []
+  outputs: []
+steps:
+  - id: "a"
+    type: "extension:noop"
+graph:
+  edges: []
+"#,
+        );
+        let candidate = contract(
+            r#"
+dpcsVersion: "1.0.0"
+id: "p"
+version: "1.1.0"
+interface:
+  inputs: []
+  outputs: []
+steps:
+  - id: "a"
+    type: "extension:noop"
+  - id: "b"
+    type: "extension:noop"
+graph:
+  edges: []
+"#,
+        );
+        let result = compare_contracts(&baseline, &candidate);
+        assert!(result.is_ok());
+        assert_eq!(
+            result.report().category,
+            CompatibilityCategory::BackwardCompatible
+        );
+    }
+
+    #[test]
+    fn step_port_removal_is_breaking() {
+        let baseline = contract(
+            r#"
+dpcsVersion: "1.0.0"
+id: "p"
+version: "1.0.0"
+interface:
+  inputs: []
+  outputs: []
+steps:
+  - id: "a"
+    type: "extension:noop"
+    inputs:
+      - id: "in"
+graph:
+  edges: []
+"#,
+        );
+        let candidate = contract(
+            r#"
+dpcsVersion: "1.0.0"
+id: "p"
+version: "1.1.0"
+interface:
+  inputs: []
+  outputs: []
+steps:
+  - id: "a"
+    type: "extension:noop"
+graph:
+  edges: []
+"#,
+        );
+        let result = compare_contracts(&baseline, &candidate);
+        assert!(!result.is_ok());
+        assert!(result
+            .report()
+            .diagnostics
+            .iter()
+            .any(|d| d.id == "DPCS-COMPAT-017"));
+    }
+
+    #[test]
+    fn control_flow_kind_change_is_breaking() {
+        let baseline = contract(
+            r#"
+dpcsVersion: "1.0.0"
+id: "p"
+version: "1.0.0"
+interface:
+  inputs: []
+  outputs: []
+steps:
+  - id: "a"
+    type: "extension:noop"
+  - id: "b"
+    type: "extension:noop"
+graph:
+  edges: []
+controlFlow:
+  - from: "a"
+    to: "b"
+    kind: "success"
+"#,
+        );
+        let candidate = contract(
+            r#"
+dpcsVersion: "1.0.0"
+id: "p"
+version: "1.1.0"
+interface:
+  inputs: []
+  outputs: []
+steps:
+  - id: "a"
+    type: "extension:noop"
+  - id: "b"
+    type: "extension:noop"
+graph:
+  edges: []
+controlFlow:
+  - from: "a"
+    to: "b"
+    kind: "failure"
+"#,
+        );
+        let result = compare_contracts(&baseline, &candidate);
+        assert!(!result.is_ok());
+    }
+
+    #[test]
+    fn extension_removal_is_forward_compatible() {
+        let baseline = contract(
+            r#"
+dpcsVersion: "1.0.0"
+id: "p"
+version: "1.0.0"
+interface:
+  inputs: []
+  outputs: []
+steps:
+  - id: "a"
+    type: "extension:noop"
+graph:
+  edges: []
+x-vendor:
+  team: data
+"#,
+        );
+        let candidate = contract(
+            r#"
+dpcsVersion: "1.0.0"
+id: "p"
+version: "1.1.0"
+interface:
+  inputs: []
+  outputs: []
+steps:
+  - id: "a"
+    type: "extension:noop"
+graph:
+  edges: []
+"#,
+        );
+        let result = compare_contracts(&baseline, &candidate);
+        assert!(result.is_ok());
+        assert_eq!(
+            result.report().category,
+            CompatibilityCategory::ForwardCompatible
+        );
+    }
+
+    #[test]
+    fn compare_plans_additive_is_backward_compatible() {
+        let baseline = contract(
+            r#"
+dpcsVersion: "1.0.0"
+id: "p"
+version: "1.0.0"
+interface:
+  inputs: []
+  outputs: []
+steps:
+  - id: "a"
+    type: "extension:noop"
+graph:
+  edges: []
+"#,
+        );
+        let candidate = contract(
+            r#"
+dpcsVersion: "1.0.0"
+id: "p"
+version: "1.1.0"
+interface:
+  inputs: []
+  outputs: []
+steps:
+  - id: "a"
+    type: "extension:noop"
+  - id: "b"
+    type: "extension:noop"
+graph:
+  edges: []
+"#,
+        );
+        let PlanResult::Ok(base_plan) = plan(&baseline) else {
+            panic!("baseline plan");
+        };
+        let PlanResult::Ok(cand_plan) = plan(&candidate) else {
+            panic!("candidate plan");
+        };
+        let result = compare_plans(&base_plan, &cand_plan);
+        assert!(result.is_ok());
+        assert_eq!(
+            result.report().category,
+            CompatibilityCategory::BackwardCompatible
+        );
     }
 }
