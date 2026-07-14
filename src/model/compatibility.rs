@@ -1,4 +1,4 @@
-//! Compatibility policy model.
+//! Compatibility policy model (SPEC Ch 19).
 
 use serde::{Deserialize, Serialize};
 

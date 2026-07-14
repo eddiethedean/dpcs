@@ -119,8 +119,8 @@ let orphan_datasets = unreachable_datasets(&contract);
 ```
 
 Phase-based validation covers document, COM, structural, graph, references,
-data flow, control flow, execution, scheduling, quality, failure, and lineage.
-Extension namespace rules remain deferred to ROADMAP 0.9.0.
+data flow, control flow, execution, scheduling, quality, failure, lineage,
+security, governance, and extensions (including namespace rules).
 
 ## Planning (0.6.0)
 
@@ -220,5 +220,29 @@ match bind_contract(&contract, &profile, BindingTarget::Airflow) {
 `write_bundle` returns `Result<(), ValidationReport>` (not `dpcs::Error`) and
 rejects escaping relative paths (`..`, absolute) with `DPCS-BIND-004`. Target
 alias `k8s` is accepted for `kubernetes`.
+
+## Compatibility, registry, and conformance (0.9.0)
+
+```rust
+use dpcs::{
+    compare_contracts, toolkit_claim, validate_claim, validate_conformance_profile,
+    validate_registry, CompatibilityResult, ConformanceProfile, Registry,
+};
+
+match compare_contracts(&baseline, &candidate) {
+    CompatibilityResult::Ok(report) => assert!(report.category.is_compatible()),
+    CompatibilityResult::Err { report, .. } => assert!(!report.category.is_compatible()),
+}
+
+let registry = Registry::from_file("registry.yaml")?;
+assert!(validate_registry(&registry).is_valid());
+
+let profile = ConformanceProfile::from_file("conformance.profile.yaml")?;
+assert!(validate_conformance_profile(&profile).is_valid());
+assert!(validate_claim(&toolkit_claim()).is_valid());
+```
+
+Contract root may declare optional `security` and `governance` blocks.
+Extension root keys must use `x-*`, `vendor:name`, or URI-like namespaces.
 
 [`Error::InvalidDocument`]: ../src/error.rs

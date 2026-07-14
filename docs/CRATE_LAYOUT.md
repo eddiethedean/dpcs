@@ -1,6 +1,6 @@
 # Proposed Crate Layout
 
-Recommended initial layout:
+Recommended layout:
 
 ```text
 .
@@ -20,7 +20,9 @@ Recommended initial layout:
 │   ├── diagnostics/
 │   ├── plan/
 │   ├── capabilities/
-│   ├── binding/            # Orchestrator binding (SPEC Ch 17)
+│   ├── binding/
+│   ├── compatibility/
+│   ├── conformance/
 │   └── cli/
 ├── examples/
 ├── tests/fixtures/

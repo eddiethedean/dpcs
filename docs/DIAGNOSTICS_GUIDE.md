@@ -13,9 +13,11 @@ pub enum DiagnosticStage {
     Parse,
     CanonicalObjectModel,
     Validation,
+    CompatibilityAnalysis,
     Planning,
     CapabilityEvaluation,
     OrchestratorBinding,
+    ExecutionAnalysis, // reserved
 }
 
 pub struct Diagnostic {
@@ -26,10 +28,18 @@ pub struct Diagnostic {
     pub message: String,
     pub object_ref: Option<String>,
     pub remediation: Option<String>,
+    pub source_location: Option<String>,
+    pub related_diagnostics: Vec<String>,
+    pub metadata: Option<BTreeMap<String, String>>,
 }
 ```
 
-## Categories (0.8.0)
+`ValidationReport` aggregates diagnostics. `DiagnosticReport` adds
+`processingResult`, optional `artifactId`, and `implementation` metadata.
+
+Use `validate_diagnostic` for structural self-checks (`DPCS-DIAG-001`–`004`).
+
+## Categories (0.9.0)
 
 | Constant | Wire value |
 | --- | --- |
@@ -48,6 +58,12 @@ pub struct Diagnostic {
 | `PLANNING` | `planning` |
 | `CAPABILITY` | `capability` |
 | `BINDING` | `binding` |
+| `COMPATIBILITY` | `compatibility` |
+| `VERSIONING` | `versioning` |
+| `REGISTRY` | `registry` |
+| `CONFORMANCE` | `conformance` |
+| `SECURITY` | `security` |
+| `GOVERNANCE` | `governance` |
 | `EXTENSION` | `extension` |
 | `SYNTAX` | `syntax` |
 
@@ -61,5 +77,8 @@ Capability match failures use `DiagnosticStage::CapabilityEvaluation`
 | `DPCS-BIND-002` | Unknown binding target |
 | `DPCS-BIND-003` | Translation incomplete / empty artifacts |
 | `DPCS-BIND-004` | Artifact write failure or unsafe relative path |
+
+Compatibility analysis uses `DiagnosticStage::CompatibilityAnalysis` (`DPCS-COMPAT-*`).
+Unknown preserved extensions emit `Information` (`DPCS-EXT-010`).
 
 Diagnostics describe observations only. They must not change pipeline semantics.

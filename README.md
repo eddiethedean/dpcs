@@ -23,11 +23,11 @@ and Kubernetes. Execution runtimes remain out of scope. See [`ROADMAP.md`](ROADM
 
 | Item | Value |
 | --- | --- |
-| Crate version | `0.8.0` |
+| Crate version | `0.9.0` |
 | Spec version | `1.0.0-draft` |
 | Language | Rust 2021 (MSRV 1.85) |
 | License | Apache-2.0 OR MIT |
-| Release focus | Orchestrator binding (ROADMAP 0.8.0) |
+| Release focus | Complete specification Ch 18–25 (ROADMAP 0.9.0) |
 
 ## Quick start
 
@@ -36,7 +36,7 @@ and Kubernetes. Execution runtimes remain out of scope. See [`ROADMAP.md`](ROADM
 ```bash
 cargo install --path .
 # or, after crates.io publish:
-# cargo install dpcs --version 0.8.0
+# cargo install dpcs --version 0.9.0
 ```
 
 ### Validate a pipeline contract
@@ -45,6 +45,10 @@ cargo install --path .
 dpcs validate examples/minimal.dpcs.yaml
 dpcs validate examples/minimal.dpcs.yaml --json
 dpcs validate examples/minimal.dpcs.yaml --strict
+dpcs compatibility examples/compatibility/baseline.dpcs.yaml examples/compatibility/candidate_compatible.dpcs.yaml
+dpcs registry validate examples/registry.yaml
+dpcs conformance validate examples/conformance.profile.yaml
+dpcs version --json
 ```
 
 ### Inspect and explore
@@ -62,8 +66,8 @@ dpcs version
 
 | Code | Meaning |
 | --- | --- |
-| `0` | `validate`/`diagnostics`: valid; `capabilities`: match ok; `bind`: success; `inspect`/`graph`: successful parse |
-| `1` | Validation, capability, or binding errors (`validate`/`diagnostics`/`capabilities`/`bind`) |
+| `0` | `validate`/`diagnostics`: valid; `capabilities`: match ok; `bind`: success; `compatibility`: compatible; `registry`/`conformance` validate: ok; `inspect`/`graph`: successful parse |
+| `1` | Validation, capability, binding, compatibility, registry, or conformance errors |
 | `2` | Parse or I/O failure |
 
 ## Library usage
@@ -152,6 +156,24 @@ if let PlanResult::Ok(planned) = plan(&contract) {
 }
 ```
 
+Compatibility, registry, and conformance (0.9.0):
+
+```rust
+use dpcs::{
+    compare_contracts, toolkit_claim, validate_claim, validate_registry, CompatibilityResult,
+    Registry,
+};
+
+match compare_contracts(&baseline, &candidate) {
+    CompatibilityResult::Ok(report) => println!("category: {}", report.category),
+    CompatibilityResult::Err { report, .. } => eprintln!("incompatible: {}", report.category),
+}
+
+let registry = Registry::from_yaml_str(yaml)?;
+assert!(validate_registry(&registry).is_valid());
+assert!(validate_claim(&toolkit_claim()).is_valid());
+```
+
 ## Repository layout
 
 ```text
@@ -166,6 +188,8 @@ if let PlanResult::Ok(planned) = plan(&contract) {
 │   ├── plan/               # Deterministic Pipeline Plan IR
 │   ├── capabilities/       # Capability profiles and matcher
 │   ├── binding/            # Orchestrator binding scaffolds
+│   ├── compatibility/      # Compatibility analysis
+│   ├── conformance/        # Conformance claims and profiles
 │   └── cli/                # CLI implementation
 ├── examples/               # Example contracts and profiles
 ├── tests/fixtures/         # Valid and invalid fixtures

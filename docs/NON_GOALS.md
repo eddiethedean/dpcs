@@ -1,7 +1,9 @@
-# Non-Goals for Binding and Beyond
+# Non-Goals Beyond 0.9.0
 
-Orchestrator binding scaffold generation is implemented in 0.8.0. Do **not**
-implement yet:
+Completed through 0.9.0: orchestrator binding scaffolds and SPEC Ch 18–25
+document models (including in-process registry validation).
+
+Do **not** implement yet:
 
 - production-complete Airflow operators / Dagster resources / Temporal workers
 - execution runtime
@@ -10,7 +12,9 @@ implement yet:
 - ETL execution
 - ODCS validation internals
 - DTCS validation internals
-- Binding Profiles registry clients (ROADMAP 0.9+)
+- Network registry clients / Binding Profiles registry clients (ROADMAP 0.10)
+- Python / WASM bindings, JSON Schema generation (ROADMAP 0.10)
 
 DPCS should reference ODCS and DTCS contracts, not implement them internally.
 Binding produces orchestration artifacts; it does not run pipelines.
+Registry document validation does not imply a remote registry protocol.

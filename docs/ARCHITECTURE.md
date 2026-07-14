@@ -24,7 +24,7 @@ Orchestrator Binding
 Execution Runtime
 ```
 
-Current implementation scope (through ROADMAP 0.8.0):
+Current implementation scope (through ROADMAP 0.9.0):
 
 ```text
 DPCS Document
@@ -36,10 +36,10 @@ Parser
 Canonical Object Model
         │
         ▼
-Validator
+Validator (+ extensions, security, governance, versioning)
         │
         ▼
-Diagnostics
+Diagnostics / DiagnosticReport
         │
         ▼
 Pipeline Plan (deterministic, validation-gated)
@@ -49,7 +49,11 @@ Capability Evaluation (profile match, no plan mutation)
         │
         ▼
 Orchestrator Binding (scaffold artifacts; capability-gated)
+
+Also first-class (not mutating contracts):
+  Compatibility analysis · Registry document validate · Conformance claims/profiles
 ```
 
 Execution runtimes remain out of scope. Binding adapters emit implementation-defined
 scaffold artifacts for Airflow, Dagster, Prefect, Temporal, and Kubernetes.
+Registry **network clients** remain ROADMAP 0.10.0 (see ADR-0004).

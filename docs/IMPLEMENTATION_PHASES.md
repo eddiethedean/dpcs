@@ -68,7 +68,7 @@ Phase-based validation:
 6. Data Flow validation (dataset identity, wiring, reachability)
 7. Control Flow validation (conflicts and duplicates)
 8. Execution / Scheduling / Quality / Failure / Lineage (complete in 0.6.0)
-9. Extension stubs (namespace rules in 0.9.0)
+9. Extensions / security / governance (complete in 0.9.0)
 
 ## Phase 6 — CLI
 
@@ -101,3 +101,15 @@ match plan or execution demands without mutating the plan. CLI
 `bind` / `bind_contract` capability-gate a plan, then emit scaffold artifacts via
 Airflow, Dagster, Prefect, Temporal, and Kubernetes adapters. CLI `dpcs bind`
 writes artifacts and reports `BindingBundle` JSON when requested.
+
+## Phase 10 — Complete Specification (complete in 0.9.0)
+
+Closes SPEC Chapters 18–25:
+
+- Diagnostics report metadata and related identifiers
+- SemVer-compatible versioning validation
+- Extension namespace rules (`DPCS-EXT-*`)
+- Compatibility analysis (`compare_contracts` / CLI)
+- Security and governance metadata
+- Registry document model (ADR-0004; no network client)
+- Conformance profiles/claims and `tests/conformance` suite

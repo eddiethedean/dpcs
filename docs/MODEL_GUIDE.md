@@ -24,6 +24,8 @@ pub struct PipelineContract {
     pub failure_semantics: Vec<FailureSemantics>,
     pub lineage: Option<PipelineLineage>,
     pub compatibility: Option<CompatibilityPolicy>,
+    pub security: Option<SecurityMetadata>,
+    pub governance: Option<GovernanceMetadata>,
     pub extensions: ExtensionMap,
 }
 ```
@@ -147,6 +149,17 @@ matching against orchestrator profiles shipped in roadmap 0.7.0.
 | --- | --- |
 | `CapabilityProfile` | `identity` (alias `profile`), `dpcsVersion` (default empty), `capabilities` (objects or bare id strings), `limitations`, optional `metadata` |
 | `CapabilityDecl` | `id`, optional `category`, `optional` (default false) |
+
+## Metadata and registries (0.9.0)
+
+| Type | Key fields |
+| --- | --- |
+| `SecurityMetadata` | `secretRefs`, `integrityRefs`, optional `securityDomain` / `auditPolicyRef` |
+| `GovernanceMetadata` | optional `owner`, `governingAuthority`, `publicationStatus`, `publishedAt`, `tags` |
+| `Registry` | `id`, `version`, `dpcsVersion`, `owner`, `artifacts[]` |
+| `RegisteredArtifact` | `id`, `type`, `version`, optional compatibility / publication / location |
+| `ExtensionDefinition` | `id`, `namespace`, `version`, `owner`, `scope`, optional `semantics` |
+| `ConformanceProfile` | `id`, `version`, `dpcsVersion`, `levels`, optional requirements |
 
 [`PipelineGraph`]: ../src/model/graph.rs
 [`DataFlow`]: ../src/model/data_flow.rs

@@ -1,0 +1,11 @@
+id: "invalid.registry"
+version: "0.1.0"
+dpcsVersion: "1.0.0-draft"
+owner: "platform"
+artifacts:
+  - id: "dup"
+    type: "pipelineContract"
+    version: "1.0.0"
+  - id: "dup"
+    type: "pipelineContract"
+    version: "1.0.0"

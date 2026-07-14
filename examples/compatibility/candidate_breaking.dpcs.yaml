@@ -1,0 +1,37 @@
+dpcsVersion: "1.0.0"
+id: "compat.baseline"
+version: "2.0.0"
+interface:
+  inputs:
+    - id: "raw"
+      name: "Raw"
+      contractRef: "raw_contract"
+      purpose: "input"
+  outputs: []
+contractReferences:
+  - id: "raw_contract"
+    type: "odcs"
+    location: "contracts/raw.odcs.yaml"
+  - id: "clean_contract"
+    type: "odcs"
+    location: "contracts/clean.odcs.yaml"
+  - id: "transform"
+    type: "dtcs"
+    location: "transforms/normalize.dtcs.yaml"
+steps:
+  - id: "normalize"
+    type: "dtcs:transform"
+    contractRef: "transform"
+    inputs:
+      - id: "raw"
+    outputs:
+      - id: "clean"
+graph:
+  edges: []
+dataFlow:
+  - from: "interface.inputs.raw"
+    to: "steps.normalize.inputs.raw"
+    dataset: "raw"
+  - from: "steps.normalize.outputs.clean"
+    to: "interface.outputs.clean"
+    dataset: "clean"

@@ -1,0 +1,13 @@
+id: "dpcs.complete"
+version: "0.9.0"
+dpcsVersion: "1.0.0-draft"
+levels:
+  - parser
+  - validator
+  - planner
+  - capabilityEvaluator
+  - orchestratorBinder
+  - registry
+  - completeImplementation
+requireSecurity: false
+requireGovernance: false

@@ -1,0 +1,11 @@
+dpcsVersion: "1.0.0"
+id: "invalid.version"
+version: "not-a-version"
+interface:
+  inputs: []
+  outputs: []
+steps:
+  - id: "a"
+    type: "extension:noop"
+graph:
+  edges: []

@@ -149,22 +149,22 @@ Experimental:
 
 ------------------------------------------------------------------------
 
-# 0.9.0 --- Complete Specification
+# 0.9.0 --- Complete Specification (shipped)
 
-Implements Chapters 18--26.
+Implements Chapters 18--25 (Chapter 26 appendices are informative).
 
 ### Deliverables
 
--   Diagnostics
--   Compatibility
--   Versioning
--   Extensibility
--   Registries
--   Conformance
+-   Diagnostics (Ch 18 completeness: related diags, DiagnosticReport, stages)
+-   Compatibility analysis (`compare_contracts` / `compare_plans`)
+-   Versioning (SemVer-compatible syntax validation)
+-   Extensibility (namespace rules + ExtensionDefinition)
+-   Registries (in-process document model; see ADR-0004)
+-   Conformance (claims/profiles + `tests/conformance`)
 -   Security metadata
 -   Governance metadata
 
-Full conformance suite.
+Full conformance suite (Appendix E checklist).
 
 ------------------------------------------------------------------------
 

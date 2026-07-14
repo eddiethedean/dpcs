@@ -4,10 +4,10 @@ Validation is deterministic and phase-based. It returns a `ValidationReport`
 and does not panic on invalid contracts. Phases always complete and findings are
 accumulated, then sorted deterministically.
 
-## Phases (0.6.0–0.8.0)
+## Phases (0.9.0)
 
 1. Document — unsupported `dpcsVersion` warnings (`DPCS-DOC-002`)
-2. Canonical Object Model — identity, uniqueness, interface completeness, reserved extension keys
+2. Canonical Object Model — identity, uniqueness, interface completeness, reserved extension keys, SemVer version syntax (`DPCS-VER-*`)
 3. Structural — empty step `type` (`DPCS-STR-003`), empty step port ids (`DPCS-STR-001`)
 4. Graph — edges, cycles, duplicate edges, unreachable steps, entry/exit integrity
 5. References — resolvable contract / transform / port references
@@ -18,7 +18,9 @@ accumulated, then sorted deterministically.
 10. Quality — criteria, outcomes, placement, contract refs (`DPCS-QG-*`)
 11. Failure — scope, triggers, responses, retry (`DPCS-FS-*`)
 12. Lineage — dataset/step/contract provenance refs (`DPCS-LIN-*`)
-13. Extensions — reserved root collisions are COM-012; namespace rules deferred to 0.9.0
+13. Security — secret refs / integrity refs (`DPCS-SEC-*`) when present
+14. Governance — owner/authority/publication (`DPCS-GOV-*`) when present
+15. Extensions — namespace syntax + informational preserve (`DPCS-EXT-*`); reserved collisions remain COM-012
 
 Quality/failure **identity** (empty/duplicate ids) remains COM-owned
 (`DPCS-COM-004` / `DPCS-COM-005`).
@@ -98,6 +100,22 @@ Capability matching is separate from contract validation: after a successful
 | `DPCS-LIN-010` | Unknown step lineage stepId |
 | `DPCS-LIN-016` | Legacy upstream/downstream fields |
 | `DPCS-PLN-001` | Plan refused due to validation errors |
+
+## Selected diagnostic IDs (0.9 additions)
+
+| ID | Meaning |
+| --- | --- |
+| `DPCS-VER-001` | Invalid SemVer-compatible contract `version` |
+| `DPCS-VER-002` | Invalid SemVer-compatible `dpcsVersion` |
+| `DPCS-VER-003` | Invalid SemVer-compatible capability profile `dpcsVersion` |
+| `DPCS-EXT-001` | Invalid extension namespace |
+| `DPCS-EXT-002` | Forbidden extension namespace (profile) |
+| `DPCS-EXT-010` | Unrecognized extension preserved (Information) |
+| `DPCS-COMPAT-*` | Compatibility analysis findings |
+| `DPCS-SEC-*` | Security metadata findings |
+| `DPCS-GOV-*` | Governance metadata findings |
+| `DPCS-REG-*` | Registry document findings |
+| `DPCS-CONF-*` | Conformance claim/profile findings |
 
 Invalid contracts produce diagnostics instead of hard failures where possible.
 Planning refuses invalid contracts and emits planning-stage diagnostics.

@@ -249,6 +249,21 @@ pub fn validate_profile(profile: &CapabilityProfile) -> ValidationReport {
             .with_object_ref("dpcsVersion")
             .with_remediation("Set dpcsVersion to a supported DPCS specification version"),
         );
+    } else if !crate::model::is_valid_version(&profile.dpcs_version) {
+        report.push(
+            Diagnostic::capability_error(
+                "DPCS-VER-003",
+                categories::VERSIONING,
+                format!(
+                    "capability profile dpcsVersion `{}` is not a valid SemVer-compatible identifier",
+                    profile.dpcs_version
+                ),
+            )
+            .with_object_ref("dpcsVersion")
+            .with_remediation(
+                "Use MAJOR.MINOR.PATCH with optional pre-release (for example `1.0.0-draft`)",
+            ),
+        );
     }
 
     let mut seen: BTreeMap<String, usize> = BTreeMap::new();
@@ -301,6 +316,8 @@ fn profile_parse_error(message: String) -> Error {
             "Provide identity (or profile), dpcsVersion, and capabilities[] with ids".to_owned(),
         ),
         source_location: None,
+        related_diagnostics: Vec::new(),
+        metadata: None,
     });
     Error::InvalidDocument { report }
 }

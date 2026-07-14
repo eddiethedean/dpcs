@@ -13,12 +13,16 @@ pub enum DiagnosticStage {
     CanonicalObjectModel,
     /// Semantic and structural validation.
     Validation,
+    /// Compatibility analysis between artifacts.
+    CompatibilityAnalysis,
     /// Pipeline plan generation.
     Planning,
     /// Orchestrator capability evaluation.
     CapabilityEvaluation,
     /// Orchestrator binding.
     OrchestratorBinding,
+    /// Execution analysis (reserved; unused in 0.9.0 toolkit scope).
+    ExecutionAnalysis,
 }
 
 impl fmt::Display for DiagnosticStage {
@@ -27,9 +31,11 @@ impl fmt::Display for DiagnosticStage {
             Self::Parse => write!(f, "parse"),
             Self::CanonicalObjectModel => write!(f, "canonicalObjectModel"),
             Self::Validation => write!(f, "validation"),
+            Self::CompatibilityAnalysis => write!(f, "compatibilityAnalysis"),
             Self::Planning => write!(f, "planning"),
             Self::CapabilityEvaluation => write!(f, "capabilityEvaluation"),
             Self::OrchestratorBinding => write!(f, "orchestratorBinding"),
+            Self::ExecutionAnalysis => write!(f, "executionAnalysis"),
         }
     }
 }

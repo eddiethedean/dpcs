@@ -29,6 +29,9 @@ pub struct PipelinePlan {
     pub contract_version: String,
     /// DPCS specification version declared by the source contract.
     pub dpcs_version: String,
+    /// Optional independent Pipeline Plan version (SPEC Ch 20).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
     /// Resolved pipeline steps.
     pub steps: Vec<PipelineStep>,
     /// Resolved pipeline graph.
@@ -137,6 +140,7 @@ pub fn plan(contract: &PipelineContract) -> PlanResult {
         contract_id: contract.id.clone(),
         contract_version: contract.version.clone(),
         dpcs_version: contract.dpcs_version.clone(),
+        version: None,
         steps: contract.steps.clone(),
         graph: contract.graph.clone(),
         contract_references: contract.contract_references.clone(),

@@ -112,3 +112,12 @@ Required test categories:
 - `capabilities` match success and missing-mandatory failure
 - `bind` writes artifacts, `--json` emits `BindingBundle`, capability/target failures exit 1
 - validate shipped example: `examples/minimal.dpcs.yaml`
+- `compatibility` / `registry validate` / `conformance validate` / `version --json`
+
+## Complete specification / Appendix E (0.9.0)
+
+- versioning, extensions, compatibility, registry, security, governance, conformance
+  covered by `tests/conformance.rs` plus CLI tests
+- SemVer rejection (`DPCS-VER-001`)
+- invalid extension namespace (`DPCS-EXT-001`) and informational preserve (`DPCS-EXT-010`)
+- registry duplicate artifact id+version (`DPCS-REG-014`)

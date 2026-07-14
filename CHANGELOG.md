@@ -5,6 +5,42 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-07-14
+
+### Added
+
+- Diagnostics completeness (SPEC Ch 18): `relatedDiagnostics`, `DiagnosticReport`,
+  `ProcessingResult`, `ImplementationMetadata`, `validate_diagnostic`,
+  `Severity::Information` helpers, `DiagnosticStage::CompatibilityAnalysis`
+- SemVer-compatible versioning helpers (`parse_version`, `is_valid_version`,
+  `versions_compatible`) with `DPCS-VER-001`–`003`
+- Optional independent `PipelinePlan.version`
+- Extensibility validation (`DPCS-EXT-001`–`010`, `ExtensionDefinition`,
+  namespace rules for `x-*` / `vendor:name` / URI-like keys)
+- Compatibility analysis: `compare_contracts`, `compare_plans`,
+  `CompatibilityCategory` / `CompatibilityReport` / `CompatibilityResult`,
+  diagnostics `DPCS-COMPAT-*`, CLI `dpcs compatibility`
+- Security metadata COM + validation (`DPCS-SEC-001`–`005`)
+- Governance metadata COM + validation (`DPCS-GOV-001`–`005`)
+- Registry document model (`Registry`, `RegisteredArtifact`, `validate_registry`,
+  `DPCS-REG-001`–`014`), CLI `dpcs registry validate` (no network client; ADR-0004)
+- Conformance profiles/claims (`ConformanceProfile`, `ConformanceClaim`,
+  `ConformanceLevel`, `DPCS-CONF-*`), CLI `dpcs conformance validate`,
+  `dpcs version --json` emits toolkit claim
+- Appendix E–aligned suite in `tests/conformance.rs`
+- Examples: compatibility pairs, `registry.yaml`, `conformance.profile.yaml`,
+  `with_security_governance.dpcs.yaml`
+
+### Changed
+
+- Crate version `0.9.0`; architecture documents Chapters 18–25
+- Extension validation phase is no longer a no-op
+- `dpcs version` prints spec version and conformance levels
+
+### Fixed
+
+- Capability profile / evaluate reuse shared `versions_compatible` helper
+
 ## [0.8.0] - 2026-07-14
 
 ### Added

@@ -1,0 +1,30 @@
+dpcsVersion: "1.0.0"
+id: "secured.pipeline"
+version: "0.1.0"
+metadata:
+  description: "Pipeline with security and governance metadata"
+  owner: "data-platform"
+interface:
+  inputs: []
+  outputs: []
+steps:
+  - id: "noop"
+    type: "extension:noop"
+graph:
+  edges: []
+security:
+  secretRefs:
+    - id: "db-password"
+      loc: "vault://secret/data/pipeline/db"
+      provider: "vault"
+  integrityRefs:
+    - kind: "sha256"
+      value: "sha256:abcdefghijklmnopqrstuvwxyz012345"
+  securityDomain: "pii"
+governance:
+  owner: "data-platform"
+  governingAuthority: "data-governance-board"
+  publicationStatus: "published"
+  publishedAt: "2026-07-14T00:00:00Z"
+  tags:
+    - production

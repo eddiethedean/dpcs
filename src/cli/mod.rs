@@ -9,9 +9,11 @@ use crate::diagnostics::ValidationReport;
 use crate::error::Error;
 use crate::parser;
 use crate::plan;
+use crate::DPCS_SPEC_VERSION;
 use crate::{
-    bind, evaluate, parse_target, validate, write_bundle, BindingResult, CapabilityProfile,
-    CapabilityResult, VERSION,
+    bind, compare_contracts, evaluate, parse_target, toolkit_claim, validate, validate_claim,
+    validate_conformance_profile, validate_registry, write_bundle, BindingResult,
+    CapabilityProfile, CapabilityResult, ConformanceProfile, Registry, VERSION,
 };
 
 /// Exit code for successful validation.
@@ -101,8 +103,56 @@ enum Commands {
         #[arg(long)]
         json: bool,
     },
+    /// Compare two Pipeline Contracts for semantic compatibility.
+    Compatibility {
+        /// Baseline Pipeline Contract.
+        baseline: PathBuf,
+        /// Candidate Pipeline Contract.
+        candidate: PathBuf,
+        /// Emit the compatibility report as JSON.
+        #[arg(long)]
+        json: bool,
+    },
+    /// Registry document operations.
+    Registry {
+        #[command(subcommand)]
+        command: RegistryCommands,
+    },
+    /// Conformance profile / claim operations.
+    Conformance {
+        #[command(subcommand)]
+        command: ConformanceCommands,
+    },
     /// Print the toolkit version.
-    Version,
+    Version {
+        /// Emit version and conformance claim as JSON.
+        #[arg(long)]
+        json: bool,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+enum RegistryCommands {
+    /// Validate a registry document.
+    Validate {
+        /// Path to a registry YAML/JSON document.
+        path: PathBuf,
+        /// Emit diagnostics as JSON.
+        #[arg(long)]
+        json: bool,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+enum ConformanceCommands {
+    /// Validate a conformance profile document.
+    Validate {
+        /// Path to a conformance profile YAML/JSON document.
+        path: PathBuf,
+        /// Emit diagnostics as JSON.
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 /// Run the CLI and return a process exit code.
@@ -129,8 +179,31 @@ fn handle_cli_error(err: Error, json: bool) -> ExitCode {
 
 fn execute(cli: Cli) -> Result<u8, Error> {
     match cli.command {
-        Commands::Version => {
-            println!("dpcs {VERSION}");
+        Commands::Version { json } => {
+            let claim = toolkit_claim();
+            if json {
+                let payload = VersionPayload {
+                    version: VERSION.to_owned(),
+                    dpcs_spec_version: DPCS_SPEC_VERSION.to_owned(),
+                    conformance: claim,
+                };
+                let payload = serde_json::to_string_pretty(&payload).map_err(|err| {
+                    Error::Serialization(format!("failed to serialize version payload: {err}"))
+                })?;
+                println!("{payload}");
+            } else {
+                println!("dpcs {VERSION}");
+                println!("dpcsSpecVersion: {DPCS_SPEC_VERSION}");
+                println!(
+                    "conformanceLevels: {}",
+                    claim
+                        .levels
+                        .iter()
+                        .map(|level| level.to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                );
+            }
             Ok(EXIT_OK)
         }
         Commands::Validate { path, json, strict } => {
@@ -455,6 +528,108 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                 }
             }
         }
+        Commands::Compatibility {
+            baseline,
+            candidate,
+            json,
+        } => {
+            let baseline_contract = match parser::parse_file(&baseline) {
+                Ok(contract) => contract,
+                Err(Error::InvalidDocument { report }) => {
+                    print_report(&report, json)?;
+                    return Ok(EXIT_FAILURE);
+                }
+                Err(err) => return Err(err),
+            };
+            let candidate_contract = match parser::parse_file(&candidate) {
+                Ok(contract) => contract,
+                Err(Error::InvalidDocument { report }) => {
+                    print_report(&report, json)?;
+                    return Ok(EXIT_FAILURE);
+                }
+                Err(err) => return Err(err),
+            };
+            let result = compare_contracts(&baseline_contract, &candidate_contract);
+            let report = result.report();
+            if json {
+                let payload = serde_json::to_string_pretty(report).map_err(|err| {
+                    Error::Serialization(format!("failed to serialize compatibility report: {err}"))
+                })?;
+                println!("{payload}");
+            } else {
+                println!(
+                    "baseline: {}@{}",
+                    report.baseline_id, report.baseline_version
+                );
+                println!(
+                    "candidate: {}@{}",
+                    report.candidate_id, report.candidate_version
+                );
+                println!("category: {}", report.category);
+                for diagnostic in &report.diagnostics {
+                    println!(
+                        "{} {}: {} — {}",
+                        diagnostic.severity, diagnostic.id, diagnostic.stage, diagnostic.message
+                    );
+                }
+                println!(
+                    "compatibility: {}",
+                    if report.category.is_compatible() {
+                        "ok"
+                    } else {
+                        "incompatible"
+                    }
+                );
+            }
+            Ok(if report.category.is_compatible() {
+                EXIT_OK
+            } else {
+                EXIT_VALIDATION
+            })
+        }
+        Commands::Registry {
+            command: RegistryCommands::Validate { path, json },
+        } => {
+            let registry = match Registry::from_file(&path) {
+                Ok(registry) => registry,
+                Err(Error::InvalidDocument { report }) => {
+                    print_report(&report, json)?;
+                    return Ok(EXIT_FAILURE);
+                }
+                Err(err) => return Err(err),
+            };
+            let report = validate_registry(&registry);
+            print_report(&report, json)?;
+            Ok(exit_code_for_report(&report, false))
+        }
+        Commands::Conformance {
+            command: ConformanceCommands::Validate { path, json },
+        } => {
+            let profile = match ConformanceProfile::from_file(&path) {
+                Ok(profile) => profile,
+                Err(Error::InvalidDocument { report }) => {
+                    print_report(&report, json)?;
+                    return Ok(EXIT_FAILURE);
+                }
+                Err(err) => return Err(err),
+            };
+            let mut report = validate_conformance_profile(&profile);
+            report.extend(validate_claim(&toolkit_claim()));
+            // Prefer profile validity; also ensure toolkit claim stays valid.
+            let mut claim_report = validate_claim(&crate::ConformanceClaim {
+                implementation: "claimed".to_owned(),
+                implementation_version: VERSION.to_owned(),
+                dpcs_version: profile.dpcs_version.clone(),
+                levels: profile.levels.clone(),
+                extensions: Default::default(),
+            });
+            // Only keep claim findings that indicate unimplemented levels for the profile.
+            claim_report.diagnostics.retain(|d| d.id == "DPCS-CONF-010");
+            report.extend(claim_report);
+            report.sort_deterministic();
+            print_report(&report, json)?;
+            Ok(exit_code_for_report(&report, false))
+        }
     }
 }
 
@@ -560,4 +735,12 @@ struct GraphEdgeView {
     to: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     kind: Option<String>,
+}
+
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct VersionPayload {
+    version: String,
+    dpcs_spec_version: String,
+    conformance: crate::ConformanceClaim,
 }

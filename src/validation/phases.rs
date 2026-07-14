@@ -4,8 +4,8 @@ use crate::diagnostics::ValidationReport;
 use crate::model::PipelineContract;
 
 use super::{
-    com, control_flow, data_flow, document, execution, extensions, failure, graph, lineage,
-    quality, references, scheduling, structural,
+    com, control_flow, data_flow, document, execution, extensions, failure, governance, graph,
+    lineage, quality, references, scheduling, security, structural,
 };
 
 /// Validate a Pipeline Contract using the DPCS phase model.
@@ -27,6 +27,8 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
     report.extend(quality::validate(contract));
     report.extend(failure::validate(contract));
     report.extend(lineage::validate(contract));
+    report.extend(security::validate(contract));
+    report.extend(governance::validate(contract));
     report.extend(extensions::validate(contract));
 
     report.sort_deterministic();

@@ -6,7 +6,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde::{Deserialize, Serialize};
 
 use crate::diagnostics::{categories, Diagnostic, ValidationReport};
-use crate::model::ExecutionRequirements;
+use crate::model::{versions_compatible, ExecutionRequirements};
 use crate::plan::PipelinePlan;
 use crate::DPCS_SPEC_VERSION;
 
@@ -348,20 +348,4 @@ fn demand_entries(requirements: Option<&ExecutionRequirements>) -> BTreeMap<Stri
     }
 
     demand
-}
-
-fn versions_compatible(left: &str, right: &str) -> bool {
-    if left == right {
-        return true;
-    }
-    let normalize = |value: &str| {
-        value
-            .trim()
-            .trim_end_matches("-draft")
-            .split('.')
-            .take(2)
-            .collect::<Vec<_>>()
-            .join(".")
-    };
-    normalize(left) == normalize(right)
 }

@@ -2,12 +2,11 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::ExtensionMap;
-
 use super::{
     CompatibilityPolicy, ContractReference, ControlFlow, DataFlow, ExecutionRequirements,
-    FailureSemantics, IdentityCatalog, Metadata, PipelineGraph, PipelineIdentity,
-    PipelineInterface, PipelineLineage, PipelineStep, QualityGate, SchedulingIntent,
+    ExtensionMap, FailureSemantics, GovernanceMetadata, IdentityCatalog, Metadata, PipelineGraph,
+    PipelineIdentity, PipelineInterface, PipelineLineage, PipelineStep, QualityGate,
+    SchedulingIntent, SecurityMetadata,
 };
 use crate::diagnostics::ValidationReport;
 use crate::error::Result;
@@ -65,6 +64,12 @@ pub struct PipelineContract {
     /// Optional compatibility policy.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub compatibility: Option<CompatibilityPolicy>,
+    /// Optional security metadata.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub security: Option<SecurityMetadata>,
+    /// Optional governance metadata.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub governance: Option<GovernanceMetadata>,
     /// Extension fields preserved from the source document.
     #[serde(default, flatten)]
     pub extensions: ExtensionMap,

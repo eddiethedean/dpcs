@@ -36,4 +36,16 @@ pub mod categories {
     pub const CAPABILITY: &str = "capability";
     /// Orchestrator binding issues.
     pub const BINDING: &str = "binding";
+    /// Compatibility analysis issues.
+    pub const COMPATIBILITY: &str = "compatibility";
+    /// Versioning issues.
+    pub const VERSIONING: &str = "versioning";
+    /// Registry issues.
+    pub const REGISTRY: &str = "registry";
+    /// Conformance claim / profile issues.
+    pub const CONFORMANCE: &str = "conformance";
+    /// Security metadata issues.
+    pub const SECURITY: &str = "security";
+    /// Governance metadata issues.
+    pub const GOVERNANCE: &str = "governance";
 }

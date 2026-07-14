@@ -15,7 +15,10 @@ dpcs diagnostics <path>
 dpcs graph <path>
 dpcs capabilities <profile> --plan <contract>
 dpcs bind <contract> --profile <profile> --target <airflow|dagster|prefect|temporal|kubernetes>
-dpcs version
+dpcs compatibility <baseline> <candidate>
+dpcs registry validate <path>
+dpcs conformance validate <path>
+dpcs version [--json]
 ```
 
 Output modes:
@@ -28,12 +31,16 @@ dpcs capabilities orchestrator.capabilities.yaml --plan pipeline.yaml
 dpcs capabilities orchestrator.capabilities.yaml --plan pipeline.yaml --json
 dpcs bind pipeline.yaml --profile orchestrator.capabilities.yaml --target airflow
 dpcs bind pipeline.yaml --profile orchestrator.capabilities.yaml --target airflow --out ./out --json
+dpcs compatibility baseline.yaml candidate.yaml --json
+dpcs registry validate registry.yaml --json
+dpcs conformance validate conformance.profile.yaml --json
+dpcs version --json
 ```
 
 Exit codes:
 
-- `0` valid / capability match ok / bind ok
-- `1` validation, capability, or binding errors
+- `0` valid / capability match ok / bind ok / compatible / registry or conformance ok
+- `1` validation, capability, binding, compatibility, registry, or conformance errors
 - `2` parse or IO failure
 
 Notes:
@@ -45,7 +52,11 @@ Notes:
 - `bind --json` emits a `BindingBundle` on success (and still writes files when `--out` is used or defaulted).
 - `--target` accepts `airflow`, `dagster`, `prefect`, `temporal`, `kubernetes`, and alias `k8s`.
 - `temporal` and `kubernetes` targets are experimental.
-- Invalid YAML/JSON documents emit Parse-stage diagnostics (`DPCS-PARSE-*`) and exit `2`. With `--json`, the diagnostic report is printed to stdout for `validate`, `diagnostics`, `inspect`, `graph`, `capabilities`, and `bind` failures.
+- `compatibility` compares two Pipeline Contracts. Exit `0` when the category is compatible (fully / backward / forward / conditional), `1` when incompatible, `2` on parse/I/O. `--json` emits `CompatibilityReport`.
+- `registry validate` validates an in-process registry document (`DPCS-REG-*`). Network registry clients are out of scope (ROADMAP 0.10).
+- `conformance validate` validates a conformance profile and checks claimed levels against this toolkit.
+- `version --json` emits toolkit version, `dpcsSpecVersion`, and the toolkit `ConformanceClaim`.
+- Invalid YAML/JSON documents emit Parse-stage diagnostics (`DPCS-PARSE-*`) and exit `2`. With `--json`, the diagnostic report is printed to stdout for `validate`, `diagnostics`, `inspect`, `graph`, `capabilities`, `bind`, `compatibility`, `registry`, and `conformance` failures.
 - `inspect` and `graph` always exit `0` after a successful parse and do not fail on validation errors.
 - `inspect` reports `valid`, execution-model counts, and `planningRefused` / `stepOrder` when a plan is available.
 - `graph` prints topology always; planned `stepOrder` is omitted when planning is refused, and both text/JSON report `planningRefused`.

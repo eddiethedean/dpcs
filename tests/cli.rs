@@ -288,3 +288,51 @@ fn bind_experimental_kubernetes() {
         .stdout(predicate::str::contains("experimental: true"));
     assert!(out.path().join("cronjob.yaml").is_file());
 }
+
+#[test]
+fn compatibility_cli_reports_category() {
+    let baseline = format!(
+        "{}/examples/compatibility/baseline.dpcs.yaml",
+        env!("CARGO_MANIFEST_DIR")
+    );
+    let candidate = format!(
+        "{}/examples/compatibility/candidate_compatible.dpcs.yaml",
+        env!("CARGO_MANIFEST_DIR")
+    );
+    bin()
+        .args(["compatibility", &baseline, &candidate])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("category:"));
+}
+
+#[test]
+fn registry_validate_cli() {
+    let path = format!("{}/examples/registry.yaml", env!("CARGO_MANIFEST_DIR"));
+    bin()
+        .args(["registry", "validate", &path])
+        .assert()
+        .success();
+}
+
+#[test]
+fn conformance_validate_cli() {
+    let path = format!(
+        "{}/examples/conformance.profile.yaml",
+        env!("CARGO_MANIFEST_DIR")
+    );
+    bin()
+        .args(["conformance", "validate", &path])
+        .assert()
+        .success();
+}
+
+#[test]
+fn version_json_includes_conformance() {
+    bin()
+        .args(["version", "--json"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("dpcsSpecVersion"))
+        .stdout(predicate::str::contains("conformance"));
+}

@@ -3,7 +3,9 @@
 use std::collections::BTreeSet;
 
 use crate::diagnostics::{categories, Diagnostic, DiagnosticStage, Severity, ValidationReport};
-use crate::model::{is_present_version, is_reserved_root_field, IdentityCatalog, PipelineContract};
+use crate::model::{
+    is_present_version, is_reserved_root_field, is_valid_version, IdentityCatalog, PipelineContract,
+};
 
 /// Validate Canonical Object Model invariants for a Pipeline Contract.
 pub fn validate_com_invariants(contract: &PipelineContract) -> ValidationReport {
@@ -28,6 +30,8 @@ fn com_error(id: &str, message: impl Into<String>) -> Diagnostic {
         object_ref: None,
         remediation: None,
         source_location: None,
+        related_diagnostics: Vec::new(),
+        metadata: None,
     }
 }
 
@@ -57,6 +61,46 @@ fn validate_pipeline_identity(contract: &PipelineContract, report: &mut Validati
             .with_object_ref("version")
             .with_remediation("Provide a pipeline contract version"),
         );
+    } else if !is_valid_version(&contract.version) {
+        report.push(Diagnostic {
+            id: "DPCS-VER-001".to_owned(),
+            severity: Severity::Error,
+            stage: DiagnosticStage::CanonicalObjectModel,
+            category: categories::VERSIONING.to_owned(),
+            message: format!(
+                "pipeline contract version `{}` is not a valid SemVer-compatible identifier",
+                contract.version
+            ),
+            object_ref: Some("version".to_owned()),
+            remediation: Some(
+                "Use MAJOR.MINOR.PATCH with optional pre-release/build (for example `1.2.3`)"
+                    .to_owned(),
+            ),
+            source_location: None,
+            related_diagnostics: Vec::new(),
+            metadata: None,
+        });
+    }
+
+    if !contract.dpcs_version.trim().is_empty() && !is_valid_version(&contract.dpcs_version) {
+        report.push(Diagnostic {
+            id: "DPCS-VER-002".to_owned(),
+            severity: Severity::Error,
+            stage: DiagnosticStage::CanonicalObjectModel,
+            category: categories::VERSIONING.to_owned(),
+            message: format!(
+                "dpcsVersion `{}` is not a valid SemVer-compatible identifier",
+                contract.dpcs_version
+            ),
+            object_ref: Some("dpcsVersion".to_owned()),
+            remediation: Some(
+                "Use MAJOR.MINOR.PATCH with optional pre-release (for example `1.0.0-draft`)"
+                    .to_owned(),
+            ),
+            source_location: None,
+            related_diagnostics: Vec::new(),
+            metadata: None,
+        });
     }
 }
 
