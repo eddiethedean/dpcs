@@ -13,9 +13,27 @@ jobs:
     name: CI
     uses: ./.github/workflows/ci-checks.yml
 
+  verify-version:
+    name: Verify tag version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Workspace and package versions match tag
+        run: |
+          WANT="${GITHUB_REF_NAME#v}"
+          WS=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
+          PY=$(sed -n 's/^version = "\(.*\)"/\1/p' bindings/python/pyproject.toml | head -1)
+          PYC=$(sed -n 's/^version = "\(.*\)"/\1/p' bindings/python/Cargo.toml | head -1)
+          WM=$(sed -n 's/^version = "\(.*\)"/\1/p' bindings/wasm/wasmer.toml | head -1)
+          echo "tag=$WANT workspace=$WS python=$PY python-crate=$PYC wasmer=$WM"
+          if [ "$WS" != "$WANT" ] || [ "$PY" != "$WANT" ] || [ "$PYC" != "$WANT" ] || [ "$WM" != "$WANT" ]; then
+            echo "version mismatch: tag and package files must all be $WANT" >&2
+            exit 1
+          fi
+
   publish-crates:
     name: Publish crates.io
-    needs: ci
+    needs: [ci, verify-version]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -40,7 +58,7 @@ jobs:
 
   publish-pypi:
     name: Publish PyPI
-    needs: ci
+    needs: [ci, verify-version]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -58,7 +76,7 @@ jobs:
 
   publish-npm:
     name: Publish npm
-    needs: ci
+    needs: [ci, verify-version]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -88,7 +106,7 @@ jobs:
 
   publish-wasmer:
     name: Publish Wasmer
-    needs: ci
+    needs: [ci, verify-version]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

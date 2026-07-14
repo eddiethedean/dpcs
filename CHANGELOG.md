@@ -43,6 +43,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   severity colors on a TTY (honors `NO_COLOR`)
 - Graph HTML pages prioritize embedded Mermaid source for offline use
 - Raise MSRV to 1.88 for locked `ratatui` / `darling` / `instability` builds
+- Release workflow verifies the tag matches workspace / Python / Wasmer versions
+  before publishing
 
 ## [0.10.0] - 2026-07-14
 

@@ -22,6 +22,8 @@ dependencies = []
 [project.urls]
 Homepage = "https://github.com/eddiethedean/dpcs"
 Repository = "https://github.com/eddiethedean/dpcs"
+Documentation = "https://dpcs.readthedocs.io/en/latest/"
+Changelog = "https://github.com/eddiethedean/dpcs/blob/main/CHANGELOG.md"
 
 [tool.maturin]
 manifest-path = "Cargo.toml"
