@@ -1,17 +1,19 @@
 //! Capability profile types (SPEC Ch 16).
 
 use std::collections::BTreeMap;
+use std::fmt;
 use std::fs;
 use std::path::Path;
 
-use serde::{Deserialize, Serialize};
+use serde::de::{self, MapAccess, Visitor};
+use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::diagnostics::{categories, Diagnostic, DiagnosticStage, Severity, ValidationReport};
 use crate::error::{Error, Result};
 use crate::model::{ExtensionMap, Metadata};
 
 /// Declared capability of an orchestrator profile.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CapabilityDecl {
     /// Stable capability identifier matched against plan requirements.
@@ -27,6 +29,91 @@ pub struct CapabilityDecl {
     pub extensions: ExtensionMap,
 }
 
+impl<'de> Deserialize<'de> for CapabilityDecl {
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct CapabilityDeclVisitor;
+
+        impl<'de> Visitor<'de> for CapabilityDeclVisitor {
+            type Value = CapabilityDecl;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a capability id string or capability object")
+            }
+
+            fn visit_str<E>(self, value: &str) -> std::result::Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                Ok(CapabilityDecl {
+                    id: value.to_owned(),
+                    category: None,
+                    optional: false,
+                    extensions: ExtensionMap::default(),
+                })
+            }
+
+            fn visit_string<E>(self, value: String) -> std::result::Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                Ok(CapabilityDecl {
+                    id: value,
+                    category: None,
+                    optional: false,
+                    extensions: ExtensionMap::default(),
+                })
+            }
+
+            fn visit_map<A>(self, mut map: A) -> std::result::Result<Self::Value, A::Error>
+            where
+                A: MapAccess<'de>,
+            {
+                let mut id: Option<String> = None;
+                let mut category: Option<String> = None;
+                let mut optional = false;
+                let mut extensions = ExtensionMap::default();
+
+                while let Some(key) = map.next_key::<String>()? {
+                    match key.as_str() {
+                        "id" => {
+                            if id.is_some() {
+                                return Err(de::Error::duplicate_field("id"));
+                            }
+                            id = Some(map.next_value()?);
+                        }
+                        "category" => {
+                            if category.is_some() {
+                                return Err(de::Error::duplicate_field("category"));
+                            }
+                            category = Some(map.next_value()?);
+                        }
+                        "optional" => {
+                            optional = map.next_value()?;
+                        }
+                        other => {
+                            let value = map.next_value()?;
+                            extensions.insert(other.to_owned(), value);
+                        }
+                    }
+                }
+
+                let id = id.ok_or_else(|| de::Error::missing_field("id"))?;
+                Ok(CapabilityDecl {
+                    id,
+                    category,
+                    optional,
+                    extensions,
+                })
+            }
+        }
+
+        deserializer.deserialize_any(CapabilityDeclVisitor)
+    }
+}
+
 /// Capability profile for an orchestrator (SPEC Ch 16 §6).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -35,8 +122,14 @@ pub struct CapabilityProfile {
     #[serde(alias = "profile")]
     pub identity: String,
     /// Supported DPCS specification version.
+    ///
+    /// Defaults to empty when omitted so legacy stub YAML can load; empty values
+    /// fail [`validate_profile`] with `DPCS-CAP-004`.
+    #[serde(default)]
     pub dpcs_version: String,
     /// Capabilities supported by this profile.
+    ///
+    /// Accepts either capability objects (`{ id: ... }`) or bare id strings.
     #[serde(default)]
     pub capabilities: Vec<CapabilityDecl>,
     /// Known limitations.
@@ -50,7 +143,12 @@ pub struct CapabilityProfile {
     pub extensions: ExtensionMap,
 }
 
-/// Compatibility alias for the pre-0.7 stub name.
+/// Deprecated name alias for [`CapabilityProfile`].
+///
+/// Prefer [`CapabilityProfile`]. Field shape follows 0.7 (`identity`,
+/// `dpcs_version`, `Vec<CapabilityDecl>`); wire YAML may still use `profile`
+/// and bare capability id strings.
+#[deprecated(note = "use CapabilityProfile")]
 pub type OrchestratorCapabilities = CapabilityProfile;
 
 impl CapabilityProfile {
@@ -200,7 +298,7 @@ fn profile_parse_error(message: String) -> Error {
         message: format!("invalid capability profile: {message}"),
         object_ref: None,
         remediation: Some(
-            "Provide identity, dpcsVersion, and capabilities[] with non-empty ids".to_owned(),
+            "Provide identity (or profile), dpcsVersion, and capabilities[] with ids".to_owned(),
         ),
         source_location: None,
     });

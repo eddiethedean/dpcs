@@ -313,9 +313,6 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                             println!("contractId: {contract_id}");
                         }
                         println!("satisfied: {}", report.satisfied.join(", "));
-                        if !report.missing_mandatory.is_empty() {
-                            println!("missingMandatory: {}", report.missing_mandatory.join(", "));
-                        }
                         if !report.unsupported_optional.is_empty() {
                             println!(
                                 "unsupportedOptional: {}",
@@ -335,8 +332,25 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                     }
                     Ok(EXIT_OK)
                 }
-                CapabilityResult::Err(report) => {
-                    print_report(&report, json)?;
+                CapabilityResult::Err {
+                    report,
+                    diagnostics,
+                } => {
+                    if json {
+                        let mut payload = (*report).clone();
+                        payload.diagnostics = diagnostics.diagnostics.clone();
+                        let payload = serde_json::to_string_pretty(&payload).map_err(|err| {
+                            Error::Serialization(format!(
+                                "failed to serialize capability report: {err}"
+                            ))
+                        })?;
+                        println!("{payload}");
+                    } else {
+                        print_report(&diagnostics, false)?;
+                        if !report.missing_mandatory.is_empty() {
+                            println!("missingMandatory: {}", report.missing_mandatory.join(", "));
+                        }
+                    }
                     Ok(EXIT_VALIDATION)
                 }
             }

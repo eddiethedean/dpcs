@@ -27,6 +27,8 @@ pub struct PipelinePlan {
     pub contract_id: String,
     /// Version of the source pipeline contract.
     pub contract_version: String,
+    /// DPCS specification version declared by the source contract.
+    pub dpcs_version: String,
     /// Resolved pipeline steps.
     pub steps: Vec<PipelineStep>,
     /// Resolved pipeline graph.
@@ -134,6 +136,7 @@ pub fn plan(contract: &PipelineContract) -> PlanResult {
     PlanResult::Ok(Box::new(PipelinePlan {
         contract_id: contract.id.clone(),
         contract_version: contract.version.clone(),
+        dpcs_version: contract.dpcs_version.clone(),
         steps: contract.steps.clone(),
         graph: contract.graph.clone(),
         contract_references: contract.contract_references.clone(),

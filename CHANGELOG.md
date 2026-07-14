@@ -16,11 +16,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Diagnostic category `capability` and stage helpers for `CapabilityEvaluation`
 - CLI `dpcs capabilities <profile> --plan <contract> [--json]`
 - Example `examples/orchestrator.capabilities.yaml` and capability fixtures/tests
+- `PipelinePlan.dpcs_version` carried from the source contract for profile compatibility checks
 
 ### Changed
 
 - Orchestrator capability matching is no longer deferred; binding adapters remain ROADMAP 0.8.0
-- `OrchestratorCapabilities` is a type alias for `CapabilityProfile`
+- `OrchestratorCapabilities` is a deprecated name alias for `CapabilityProfile`
+- Capability demand for matching is `requiredCapabilities` + `externalDependencies[].capability` (environment software/isolation are not orchestrator ids)
+- `CapabilityResult::Err` retains a structured `CapabilityReport` alongside diagnostics
+- `evaluate_many` ranks profiles (successful matches first, then fewer missing, then more satisfied)
+- Capability profile wire format accepts bare capability id strings; omitted `dpcsVersion` defaults to empty (then `DPCS-CAP-004`)
+
+### Fixed
+
+- `DPCS-CAP-005` `object_ref` now cites the demand source (`requiredCapabilities` vs `externalDependencies.capability`)
+- Failure evaluations expose `missing_mandatory` on the retained capability report
+- CAP-006 compares profile version against both toolkit and plan/contract `dpcsVersion` when available
+- Topological `stepOrder` uses a sorted ready-set tie-break across independent dependency chains
+- `evaluate_many` ranks invalid profiles after incomplete but valid matches
+- Scheduling timing comparisons (`DPCS-SCH-006`) require matching timezone offsets; mixed offsets warn via `DPCS-SCH-007`
 
 ## [0.6.0] - 2026-07-14
 

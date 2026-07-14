@@ -129,7 +129,9 @@ let profile = CapabilityProfile::from_yaml_file("orchestrator.capabilities.yaml"
 if let PlanResult::Ok(planned) = plan(&contract) {
     match evaluate(&planned, &profile) {
         CapabilityResult::Ok(report) => println!("satisfied: {:?}", report.satisfied),
-        CapabilityResult::Err(report) => eprintln!("capability errors: {}", report.error_count()),
+        CapabilityResult::Err { diagnostics, .. } => {
+            eprintln!("capability errors: {}", diagnostics.error_count())
+        }
     }
 }
 ```

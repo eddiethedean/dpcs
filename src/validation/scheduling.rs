@@ -88,7 +88,10 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
                         is_comparable_iso8601(earliest),
                         is_comparable_iso8601(latest),
                     ) {
-                        (true, true) if earliest > latest => {
+                        (true, true)
+                            if timezone_suffix(earliest) == timezone_suffix(latest)
+                                && earliest > latest =>
+                        {
                             report.push(
                                 Diagnostic::error(
                                     "DPCS-SCH-006",
@@ -101,7 +104,20 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
                                 ),
                             );
                         }
-                        (true, true) => {}
+                        (true, true) if timezone_suffix(earliest) == timezone_suffix(latest) => {}
+                        (true, true) => {
+                            report.push(
+                                Diagnostic::warning(
+                                    "DPCS-SCH-007",
+                                    categories::SCHEDULING,
+                                    "scheduling earliest/latest constraints use different time offsets and are not safely comparable",
+                                )
+                                .with_object_ref(format!("{object_ref}.constraints"))
+                                .with_remediation(
+                                    "Use the same RFC3339 offset (prefer Z) for earliest and latest",
+                                ),
+                            );
+                        }
                         _ => {
                             report.push(
                                 Diagnostic::warning(
@@ -172,9 +188,21 @@ fn is_comparable_iso8601(value: &str) -> bool {
     }
 }
 
+/// Offset suffix used for lexicographic comparisons (`Z` or `±HH:MM`).
+fn timezone_suffix(value: &str) -> Option<&str> {
+    if !is_comparable_iso8601(value) {
+        return None;
+    }
+    if value.ends_with('Z') {
+        Some("Z")
+    } else {
+        value.get(19..)
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::is_comparable_iso8601;
+    use super::{is_comparable_iso8601, timezone_suffix};
 
     #[test]
     fn recognizes_rfc3339_timestamps() {
@@ -183,5 +211,15 @@ mod tests {
         assert!(!is_comparable_iso8601("9:00"));
         assert!(!is_comparable_iso8601("10:00"));
         assert!(!is_comparable_iso8601("P1D"));
+    }
+
+    #[test]
+    fn timezone_suffix_distinguishes_offsets() {
+        assert_eq!(timezone_suffix("2026-01-01T00:00:00Z"), Some("Z"));
+        assert_eq!(timezone_suffix("2026-01-01T00:00:00-05:00"), Some("-05:00"));
+        assert_ne!(
+            timezone_suffix("2026-01-01T00:00:00Z"),
+            timezone_suffix("2026-01-01T00:00:00-05:00")
+        );
     }
 }

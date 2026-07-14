@@ -17,6 +17,7 @@ fn matching_profile_satisfies_execution_model_plan() {
     let PlanResult::Ok(planned) = plan(&contract) else {
         panic!("expected plan");
     };
+    assert_eq!(planned.dpcs_version, "1.0.0");
     let profile =
         CapabilityProfile::from_yaml_file(fixture("capabilities/valid/matching.profile.yaml"))
             .unwrap();
@@ -43,11 +44,24 @@ fn missing_mandatory_capability_is_rejected() {
     ))
     .unwrap();
 
-    let CapabilityResult::Err(report) = evaluate(&planned, &profile) else {
+    let CapabilityResult::Err {
+        report,
+        diagnostics,
+    } = evaluate(&planned, &profile)
+    else {
         panic!("expected capability failure");
     };
-    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-CAP-005"));
-    assert!(report
+    assert_eq!(report.missing_mandatory, vec!["sql.readwrite".to_owned()]);
+    assert!(diagnostics
+        .diagnostics
+        .iter()
+        .any(|d| d.id == "DPCS-CAP-005"));
+    assert!(diagnostics.diagnostics.iter().any(|d| {
+        d.id == "DPCS-CAP-005"
+            && d.object_ref.as_deref()
+                == Some("execution.externalDependencies.capability:sql.readwrite")
+    }));
+    assert!(diagnostics
         .diagnostics
         .iter()
         .any(|d| d.stage.to_string() == "capabilityEvaluation"));
@@ -84,11 +98,25 @@ fn evaluate_many_ranks_profiles() {
         "capabilities/invalid/missing_mandatory.profile.yaml",
     ))
     .unwrap();
+    let invalid = CapabilityProfile::from_yaml_str(
+        r#"
+identity: ""
+dpcsVersion: ""
+capabilities: []
+"#,
+    )
+    .unwrap();
 
-    let results = evaluate_many(&planned, &[matching, incomplete]);
-    assert_eq!(results.len(), 2);
+    // Incomplete and invalid listed before matching; ranking still prefers success,
+    // then incomplete match, then invalid profile declarations.
+    let results = evaluate_many(&planned, &[incomplete, invalid, matching]);
+    assert_eq!(results.len(), 3);
+    assert_eq!(results[0].0, "reference.batch");
     assert!(results[0].1.is_ok());
+    assert_eq!(results[1].0, "incomplete.batch");
     assert!(!results[1].1.is_ok());
+    assert!(results[2].0.trim().is_empty());
+    assert!(!results[2].1.is_ok());
 }
 
 #[test]
@@ -104,6 +132,10 @@ fn version_mismatch_warns_but_can_still_match() {
         panic!("expected match with warning");
     };
     assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-CAP-006"));
+    assert!(report
+        .diagnostics
+        .iter()
+        .any(|d| { d.id == "DPCS-CAP-006" && d.message.contains("plan/contract dpcsVersion") }));
 }
 
 #[test]
@@ -130,4 +162,52 @@ capabilities:
     )
     .unwrap();
     assert_eq!(profile.identity, "legacy.name");
+}
+
+#[test]
+fn legacy_stub_yaml_accepts_string_capabilities() {
+    let profile = CapabilityProfile::from_yaml_str(
+        r#"
+profile: "airflow"
+capabilities:
+  - "batch.compute"
+  - "sql.readwrite"
+"#,
+    )
+    .unwrap();
+    assert_eq!(profile.identity, "airflow");
+    assert!(profile.dpcs_version.is_empty());
+    assert_eq!(profile.capabilities.len(), 2);
+    assert_eq!(profile.capabilities[0].id, "batch.compute");
+
+    let report = validate_profile(&profile);
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-CAP-004"));
+}
+
+#[test]
+fn software_capabilities_are_not_orchestrator_demand() {
+    let contract = parse_yaml_file(fixture("valid/with_execution_model.dpcs.yaml")).unwrap();
+    let mut requirements = contract.execution.expect("execution");
+    requirements.required_capabilities = vec!["batch.compute".into()];
+    requirements.external_dependencies.clear();
+    requirements.environment = Some(dpcs::ExecutionEnvironment {
+        software_capabilities: vec!["python3".into()],
+        ..Default::default()
+    });
+
+    let profile = CapabilityProfile::from_yaml_str(
+        r#"
+identity: "env-check"
+dpcsVersion: "1.0.0-draft"
+capabilities:
+  - id: "batch.compute"
+"#,
+    )
+    .unwrap();
+
+    let CapabilityResult::Ok(report) = evaluate_requirements(&requirements, &profile) else {
+        panic!("environment softwareCapabilities must not become CAP-005 demand");
+    };
+    assert_eq!(report.satisfied, vec!["batch.compute".to_owned()]);
+    assert!(report.missing_mandatory.is_empty());
 }

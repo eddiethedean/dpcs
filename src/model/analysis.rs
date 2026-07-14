@@ -182,6 +182,9 @@ impl DependencyGraph {
     }
 
     /// Returns a topological ordering of step identifiers, or a cycle error.
+    ///
+    /// Ready nodes are always emitted in sorted step-id order (deterministic
+    /// tie-break when multiple nodes have indegree zero).
     pub fn topological_order(&self) -> Result<Vec<String>, CycleError> {
         let mut indegree: BTreeMap<&str, usize> = self
             .nodes
@@ -197,20 +200,21 @@ impl DependencyGraph {
             }
         }
 
-        let mut queue: VecDeque<&str> = indegree
+        let mut ready: BTreeSet<&str> = indegree
             .iter()
             .filter_map(|(node, degree)| (*degree == 0).then_some(*node))
             .collect();
 
         let mut order = Vec::with_capacity(self.nodes.len());
-        while let Some(node) = queue.pop_front() {
+        while let Some(node) = ready.iter().next().copied() {
+            ready.remove(node);
             order.push(node.to_string());
             if let Some(successors) = self.successors.get(node) {
                 for target in successors {
                     if let Some(degree) = indegree.get_mut(target.as_str()) {
                         *degree -= 1;
                         if *degree == 0 {
-                            queue.push_back(target.as_str());
+                            ready.insert(target.as_str());
                         }
                     }
                 }
@@ -491,6 +495,45 @@ steps:
         assert_eq!(
             graph.topological_order().unwrap(),
             vec!["a", "b", "c"]
+                .into_iter()
+                .map(String::from)
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn topological_order_prefers_sorted_ready_ids_across_chains() {
+        // Edges a→x and z→y. Sorted-ready Kahn must emit a,x,z,y — not FIFO a,z,x,y.
+        let contract = contract(
+            r#"
+dpcsVersion: "1.0.0"
+id: "test.pipeline"
+version: "0.1.0"
+interface:
+  inputs: []
+  outputs: []
+graph:
+  edges:
+    - from: "a"
+      to: "x"
+    - from: "z"
+      to: "y"
+steps:
+  - id: "a"
+    type: "dtcs:transform"
+  - id: "x"
+    type: "dtcs:transform"
+  - id: "z"
+    type: "dtcs:transform"
+  - id: "y"
+    type: "dtcs:transform"
+"#,
+        );
+
+        let graph = DependencyGraph::from_contract(&contract);
+        assert_eq!(
+            graph.topological_order().unwrap(),
+            vec!["a", "x", "z", "y"]
                 .into_iter()
                 .map(String::from)
                 .collect::<Vec<_>>()

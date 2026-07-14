@@ -145,7 +145,7 @@ matching against orchestrator profiles shipped in roadmap 0.7.0.
 
 | Type | Key fields |
 | --- | --- |
-| `CapabilityProfile` | `identity` (alias `profile`), `dpcsVersion`, `capabilities`, `limitations`, optional `metadata` |
+| `CapabilityProfile` | `identity` (alias `profile`), `dpcsVersion` (default empty), `capabilities` (objects or bare id strings), `limitations`, optional `metadata` |
 | `CapabilityDecl` | `id`, optional `category`, `optional` (default false) |
 
 [`PipelineGraph`]: ../../src/model/graph.rs

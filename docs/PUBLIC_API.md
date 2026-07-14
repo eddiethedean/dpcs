@@ -168,11 +168,19 @@ match evaluate(&planned, &profile) {
     CapabilityResult::Ok(report) => {
         assert!(report.missing_mandatory.is_empty());
     }
-    CapabilityResult::Err(diagnostics) => {
+    CapabilityResult::Err { report, diagnostics } => {
+        assert!(!report.missing_mandatory.is_empty());
         assert!(diagnostics.diagnostics.iter().any(|d| d.id == "DPCS-CAP-005"));
     }
 }
 ```
+
+Demand matched against a profile is `requiredCapabilities` plus
+`externalDependencies[].capability`. Environment `softwareCapabilities` and
+`isolation` are not treated as orchestrator capability ids.
+
+`OrchestratorCapabilities` remains a deprecated name alias for
+`CapabilityProfile`. Prefer `CapabilityProfile`.
 
 Orchestrator binding adapters remain ROADMAP 0.8.0.
 

@@ -26,7 +26,8 @@ Quality/failure **identity** (empty/duplicate ids) remains COM-owned
 Capability matching is separate from contract validation: after a successful
 `plan()`, call `evaluate` / `evaluate_requirements` against a `CapabilityProfile`
 (`DPCS-CAP-*` at `CapabilityEvaluation`). Profile-only consistency uses
-`validate_profile`.
+`validate_profile`. Matching demand is `requiredCapabilities` plus
+`externalDependencies[].capability` (not environment software packages or isolation).
 
 ## Important validations today
 
@@ -58,10 +59,10 @@ Capability matching is separate from contract validation: after a successful
 | --- | --- |
 | `DPCS-CAP-001` | Empty capability id in profile |
 | `DPCS-CAP-002` | Duplicate capability id in profile |
-| `DPCS-CAP-003` | Empty / missing profile identity |
-| `DPCS-CAP-004` | Empty / missing profile `dpcsVersion` |
+| `DPCS-CAP-003` | Empty profile identity (missing field is parse `DPCS-PARSE-002`) |
+| `DPCS-CAP-004` | Empty profile `dpcsVersion` (omitted/`""` after defaulting; missing-required parse when stricter schemas apply) |
 | `DPCS-CAP-005` | Unsupported mandatory capability vs plan/requirements |
-| `DPCS-CAP-006` | Profile `dpcsVersion` mismatch warning |
+| `DPCS-CAP-006` | Profile `dpcsVersion` mismatch warning (vs toolkit and/or plan) |
 
 ## Selected diagnostic IDs (0.6 additions)
 

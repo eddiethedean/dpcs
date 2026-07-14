@@ -63,9 +63,11 @@ Required test categories:
 ## Capability Model (0.7.0)
 
 - validate profiles for empty/duplicate capability ids and identity/version
-- `evaluate` matches plan demand (`requiredCapabilities`, external deps, software capabilities)
-- missing mandatories emit `DPCS-CAP-005`; version mismatch warns `DPCS-CAP-006`
-- `evaluate_requirements` checks without planning; `evaluate_many` ranks profiles
+- `evaluate` matches plan demand (`requiredCapabilities`, external dependency capabilities)
+- environment `softwareCapabilities` / `isolation` are not orchestrator demand
+- missing mandatories emit `DPCS-CAP-005` with sourced `object_ref`; version mismatch warns `DPCS-CAP-006`
+- `evaluate_requirements` checks without planning; `evaluate_many` ranks profiles (ok, fewer missing, more satisfied)
+- failure results retain structured `CapabilityReport.missing_mandatory`
 - CLI `capabilities` exit codes and `--json` report shape
 - match shipped example pair: `examples/orchestrator.capabilities.yaml` + `examples/with_execution.dpcs.yaml`
 

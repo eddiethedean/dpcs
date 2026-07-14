@@ -183,5 +183,7 @@ fn capabilities_json_reports_missing_mandatory() {
         .assert()
         .failure()
         .code(1)
-        .stdout(predicate::str::contains("DPCS-CAP-005"));
+        .stdout(predicate::str::contains("DPCS-CAP-005"))
+        .stdout(predicate::str::contains("\"missingMandatory\""))
+        .stdout(predicate::str::contains("sql.readwrite"));
 }

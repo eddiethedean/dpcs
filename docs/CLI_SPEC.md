@@ -37,6 +37,7 @@ Notes:
 
 - `validate` and `diagnostics` use the exit codes above.
 - `capabilities` parses the contract, runs `plan()`, then `evaluate` against the profile. Exit `0` on match, `1` on plan refusal or capability errors, `2` on parse/I/O.
+- `capabilities --json` emits a `CapabilityReport` on both success and match failure (failure includes diagnostics and `missingMandatory`).
 - Invalid YAML/JSON documents emit Parse-stage diagnostics (`DPCS-PARSE-*`) and exit `2`. With `--json`, the diagnostic report is printed to stdout for `validate`, `diagnostics`, `inspect`, `graph`, and `capabilities` failures.
 - `inspect` and `graph` always exit `0` after a successful parse and do not fail on validation errors.
 - `inspect` reports `valid`, execution-model counts, and `planningRefused` / `stepOrder` when a plan is available.
