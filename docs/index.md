@@ -1,7 +1,6 @@
 # DPCS documentation
 
-[![Read the Docs](https://img.shields.io/readthedocs/dpcs?logo=readthedocs)](https://dpcs.readthedocs.io/en/latest/)
-[![RTD build](https://readthedocs.org/projects/dpcs/badge/?version=latest)](https://dpcs.readthedocs.io/en/latest/)
+[![Documentation](https://readthedocs.org/projects/dpcs/badge/?version=latest)](https://dpcs.readthedocs.io/en/latest/)
 [![docs.rs](https://img.shields.io/docsrs/dpcs)](https://docs.rs/dpcs)
 [![crates.io](https://img.shields.io/crates/v/dpcs.svg)](https://crates.io/crates/dpcs)
 
