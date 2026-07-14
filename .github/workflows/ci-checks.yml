@@ -99,5 +99,8 @@ jobs:
       - name: Develop and test
         working-directory: bindings/python
         run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install maturin pytest
           maturin develop
           pytest -q
