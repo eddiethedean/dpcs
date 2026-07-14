@@ -8,7 +8,9 @@ bindings do not require `--format` parity.
 
 | Channel | Package | Install |
 | --- | --- | --- |
+| Guides | [dpcs.readthedocs.io](https://dpcs.readthedocs.io/en/latest/) | — |
 | crates.io | [`dpcs`](https://crates.io/crates/dpcs), [`dpcs-cli`](https://crates.io/crates/dpcs-cli) | `cargo install dpcs-cli` |
+| docs.rs | [`dpcs` API](https://docs.rs/dpcs) | — |
 | PyPI | [`dpcs`](https://pypi.org/project/dpcs/) | `pip install dpcs` |
 | npm | [`@eddiethedean/dpcs`](https://www.npmjs.com/package/@eddiethedean/dpcs) | `npm install @eddiethedean/dpcs` |
 | Wasmer | [`eddiethedean/dpcs`](https://wasmer.io/eddiethedean/dpcs) | see Wasmer registry |

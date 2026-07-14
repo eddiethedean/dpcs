@@ -4,7 +4,8 @@
 [![Release](https://github.com/eddiethedean/dpcs/actions/workflows/release.yml/badge.svg)](https://github.com/eddiethedean/dpcs/actions/workflows/release.yml)
 [![crates.io](https://img.shields.io/crates/v/dpcs.svg)](https://crates.io/crates/dpcs)
 [![docs.rs](https://img.shields.io/docsrs/dpcs)](https://docs.rs/dpcs)
-[![Documentation](https://readthedocs.org/projects/dpcs/badge/?version=latest)](https://dpcs.readthedocs.io/en/latest/)
+[![Read the Docs](https://img.shields.io/readthedocs/dpcs?logo=readthedocs)](https://dpcs.readthedocs.io/en/latest/)
+[![RTD build](https://readthedocs.org/projects/dpcs/badge/?version=latest)](https://dpcs.readthedocs.io/en/latest/)
 [![PyPI](https://img.shields.io/pypi/v/dpcs.svg)](https://pypi.org/project/dpcs/)
 [![npm](https://img.shields.io/npm/v/@eddiethedean/dpcs.svg)](https://www.npmjs.com/package/@eddiethedean/dpcs)
 [![Wasmer](https://img.shields.io/badge/wasmer-eddiethedean%2Fdpcs-blue)](https://wasmer.io/eddiethedean/dpcs)
@@ -32,6 +33,8 @@ and Kubernetes. Execution runtimes remain out of scope. See [`ROADMAP.md`](ROADM
 | Spec version | `1.0.0-draft` |
 | Language | Rust 2021 (MSRV 1.88) |
 | License | Apache-2.0 OR MIT |
+| Guides | [dpcs.readthedocs.io](https://dpcs.readthedocs.io/en/latest/) |
+| API docs | [docs.rs/dpcs](https://docs.rs/dpcs) |
 | Release focus | Developer experience: reports, rich CLI, TUI, graph exports (ROADMAP 0.11.0) |
 
 ## Quick start

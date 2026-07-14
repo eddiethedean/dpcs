@@ -1,5 +1,10 @@
 # DPCS documentation
 
+[![Read the Docs](https://img.shields.io/readthedocs/dpcs?logo=readthedocs)](https://dpcs.readthedocs.io/en/latest/)
+[![RTD build](https://readthedocs.org/projects/dpcs/badge/?version=latest)](https://dpcs.readthedocs.io/en/latest/)
+[![docs.rs](https://img.shields.io/docsrs/dpcs)](https://docs.rs/dpcs)
+[![crates.io](https://img.shields.io/crates/v/dpcs.svg)](https://crates.io/crates/dpcs)
+
 Reference toolkit for the **Data Pipeline Contract Standard (DPCS)**.
 
 Rust API docs live on [docs.rs/dpcs](https://docs.rs/dpcs). The normative
