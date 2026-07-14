@@ -313,3 +313,79 @@ fn diagnostics_are_deterministic() {
     let second = validate(&contract);
     assert_eq!(first, second);
 }
+
+#[test]
+fn validates_execution_model_contract() {
+    let contract = parse_yaml_file(fixture("valid/with_execution_model.dpcs.yaml")).unwrap();
+    let report = validate(&contract);
+    assert!(report.is_valid(), "{:?}", report.diagnostics);
+}
+
+#[test]
+fn rejects_empty_required_capability() {
+    let contract = parse_yaml_file(fixture("invalid/empty_capability.dpcs.yaml")).unwrap();
+    let report = validate(&contract);
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-EXE-001"));
+}
+
+#[test]
+fn rejects_incomplete_external_dependency() {
+    let contract = parse_yaml_file(fixture("invalid/incomplete_external_dep.dpcs.yaml")).unwrap();
+    let report = validate(&contract);
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-EXE-004"));
+}
+
+#[test]
+fn rejects_scheduled_mode_without_frequency_or_cron() {
+    let contract = parse_yaml_file(fixture("invalid/scheduled_missing_cron.dpcs.yaml")).unwrap();
+    let report = validate(&contract);
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-SCH-002"));
+}
+
+#[test]
+fn rejects_event_without_source() {
+    let contract = parse_yaml_file(fixture("invalid/event_missing_source.dpcs.yaml")).unwrap();
+    let report = validate(&contract);
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-SCH-005"));
+}
+
+#[test]
+fn rejects_inconsistent_timing_constraints() {
+    let contract = parse_yaml_file(fixture("invalid/timing_constraints.dpcs.yaml")).unwrap();
+    let report = validate(&contract);
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-SCH-006"));
+}
+
+#[test]
+fn rejects_incomplete_quality_gates() {
+    let contract = parse_yaml_file(fixture("invalid/bad_quality_gate.dpcs.yaml")).unwrap();
+    let report = validate(&contract);
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-QG-001"));
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-QG-002"));
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-QG-007"));
+}
+
+#[test]
+fn rejects_unresolved_quality_gate_contract_ref() {
+    let contract = parse_yaml_file(fixture("invalid/unresolved_qg_ref.dpcs.yaml")).unwrap();
+    let report = validate(&contract);
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-QG-004"));
+}
+
+#[test]
+fn rejects_invalid_failure_semantics() {
+    let contract = parse_yaml_file(fixture("invalid/bad_failure_semantics.dpcs.yaml")).unwrap();
+    let report = validate(&contract);
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-FS-003"));
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-FS-005"));
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-FS-007"));
+}
+
+#[test]
+fn rejects_invalid_lineage_references() {
+    let contract = parse_yaml_file(fixture("invalid/bad_lineage.dpcs.yaml")).unwrap();
+    let report = validate(&contract);
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-LIN-004"));
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-LIN-010"));
+    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-LIN-012"));
+}

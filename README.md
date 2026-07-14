@@ -23,11 +23,11 @@ are intentionally out of scope until roadmap 0.8.0. See [`ROADMAP.md`](ROADMAP.m
 
 | Item | Value |
 | --- | --- |
-| Crate version | `0.5.0` |
+| Crate version | `0.6.0` |
 | Spec version | `1.0.0-draft` |
 | Language | Rust 2021 (MSRV 1.85) |
 | License | Apache-2.0 OR MIT |
-| Release focus | Validation engine (ROADMAP 0.5.0) |
+| Release focus | Execution model (ROADMAP 0.6.0) |
 
 ## Quick start
 
@@ -36,7 +36,7 @@ are intentionally out of scope until roadmap 0.8.0. See [`ROADMAP.md`](ROADMAP.m
 ```bash
 cargo install --path .
 # or, after crates.io publish:
-# cargo install dpcs --version 0.5.0
+# cargo install dpcs --version 0.6.0
 ```
 
 ### Validate a pipeline contract
@@ -98,10 +98,10 @@ let yaml = contract.to_yaml_str()?;
 let json = contract.to_json_str()?;
 ```
 
-Graph analysis (0.4.0):
+Graph analysis (0.4.0) and planning (0.6.0):
 
 ```rust
-use dpcs::{parse_yaml_file, DependencyGraph};
+use dpcs::{parse_yaml_file, plan, DependencyGraph, PlanResult};
 
 let contract = parse_yaml_file("pipeline.dpcs.yaml")?;
 let graph = DependencyGraph::from_contract(&contract);
@@ -111,6 +111,11 @@ if let Ok(order) = graph.topological_order() {
 }
 if let Some(cycle) = graph.find_cycle() {
     eprintln!("cycle: {:?}", cycle);
+}
+
+match plan(&contract) {
+    PlanResult::Ok(planned) => println!("plan steps: {:?}", planned.step_order),
+    PlanResult::Err(report) => eprintln!("planning refused: {} errors", report.error_count()),
 }
 ```
 

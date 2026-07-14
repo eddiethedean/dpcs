@@ -1,0 +1,20 @@
+dpcsVersion: "1.0.0"
+id: "invalid.quality.gate"
+version: "0.1.0"
+interface:
+  inputs: []
+  outputs: []
+steps:
+  - id: "step_a"
+    type: "extension:noop"
+graph:
+  edges: []
+qualityGates:
+  - id: "broken_gate"
+    purpose: ""
+    criteria: []
+    onSuccess: "continue"
+    onFailure: "abort"
+    placement:
+      kind: "beforeStep"
+      stepId: "missing_step"

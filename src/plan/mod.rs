@@ -1,7 +1,6 @@
-//! Pipeline Plan skeleton.
+//! Pipeline Plan generation (SPEC Ch 15).
 //!
-//! Full planning is roadmap 0.6.0. This module provides types and a stub
-//! planner so later phases can extend without reshaping the public API.
+//! A Pipeline Plan is produced only from a successfully validated contract.
 
 mod pipeline_plan;
 

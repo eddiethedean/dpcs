@@ -1,0 +1,11 @@
+dpcsVersion: "1.0.0"
+id: "invalid.scheduled.missing.cron"
+version: "0.1.0"
+interface:
+  inputs: []
+  outputs: []
+steps: []
+graph:
+  edges: []
+scheduling:
+  - mode: "scheduled"

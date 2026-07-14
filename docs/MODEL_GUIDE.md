@@ -19,7 +19,7 @@ pub struct PipelineContract {
     pub data_flow: Vec<DataFlow>,
     pub control_flow: Vec<ControlFlow>,
     pub execution: Option<ExecutionRequirements>,
-    pub scheduling: Option<SchedulingIntent>,
+    pub scheduling: Vec<SchedulingIntent>,
     pub quality_gates: Vec<QualityGate>,
     pub failure_semantics: Vec<FailureSemantics>,
     pub lineage: Option<PipelineLineage>,
@@ -125,12 +125,21 @@ COM invariants run as the first validation phase after document checks:
 3. Interface port completeness
 4. Extension key collision with reserved root fields
 
-Later validation phases (structural, graph, references, flows) build on the COM.
+Later validation phases (structural, graph, references, flows, execution,
+scheduling, quality, failure, lineage) build on the COM.
 
-Full validation polish for data/control flow completeness shipped in roadmap
-0.5.0: dataset identity, port satisfiability, endpoint roles, conflicting deps,
-and richer reference checks. Quality/failure/execution rule evaluation remains
-roadmap 0.6.0.
+Full validation for the execution model shipped in roadmap 0.6.0. Capability
+matching against orchestrator profiles remains roadmap 0.7.0.
+
+## Execution model COM (0.6.0)
+
+| Type | Key fields |
+| --- | --- |
+| `ExecutionRequirements` | `requiredCapabilities`, `resources`, `environment`, `isolation`, `externalDependencies` |
+| `SchedulingIntent` | required `mode`; optional cron/frequency/events/constraints |
+| `QualityGate` | `id`, `purpose`, `criteria`, `onSuccess`, `onFailure`, optional `placement` |
+| `FailureSemantics` | `id`, `scope`, `triggers`, `responses`, optional `retry` / `recovery` |
+| `PipelineLineage` | `datasets`, `steps`, `provenance`, optional `audit` |
 
 [`PipelineGraph`]: ../../src/model/graph.rs
 [`DataFlow`]: ../../src/model/data_flow.rs

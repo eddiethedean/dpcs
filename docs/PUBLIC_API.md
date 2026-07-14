@@ -105,9 +105,7 @@ let unreachable = graph.unreachable_steps(&contract);
 let duplicates = DependencyGraph::duplicate_edges(&contract);
 ```
 
-`plan::plan` uses topological ordering when the dependency graph is acyclic.
-
-## Validation engine (0.5.0)
+## Validation engine (0.5.0–0.6.0)
 
 ```rust
 use dpcs::{parse_yaml_file, unreachable_datasets, unsatisfied_ports, validate};
@@ -121,18 +119,36 @@ let orphan_datasets = unreachable_datasets(&contract);
 ```
 
 Phase-based validation covers document, COM, structural, graph, references,
-data flow (including endpoint roles), and control flow. Quality, failure, and
-extension semantics remain stubs until later roadmap releases.
+data flow, control flow, execution, scheduling, quality, failure, and lineage.
+Extension namespace rules remain deferred to ROADMAP 0.9.0.
 
-## Planning skeleton
+## Planning (0.6.0)
 
-A minimal planner exists today; orchestrator binding does not:
+`plan` produces a full `PipelinePlan` only from a successfully validated
+contract:
 
 ```rust
-let plan = dpcs::plan::plan(&contract);
+use dpcs::{parse_yaml_file, plan, PlanResult};
+
+let contract = parse_yaml_file("pipeline.dpcs.yaml")?;
+match plan(&contract) {
+    PlanResult::Ok(planned) => {
+        assert!(!planned.step_order.is_empty() || contract.steps.is_empty());
+        let _ = planned.execution;
+        let _ = &planned.scheduling;
+        let _ = &planned.quality_gates;
+        let _ = &planned.failure_semantics;
+        let _ = &planned.lineage;
+    }
+    PlanResult::Err(report) => {
+        assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-PLN-001"));
+    }
+}
+
 assert!(!dpcs::binding::BindingFramework::is_available());
 ```
 
-Full planning semantics and binding adapters are roadmap items 0.6–0.8.
+Orchestrator binding adapters remain ROADMAP 0.8.0. Capability matching remains
+ROADMAP 0.7.0.
 
 [`Error::InvalidDocument`]: ../src/error.rs

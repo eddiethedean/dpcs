@@ -122,6 +122,8 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                 }
                 Err(err) => return Err(err),
             };
+            let valid = contract.validate().is_valid();
+            let planned = plan::try_plan(&contract);
             let summary = InspectSummary {
                 id: contract.id.clone(),
                 name: contract.name.clone(),
@@ -134,7 +136,8 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                 contract_reference_count: contract.contract_references.len(),
                 data_flow_count: contract.data_flow.len(),
                 control_flow_count: contract.control_flow.len(),
-                valid: contract.validate().is_valid(),
+                valid,
+                step_order: planned.as_ref().map(|plan| plan.step_order.clone()),
             };
             if json {
                 let payload = serde_json::to_string_pretty(&summary).map_err(|err| {
@@ -156,6 +159,13 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                 println!("dataFlow: {}", summary.data_flow_count);
                 println!("controlFlow: {}", summary.control_flow_count);
                 println!("valid: {}", summary.valid);
+                if let Some(order) = &summary.step_order {
+                    if !order.is_empty() {
+                        println!("stepOrder: {}", order.join(", "));
+                    }
+                } else {
+                    println!("planning: refused");
+                }
             }
             Ok(EXIT_OK)
         }
@@ -181,7 +191,13 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                 }
                 Err(err) => return Err(err),
             };
-            let plan = plan::plan(&contract);
+            let plan_result = plan::plan(&contract);
+            let step_order = match &plan_result {
+                plan::PlanResult::Ok(planned) => planned.step_order.clone(),
+                plan::PlanResult::Err(_) => {
+                    contract.steps.iter().map(|step| step.id.clone()).collect()
+                }
+            };
             if json {
                 let payload = GraphPayload {
                     entry_points: contract.graph.entry_points.clone(),
@@ -196,7 +212,7 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                             kind: e.kind.clone(),
                         })
                         .collect(),
-                    step_order: plan.step_order,
+                    step_order,
                 };
                 let payload = serde_json::to_string_pretty(&payload).map_err(|err| {
                     Error::Serialization(format!("failed to serialize graph payload: {err}"))
@@ -219,8 +235,11 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                         }
                     }
                 }
-                if !plan.step_order.is_empty() {
-                    println!("stepOrder: {}", plan.step_order.join(", "));
+                if !step_order.is_empty() {
+                    println!("stepOrder: {}", step_order.join(", "));
+                }
+                if let plan::PlanResult::Err(report) = &plan_result {
+                    println!("planning: refused ({} errors)", report.error_count());
                 }
             }
             Ok(EXIT_OK)
@@ -300,6 +319,8 @@ struct InspectSummary {
     data_flow_count: usize,
     control_flow_count: usize,
     valid: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    step_order: Option<Vec<String>>,
 }
 
 #[derive(Debug, serde::Serialize)]

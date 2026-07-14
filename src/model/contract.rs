@@ -50,9 +50,9 @@ pub struct PipelineContract {
     /// Optional execution requirements.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub execution: Option<ExecutionRequirements>,
-    /// Optional scheduling intent.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub scheduling: Option<SchedulingIntent>,
+    /// Declared scheduling intents.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub scheduling: Vec<SchedulingIntent>,
     /// Quality gates attached to the pipeline.
     #[serde(default)]
     pub quality_gates: Vec<QualityGate>,

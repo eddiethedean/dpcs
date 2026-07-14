@@ -4,7 +4,7 @@ Validation is deterministic and phase-based. It returns a `ValidationReport`
 and does not panic on invalid contracts. Phases always complete and findings are
 accumulated, then sorted deterministically.
 
-## Phases (0.5.0)
+## Phases (0.6.0)
 
 1. Document — unsupported `dpcsVersion` warnings (`DPCS-DOC-002`)
 2. Canonical Object Model — identity, uniqueness, interface completeness, reserved extension keys
@@ -13,8 +13,17 @@ accumulated, then sorted deterministically.
 5. References — resolvable contract / transform / port references
 6. Data Flow — endpoints, dataset identity, wiring, unreachable datasets
 7. Control Flow — step endpoints, conflicting deps, duplicate control edges
-8. Quality / Failure — identity owned by COM; rule semantics deferred to ROADMAP 0.6.0
-9. Extensions — reserved root collisions are COM-012; namespace rules deferred to 0.9.0
+8. Execution — capability/dependency/resource completeness (`DPCS-EXE-*`)
+9. Scheduling — modes, events, timing consistency (`DPCS-SCH-*`)
+10. Quality — criteria, outcomes, placement, contract refs (`DPCS-QG-*`)
+11. Failure — scope, triggers, responses, retry (`DPCS-FS-*`)
+12. Lineage — dataset/step/contract provenance refs (`DPCS-LIN-*`)
+13. Extensions — reserved root collisions are COM-012; namespace rules deferred to 0.9.0
+
+Quality/failure **identity** (empty/duplicate ids) remains COM-owned
+(`DPCS-COM-004` / `DPCS-COM-005`).
+
+Capability matching against orchestrator profiles is deferred to ROADMAP 0.7.0.
 
 ## Important validations today
 
@@ -34,20 +43,30 @@ accumulated, then sorted deterministically.
 - data-flow destinations are step inputs or interface outputs (`DPCS-DF-008`)
 - valid control-flow step dependencies; no opposite-direction conflicts with graph/data flow (`DPCS-CF-004`)
 - no duplicate control-flow edges (`DPCS-CF-005`)
+- execution capabilities, isolation entries, and external dependency identity/capability
+- scheduled mode requires `frequency` or `cron`; event-driven mode requires events
+- quality gates require purpose, criteria, and resolvable placement/refs
+- failure semantics require scope, triggers, responses; retry response needs retry policy
+- lineage dataset/step/contract references resolve against the contract
 
-## Selected diagnostic IDs (0.5 additions)
+## Selected diagnostic IDs (0.6 additions)
 
 | ID | Meaning |
 | --- | --- |
-| `DPCS-STR-001` | Empty step port identifier |
-| `DPCS-REF-005` | Unresolved `transformRef` |
-| `DPCS-REF-006` | Unresolved step-port `contractRef` |
-| `DPCS-DF-004` | Missing data-flow dataset identity |
-| `DPCS-DF-005` | Unreachable dataset |
-| `DPCS-DF-006` | Unsatisfied step input / interface output |
-| `DPCS-DF-007` | Illegal data-flow source role |
-| `DPCS-DF-008` | Illegal data-flow destination role |
-| `DPCS-CF-004` | Conflicting control vs graph/data dependency |
-| `DPCS-CF-005` | Duplicate control-flow edge |
+| `DPCS-EXE-001` | Empty required capability |
+| `DPCS-EXE-003` | Empty external dependency id |
+| `DPCS-EXE-004` | Empty external dependency capability |
+| `DPCS-SCH-002` | Scheduled mode missing frequency/cron |
+| `DPCS-SCH-003` | Event-driven mode missing events |
+| `DPCS-SCH-006` | earliest > latest timing constraint |
+| `DPCS-QG-002` | Missing quality criteria |
+| `DPCS-QG-004` | Unresolved quality criterion contractRef |
+| `DPCS-QG-007` | Unknown step in quality gate placement |
+| `DPCS-FS-003` | Unknown step in failure scope |
+| `DPCS-FS-007` | Retry response without retry semantics |
+| `DPCS-LIN-004` | Unknown producedBy step |
+| `DPCS-LIN-010` | Unknown step lineage stepId |
+| `DPCS-PLN-001` | Plan refused due to validation errors |
 
 Invalid contracts produce diagnostics instead of hard failures where possible.
+Planning refuses invalid contracts and emits planning-stage diagnostics.

@@ -5,6 +5,29 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-07-14
+
+### Added
+
+- Structured `ExecutionRequirements` with resources, environment, isolation, and external dependencies (`DPCS-EXE-001`–`005`)
+- Structured `SchedulingIntent` list with modes, events, and constraints (`DPCS-SCH-001`–`006`)
+- Quality gate criteria, outcomes, and placement validation (`DPCS-QG-001`–`007`)
+- Failure semantics scope, triggers, responses, and retry checks (`DPCS-FS-001`–`007`)
+- Pipeline lineage dataset/step/provenance validation (`DPCS-LIN-001`–`015`)
+- Full `PipelinePlan` IR with gated deterministic planning (`DPCS-PLN-001`, `DPCS-PLN-002`)
+- Public re-exports for execution-model COM types, `plan` / `try_plan`, and `PlanResult`
+- Example `examples/with_execution.dpcs.yaml` and fixtures for execution-model validation
+
+### Changed
+
+- `scheduling` is now `Vec<SchedulingIntent>` (was `Option<SchedulingIntent>`)
+- `QualityGate` requires `purpose`, `criteria`, `onSuccess`, and `onFailure` (replaced free-form `scope`/`rule`)
+- `FailureSemantics` requires structured `scope`, `triggers`, and `responses` (replaced free-form `onFailure`)
+- `PipelineLineage` uses dataset/step/provenance structures (replaced loose `upstream`/`downstream` strings)
+- `plan()` returns `PlanResult` and refuses invalid contracts
+- CLI `inspect` / `graph` surface planning status when a plan cannot be produced
+- Capability matching against orchestrator profiles remains deferred to ROADMAP 0.7.0
+
 ## [0.5.0] - 2026-07-13
 
 ### Added

@@ -272,6 +272,17 @@ impl DependencyGraph {
         self.nodes.difference(&reachable).cloned().collect()
     }
 
+    /// Returns all directed dependency edges as sorted `(from, to)` pairs.
+    pub fn edges(&self) -> Vec<(String, String)> {
+        let mut edges = Vec::new();
+        for (from, successors) in &self.successors {
+            for to in successors {
+                edges.push((from.clone(), to.clone()));
+            }
+        }
+        edges
+    }
+
     /// Returns duplicate explicit graph edges with identical `(from, to, kind)` tuples.
     pub fn duplicate_edges(contract: &PipelineContract) -> Vec<DuplicateEdge> {
         let mut seen: BTreeMap<(String, String, Option<String>), usize> = BTreeMap::new();

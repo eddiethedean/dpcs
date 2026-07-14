@@ -1,0 +1,16 @@
+dpcsVersion: "1.0.0"
+id: "invalid.unresolved.qg.ref"
+version: "0.1.0"
+interface:
+  inputs: []
+  outputs: []
+steps: []
+graph:
+  edges: []
+qualityGates:
+  - id: "gate_ref"
+    purpose: "Check unknown contract"
+    criteria:
+      - contractRef: "missing_contract"
+    onSuccess: "continue"
+    onFailure: "abort"

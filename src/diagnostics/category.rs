@@ -20,4 +20,16 @@ pub mod categories {
     pub const EXTENSION: &str = "extension";
     /// Syntax and parse issues.
     pub const SYNTAX: &str = "syntax";
+    /// Execution requirements issues.
+    pub const EXECUTION_REQUIREMENTS: &str = "executionRequirements";
+    /// Scheduling intent issues.
+    pub const SCHEDULING: &str = "scheduling";
+    /// Quality gate issues.
+    pub const QUALITY_GATES: &str = "qualityGates";
+    /// Failure semantics issues.
+    pub const FAILURE_SEMANTICS: &str = "failureSemantics";
+    /// Lineage issues.
+    pub const LINEAGE: &str = "lineage";
+    /// Planning issues.
+    pub const PLANNING: &str = "planning";
 }

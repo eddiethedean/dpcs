@@ -99,7 +99,7 @@ Rich diagnostics.
 
 ------------------------------------------------------------------------
 
-# 0.6.0 --- Execution Model
+# 0.6.0 --- Execution Model (shipped)
 
 Implements Chapters 10--15.
 

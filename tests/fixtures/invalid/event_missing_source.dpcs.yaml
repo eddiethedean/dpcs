@@ -1,0 +1,14 @@
+dpcsVersion: "1.0.0"
+id: "invalid.event.missing.source"
+version: "0.1.0"
+interface:
+  inputs: []
+  outputs: []
+steps: []
+graph:
+  edges: []
+scheduling:
+  - mode: "eventDriven"
+    events:
+      - id: "new_file"
+        source: ""

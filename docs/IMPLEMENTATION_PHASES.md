@@ -21,8 +21,7 @@ Implement the DPCS COM core (ROADMAP 0.2.0, SPEC Ch 1–4):
 
 Pipeline graph slots were deepened in ROADMAP 0.4.0 (`PipelineGraph`,
 `PipelineStep`, `ContractReference`, `DataFlow`, `ControlFlow`, plus
-`DependencyGraph` analysis). Remaining COM placeholders for later roadmap
-items:
+`DependencyGraph` analysis). Execution-model COM shipped in ROADMAP 0.6.0:
 
 - QualityGate
 - FailureSemantics
@@ -57,7 +56,7 @@ Implement deterministic diagnostics:
 - object reference
 - remediation
 
-## Phase 5 — Validation (complete in 0.5.0)
+## Phase 5 — Validation (complete in 0.5.0–0.6.0)
 
 Phase-based validation:
 
@@ -68,7 +67,7 @@ Phase-based validation:
 5. Reference validation (including `transformRef` and step-port refs)
 6. Data Flow validation (dataset identity, wiring, reachability)
 7. Control Flow validation (conflicts and duplicates)
-8. Quality / Failure stubs (semantics in 0.6.0)
+8. Execution / Scheduling / Quality / Failure / Lineage (complete in 0.6.0)
 9. Extension stubs (namespace rules in 0.9.0)
 
 ## Phase 6 — CLI
@@ -83,8 +82,10 @@ dpcs graph <path>
 dpcs version
 ```
 
-## Phase 7 — Pipeline Plan Skeleton
+## Phase 7 — Pipeline Plan (complete in 0.6.0)
 
-Add `PipelinePlan` types and a stub planner.
+`PipelinePlan` captures resolved steps, graph, contract references, dependency
+edges, deterministic `stepOrder`, and preserved execution/scheduling/quality/
+failure/lineage intents. Planning is gated on successful validation.
 
-Do not implement orchestrator binding yet.
+Do not implement orchestrator binding yet (ROADMAP 0.8.0).

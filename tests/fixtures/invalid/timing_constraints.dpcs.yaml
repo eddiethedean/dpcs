@@ -1,0 +1,14 @@
+dpcsVersion: "1.0.0"
+id: "invalid.timing.constraints"
+version: "0.1.0"
+interface:
+  inputs: []
+  outputs: []
+steps: []
+graph:
+  edges: []
+scheduling:
+  - mode: "manual"
+    constraints:
+      earliest: "2026-12-01T00:00:00Z"
+      latest: "2026-01-01T00:00:00Z"

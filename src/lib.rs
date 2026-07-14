@@ -41,14 +41,17 @@ pub use diagnostics::{Diagnostic, DiagnosticStage, Severity, ValidationReport};
 pub use error::{Error, Result};
 pub use model::{
     step_id_from_endpoint, unreachable_datasets, unsatisfied_ports, CycleError, DependencyGraph,
-    DuplicateEdge, EndpointRole, ExtensionMap, ExtensionValue, IdentityCatalog, InterfacePort,
+    DuplicateEdge, EndpointRole, ExecutionRequirements, ExtensionMap, ExtensionValue,
+    FailureResponse, FailureSemantics, GateOutcome, GatePlacement, IdentityCatalog, InterfacePort,
     Metadata, ObjectId, ObjectKind, ObjectPath, PipelineContract, PipelineGraph, PipelineIdentity,
-    PipelineInterface, PipelineStep,
+    PipelineInterface, PipelineLineage, PipelineStep, QualityGate, SchedulingIntent,
+    SchedulingMode,
 };
 pub use parser::{
     parse_file, parse_json, parse_json_file, parse_yaml, parse_yaml_file, to_file, to_json,
     to_json_file, to_yaml, to_yaml_file,
 };
+pub use plan::{plan, try_plan, PipelinePlan, PlanDependencyEdge, PlanResult};
 pub use validation::validate;
 
 /// Library and CLI version string.

@@ -1,0 +1,19 @@
+dpcsVersion: "1.0.0"
+id: "invalid.lineage.refs"
+version: "0.1.0"
+interface:
+  inputs: []
+  outputs: []
+steps:
+  - id: "step_a"
+    type: "extension:noop"
+graph:
+  edges: []
+lineage:
+  datasets:
+    - dataset: "orphan_dataset"
+      producedBy: "missing_producer"
+  steps:
+    - stepId: "missing_step"
+      predecessors:
+        - "also_missing"
