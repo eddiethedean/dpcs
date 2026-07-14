@@ -4,7 +4,7 @@ Validation is deterministic and phase-based. It returns a `ValidationReport`
 and does not panic on invalid contracts. Phases always complete and findings are
 accumulated, then sorted deterministically.
 
-## Phases (0.6.0–0.7.0)
+## Phases (0.6.0–0.8.0)
 
 1. Document — unsupported `dpcsVersion` warnings (`DPCS-DOC-002`)
 2. Canonical Object Model — identity, uniqueness, interface completeness, reserved extension keys
@@ -63,6 +63,15 @@ Capability matching is separate from contract validation: after a successful
 | `DPCS-CAP-004` | Empty profile `dpcsVersion` (omitted/`""` after defaulting; missing-required parse when stricter schemas apply) |
 | `DPCS-CAP-005` | Unsupported mandatory capability vs plan/requirements |
 | `DPCS-CAP-006` | Profile `dpcsVersion` mismatch warning (vs toolkit and/or plan) |
+
+## Selected diagnostic IDs (0.8 binding)
+
+| ID | Meaning |
+| --- | --- |
+| `DPCS-BIND-001` | Capability gate failed before orchestrator translation |
+| `DPCS-BIND-002` | Unknown binding target |
+| `DPCS-BIND-003` | Translation incomplete (for example empty artifact list) |
+| `DPCS-BIND-004` | Artifact write failure or unsafe relative path |
 
 ## Selected diagnostic IDs (0.6 additions)
 

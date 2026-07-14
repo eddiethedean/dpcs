@@ -7,6 +7,8 @@ mod kubernetes;
 mod prefect;
 mod temporal;
 
+pub(crate) use common::validate_relative_path;
+
 use crate::diagnostics::ValidationReport;
 use crate::plan::PipelinePlan;
 

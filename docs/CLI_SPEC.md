@@ -43,6 +43,7 @@ Notes:
 - `capabilities --json` emits a `CapabilityReport` on both success and match failure (failure includes diagnostics and `missingMandatory`).
 - `bind` parses the contract and profile, plans, capability-gates, then translates to scaffold artifacts. Writes under `--out` (default `./dpcs-bind-<target>/`). Exit `0` on success, `1` on plan/capability/binding errors (including unknown `--target`), `2` on parse/I/O or write failure.
 - `bind --json` emits a `BindingBundle` on success (and still writes files when `--out` is used or defaulted).
+- `--target` accepts `airflow`, `dagster`, `prefect`, `temporal`, `kubernetes`, and alias `k8s`.
 - `temporal` and `kubernetes` targets are experimental.
 - Invalid YAML/JSON documents emit Parse-stage diagnostics (`DPCS-PARSE-*`) and exit `2`. With `--json`, the diagnostic report is printed to stdout for `validate`, `diagnostics`, `inspect`, `graph`, `capabilities`, and `bind` failures.
 - `inspect` and `graph` always exit `0` after a successful parse and do not fail on validation errors.

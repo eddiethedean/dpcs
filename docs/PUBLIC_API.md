@@ -145,9 +145,6 @@ match plan(&contract) {
     }
 }
 
-assert!(dpcs::binding::BindingFramework::is_available());
-```
-
 ## Capability evaluation (0.7.0)
 
 Match a planned pipeline (or raw `ExecutionRequirements`) against an orchestrator
@@ -186,29 +183,42 @@ Demand matched against a profile is `requiredCapabilities` plus
 
 Bind a planned pipeline to an orchestrator target after a successful capability
 match. Adapters emit scaffold artifacts (Airflow/Dagster/Prefect; Temporal and
-Kubernetes are experimental):
+Kubernetes are experimental).
+
+Crate-root API: `bind`, `bind_contract`, `parse_target`, `write_bundle`,
+`BindContext`, `BindingBundle`, `BindingFile`, `BindingFramework`,
+`BindingResult`, `BindingTarget`.
 
 ```rust
 use dpcs::{
-    bind, parse_yaml_file, plan, write_bundle, BindingResult, BindingTarget,
-    CapabilityProfile, PlanResult,
+    bind, bind_contract, parse_yaml_file, write_bundle, BindingFramework, BindingResult,
+    BindingTarget, CapabilityProfile, PlanResult,
 };
+
+assert!(BindingFramework::is_available());
 
 let contract = parse_yaml_file("pipeline.dpcs.yaml")?;
 let profile = CapabilityProfile::from_yaml_file("orchestrator.capabilities.yaml")?;
-let PlanResult::Ok(planned) = plan(&contract) else {
-    panic!("contract must plan");
-};
 
-match bind(&planned, &profile, BindingTarget::Airflow) {
+match bind_contract(&contract, &profile, BindingTarget::Airflow) {
     BindingResult::Ok(bundle) => {
         assert!(!bundle.files.is_empty());
-        write_bundle(&bundle, std::path::Path::new("./out"))?;
+        write_bundle(&bundle, std::path::Path::new("./out")).expect("write artifacts");
     }
-    BindingResult::Err(report) => {
-        assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-BIND-001"));
+    BindingResult::Err {
+        diagnostics,
+        capability,
+    } => {
+        assert!(diagnostics.diagnostics.iter().any(|d| {
+            d.id == "DPCS-BIND-001" || d.id == "DPCS-PLN-001"
+        }));
+        let _ = capability; // present when refusal is a capability-gate failure
     }
 }
 ```
+
+`write_bundle` returns `Result<(), ValidationReport>` (not `dpcs::Error`) and
+rejects escaping relative paths (`..`, absolute) with `DPCS-BIND-004`. Target
+alias `k8s` is accepted for `kubernetes`.
 
 [`Error::InvalidDocument`]: ../src/error.rs

@@ -28,6 +28,7 @@ jobs:
           cargo run --release -- validate examples/minimal.dpcs.yaml
           cargo run --release -- validate examples/with_execution.dpcs.yaml
           cargo run --release -- capabilities examples/orchestrator.capabilities.yaml --plan examples/with_execution.dpcs.yaml
+          cargo run --release -- bind examples/with_execution.dpcs.yaml --profile examples/orchestrator.capabilities.yaml --target airflow --out /tmp/dpcs-bind-smoke
       - name: Build release
         run: cargo build --release
 

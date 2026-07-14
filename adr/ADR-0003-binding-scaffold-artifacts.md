@@ -18,17 +18,20 @@ Kubernetes.
 Ship a generic `bind` API that:
 
 1. Evaluates a `CapabilityProfile` against the plan and fails closed on missing
-   mandatory capabilities.
+   mandatory capabilities (retaining the structured capability report).
 2. Dispatches to in-crate adapters that emit **idiomatic scaffold** files
    (Python DAG/flow/workflow stubs or Kubernetes Job/CronJob YAML).
 
-Scaffolds preserve identity, topology, contract references, and declared
-scheduling / quality / failure / execution intents via native edges and
-structured comments or labels. They are not production-complete operators or
-deployable cluster configs.
+Scaffolds preserve identity and declared topology with native edges/deps where
+the platform allows. Independent steps never receive invented dependency edges.
+Kubernetes linearizes `step_order` via initContainers (not parallel containers).
+Quality gates, failure semantics, and execution requirements are documented in
+headers/labels; they are not fully reified as platform runtimes.
 
 Temporal and Kubernetes adapters are labeled experimental in CLI/docs but share
 the same API surface.
+
+Artifact writes reject path escape (`..` / absolute relative_path).
 
 ## Consequences
 

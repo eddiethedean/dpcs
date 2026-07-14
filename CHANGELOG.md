@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Orchestrator binding framework (SPEC Ch 17): `bind`, `bind_contract`, `parse_target`, `write_bundle`
-- `BindingTarget`, `BindingFile`, `BindingBundle`, `BindingResult`, and `BindContext`
+- `BindingTarget`, `BindingFile`, `BindingBundle`, `BindingResult`, `BindContext`, and `BindingFramework::supported_targets()`
 - Scaffold adapters for Airflow, Dagster, Prefect, Temporal (experimental), and Kubernetes (experimental)
 - Capability-gated binding: missing mandatory capabilities refuse bind with `DPCS-BIND-001`
 - Binding diagnostics `DPCS-BIND-001`–`004`, category `binding`, stage `OrchestratorBinding`
@@ -19,8 +19,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- `BindingFramework::is_available()` returns `true`; `supported_targets()` lists all five adapters
+- `BindingFramework::is_available()` returns `true`
 - Architecture and docs extend through Orchestrator Binding; execution runtimes remain out of scope
+
+### Fixed
+
+- Airflow no longer invents linear `>>` edges when the plan has no dependency edges
+- Dagster / Prefect adapters wire declared dependencies natively (`upstream` / `wait_for`)
+- Kubernetes runs steps via `initContainers` + main container (not parallel peer containers)
+- `write_bundle` rejects path escape (`..` / absolute) with `DPCS-BIND-004`
+- Sanitized identifiers are disambiguated on collision; Temporal workflow classes use PascalCase
+- Capability-gate refusals retain structured `CapabilityReport` on `BindingResult::Err`
+- CronJob scaffolds emit `timeZone` when SchedulingIntent provides a timezone
 
 ## [0.7.0] - 2026-07-14
 

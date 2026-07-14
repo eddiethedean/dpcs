@@ -36,8 +36,8 @@ the specification.
 COM types are the canonical in-memory representation. Serde attributes exist at
 the wire boundary so YAML and JSON documents deserialize into the same COM values.
 
-Extension fields use [`ExtensionValue`](../../src/model/extension_value.rs) and
-[`ExtensionMap`](../../src/model/extension_value.rs), not `serde_json::Value`.
+Extension fields use [`ExtensionValue`](../src/model/extension_value.rs) and
+[`ExtensionMap`](../src/model/extension_value.rs), not `serde_json::Value`.
 Conversions to and from JSON-shaped values happen only at parse/serialize time.
 
 ## Identity model
@@ -148,10 +148,10 @@ matching against orchestrator profiles shipped in roadmap 0.7.0.
 | `CapabilityProfile` | `identity` (alias `profile`), `dpcsVersion` (default empty), `capabilities` (objects or bare id strings), `limitations`, optional `metadata` |
 | `CapabilityDecl` | `id`, optional `category`, `optional` (default false) |
 
-[`PipelineGraph`]: ../../src/model/graph.rs
-[`DataFlow`]: ../../src/model/data_flow.rs
-[`DependencyGraph`]: ../../src/model/analysis.rs
+[`PipelineGraph`]: ../src/model/graph.rs
+[`DataFlow`]: ../src/model/data_flow.rs
+[`DependencyGraph`]: ../src/model/analysis.rs
 
-[`PipelineInterface`]: ../../src/model/interface.rs
-[`InterfacePort`]: ../../src/model/interface.rs
-[`Metadata`]: ../../src/model/metadata.rs
+[`PipelineInterface`]: ../src/model/interface.rs
+[`InterfacePort`]: ../src/model/interface.rs
+[`Metadata`]: ../src/model/metadata.rs

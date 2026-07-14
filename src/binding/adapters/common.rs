@@ -1,7 +1,12 @@
 //! Shared plan views used by orchestrator adapters.
 
+use std::collections::{BTreeMap, BTreeSet};
+use std::path::{Component, Path};
+
 use crate::binding::artifact::BindingFile;
+use crate::binding::diagnostics::{self, report_error};
 use crate::binding::framework::BindContext;
+use crate::diagnostics::ValidationReport;
 use crate::model::{
     ContractReference, ExecutionRequirements, FailureSemantics, PipelineStep, QualityGate,
     SchedulingIntent, SchedulingMode,
@@ -64,7 +69,6 @@ impl<'a> PlanView<'a> {
     }
 
     /// Scheduling intents.
-    #[allow(dead_code)]
     pub fn scheduling(&self) -> &[SchedulingIntent] {
         &self.plan.scheduling
     }
@@ -103,24 +107,94 @@ impl<'a> PlanView<'a> {
             .find_map(|intent| intent.timezone.as_deref())
     }
 
+    /// Predecessor step ids for `step_id` derived from dependency edges (sorted).
+    pub fn predecessors(&self, step_id: &str) -> Vec<&str> {
+        let mut preds: Vec<&str> = self
+            .dependency_edges()
+            .iter()
+            .filter(|edge| edge.to == step_id)
+            .map(|edge| edge.from.as_str())
+            .collect();
+        preds.sort_unstable();
+        preds.dedup();
+        preds
+    }
+
+    /// Unique Python identifiers for every plan step id (and optional extras).
+    pub fn unique_python_idents(&self, extras: &[&str]) -> BTreeMap<String, String> {
+        let mut ids: Vec<String> = self.step_order().to_vec();
+        for extra in extras {
+            if !ids.iter().any(|id| id == *extra) {
+                ids.push((*extra).to_owned());
+            }
+        }
+        unique_sanitized(&ids, Self::python_ident)
+    }
+
+    /// Unique Kubernetes name fragments for every plan step id (and optional extras).
+    pub fn unique_k8s_names(&self, extras: &[&str]) -> BTreeMap<String, String> {
+        let mut ids: Vec<String> = self.step_order().to_vec();
+        for extra in extras {
+            if !ids.iter().any(|id| id == *extra) {
+                ids.push((*extra).to_owned());
+            }
+        }
+        unique_sanitized(&ids, Self::k8s_name)
+    }
+
     /// Sanitize an identifier for use as a Python name.
     pub fn python_ident(raw: &str) -> String {
         let mut out = String::with_capacity(raw.len());
-        for (i, ch) in raw.chars().enumerate() {
+        for ch in raw.chars() {
             if ch.is_ascii_alphanumeric() || ch == '_' {
                 out.push(ch);
             } else {
                 out.push('_');
             }
-            if i == 0 && out.starts_with(|c: char| c.is_ascii_digit()) {
-                out.insert(0, '_');
-            }
         }
         if out.is_empty() {
-            "_unnamed".to_owned()
-        } else {
-            out
+            return "_unnamed".to_owned();
         }
+        if out.chars().next().is_some_and(|c| c.is_ascii_digit()) {
+            out.insert(0, '_');
+        }
+        out
+    }
+
+    /// Build a PascalCase Python class name (Temporal workflow class).
+    pub fn python_class_name(raw: &str) -> String {
+        let mut parts = Vec::new();
+        let mut current = String::new();
+        for ch in raw.chars() {
+            if ch.is_ascii_alphanumeric() {
+                current.push(ch);
+            } else if !current.is_empty() {
+                parts.push(std::mem::take(&mut current));
+            }
+        }
+        if !current.is_empty() {
+            parts.push(current);
+        }
+        let mut name = String::new();
+        for part in parts {
+            let mut chars = part.chars();
+            if let Some(first) = chars.next() {
+                name.push(first.to_ascii_uppercase());
+                for ch in chars {
+                    name.push(ch.to_ascii_lowercase());
+                }
+            }
+        }
+        if name.is_empty() {
+            name = "Pipeline".to_owned();
+        }
+        if name.chars().next().is_some_and(|c| c.is_ascii_digit()) {
+            name.insert(0, '_');
+        }
+        if !name.ends_with("Workflow") {
+            name.push_str("Workflow");
+        }
+        name
     }
 
     /// Sanitize an identifier for use as a Kubernetes label / resource name fragment.
@@ -143,8 +217,7 @@ impl<'a> PlanView<'a> {
             "pipeline".to_owned()
         } else if out.len() > 63 {
             out.truncate(63);
-            out = out.trim_end_matches('-').to_owned();
-            out
+            out.trim_end_matches('-').to_owned()
         } else {
             out
         }
@@ -152,7 +225,40 @@ impl<'a> PlanView<'a> {
 
     /// Escape a string for embedding in a Python double-quoted literal.
     pub fn py_string(raw: &str) -> String {
-        raw.replace('\\', "\\\\").replace('"', "\\\"")
+        let mut out = String::with_capacity(raw.len());
+        for ch in raw.chars() {
+            match ch {
+                '\\' => out.push_str("\\\\"),
+                '"' => out.push_str("\\\""),
+                '\n' => out.push_str("\\n"),
+                '\r' => out.push_str("\\r"),
+                '\t' => out.push_str("\\t"),
+                c if c.is_control() => {
+                    out.push_str(&format!("\\u{{{:04x}}}", u32::from(c)));
+                }
+                c => out.push(c),
+            }
+        }
+        out
+    }
+
+    /// Escape a string for a YAML double-quoted scalar.
+    pub fn yaml_string(raw: &str) -> String {
+        let mut out = String::with_capacity(raw.len());
+        for ch in raw.chars() {
+            match ch {
+                '\\' => out.push_str("\\\\"),
+                '"' => out.push_str("\\\""),
+                '\n' => out.push_str("\\n"),
+                '\r' => out.push_str("\\r"),
+                '\t' => out.push_str("\\t"),
+                c if c.is_control() => {
+                    out.push_str(&format!("\\u{:04x}", u32::from(c)));
+                }
+                c => out.push(c),
+            }
+        }
+        out
     }
 
     /// Build a shared header comment block documenting preserved semantics.
@@ -165,6 +271,14 @@ impl<'a> PlanView<'a> {
             format!("# dpcsVersion: {}", self.plan.dpcs_version),
             format!("# stepOrder: {}", self.step_order().join(", ")),
         ];
+        if !self.scheduling().is_empty() {
+            let modes: Vec<_> = self
+                .scheduling()
+                .iter()
+                .map(|intent| intent.mode.as_str())
+                .collect();
+            lines.push(format!("# schedulingModes: {}", modes.join(", ")));
+        }
         if let Some(cron) = self.primary_cron() {
             lines.push(format!("# scheduleCron: {cron}"));
         }
@@ -219,11 +333,71 @@ impl<'a> PlanView<'a> {
             ));
         }
         lines.push(
-            "# Generated by dpcs; preserve plan semantics — do not invent runtime behavior."
+            "# Scaffold encodes identity/topology where the target allows; QG/FS/execution intents are documented here."
+                .to_owned(),
+        );
+        lines.push(
+            "# Generated by dpcs; do not invent runtime behavior beyond the Pipeline Plan."
                 .to_owned(),
         );
         lines.join("\n")
     }
+}
+
+/// Map original ids to unique sanitized identifiers, disambiguating collisions.
+pub fn unique_sanitized(
+    ids: &[String],
+    sanitize: impl Fn(&str) -> String,
+) -> BTreeMap<String, String> {
+    let mut used = BTreeSet::new();
+    let mut map = BTreeMap::new();
+    for id in ids {
+        let base = sanitize(id);
+        let mut candidate = base.clone();
+        let mut n = 2u32;
+        while !used.insert(candidate.clone()) {
+            candidate = format!("{base}__{n}");
+            n += 1;
+        }
+        map.insert(id.clone(), candidate);
+    }
+    map
+}
+
+/// Reject relative paths that can escape `out_dir`.
+pub fn validate_relative_path(relative_path: &str) -> Result<(), ValidationReport> {
+    if relative_path.is_empty() {
+        return Err(report_error(diagnostics::write_failed(
+            "binding file relative_path must not be empty",
+        )));
+    }
+    if relative_path.contains('\0') {
+        return Err(report_error(diagnostics::write_failed(
+            "binding file relative_path must not contain NUL",
+        )));
+    }
+    let path = Path::new(relative_path);
+    if path.is_absolute() {
+        return Err(report_error(diagnostics::write_failed(format!(
+            "binding file relative_path must be relative, got `{relative_path}`"
+        ))));
+    }
+    for component in path.components() {
+        match component {
+            Component::Normal(_) | Component::CurDir => {}
+            Component::ParentDir => {
+                return Err(report_error(diagnostics::write_failed(format!(
+                    "binding file relative_path must not contain `..`: `{relative_path}`"
+                ))));
+            }
+            Component::RootDir | Component::Prefix(_) => {
+                return Err(report_error(diagnostics::write_failed(format!(
+                    "binding file relative_path must be relative, got `{relative_path}`"
+                ))));
+            }
+        }
+    }
+    Ok(())
 }
 
 /// Helper to build a Python source file artifact.
@@ -234,4 +408,32 @@ pub fn python_file(relative_path: &str, content: String) -> BindingFile {
 /// Helper to build a YAML artifact.
 pub fn yaml_file(relative_path: &str, content: String) -> BindingFile {
     BindingFile::new(relative_path, "application/yaml", content)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unique_sanitized_disambiguates_collisions() {
+        let ids = vec!["a.b".to_owned(), "a_b".to_owned()];
+        let map = unique_sanitized(&ids, PlanView::python_ident);
+        assert_ne!(map["a.b"], map["a_b"]);
+        assert!(map.values().all(|v| v.starts_with("a_b")));
+    }
+
+    #[test]
+    fn validate_relative_path_rejects_escape() {
+        assert!(validate_relative_path("../etc/passwd").is_err());
+        assert!(validate_relative_path("/etc/passwd").is_err());
+        assert!(validate_relative_path("dags/ok.py").is_ok());
+    }
+
+    #[test]
+    fn python_class_name_is_pascal_case() {
+        assert_eq!(
+            PlanView::python_class_name("valid.execution.model"),
+            "ValidExecutionModelWorkflow"
+        );
+    }
 }

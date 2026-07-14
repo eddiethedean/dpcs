@@ -38,8 +38,8 @@ pub mod validation;
 pub mod cli;
 
 pub use binding::{
-    bind, bind_contract, parse_target, write_bundle, BindingBundle, BindingFile, BindingFramework,
-    BindingResult, BindingTarget,
+    bind, bind_contract, parse_target, write_bundle, BindContext, BindingBundle, BindingFile,
+    BindingFramework, BindingResult, BindingTarget,
 };
 #[allow(deprecated)]
 pub use capabilities::OrchestratorCapabilities;

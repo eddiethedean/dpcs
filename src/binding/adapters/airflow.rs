@@ -21,16 +21,16 @@ impl OrchestratorAdapter for AirflowAdapter {
         ctx: &BindContext<'_>,
     ) -> Result<Vec<BindingFile>, ValidationReport> {
         let view = PlanView::new(plan, ctx);
-        let dag_id = PlanView::python_ident(view.contract_id());
-        let file_stem = PlanView::python_ident(view.contract_id());
+        let idents = view.unique_python_idents(&[view.contract_id()]);
+        let dag_id = idents
+            .get(view.contract_id())
+            .cloned()
+            .unwrap_or_else(|| PlanView::python_ident(view.contract_id()));
+        let file_stem = dag_id.clone();
         let schedule = view
             .primary_cron()
             .map(|c| format!("\"{}\"", PlanView::py_string(c)))
             .unwrap_or_else(|| "None".to_owned());
-        let timezone = view
-            .primary_timezone()
-            .map(|tz| format!("\"{}\"", PlanView::py_string(tz)))
-            .unwrap_or_else(|| "\"UTC\"".to_owned());
 
         let mut body = String::new();
         body.push_str(&view.header_comment("Airflow"));
@@ -70,20 +70,23 @@ with DAG(
         \"depends_on_past\": False,
     },
 ) as dag:
-    dag.timezone = ",
+",
         );
-        body.push_str(&timezone);
-        body.push('\n');
+        if let Some(tz) = view.primary_timezone() {
+            body.push_str("    # scheduleTimezone: ");
+            body.push_str(&PlanView::py_string(tz));
+            body.push_str(" (configure via Airflow timetable / timezone-aware start_date)\n");
+        }
 
         for step_id in view.step_order() {
-            let var = PlanView::python_ident(step_id);
+            let var = &idents[step_id];
             let step = view.step(step_id);
             let contract = step
                 .and_then(|s| s.contract_ref.as_deref().or(s.transform_ref.as_deref()))
                 .unwrap_or("-");
             let step_type = step.map(|s| s.step_type.as_str()).unwrap_or("unknown");
             body.push_str("    ");
-            body.push_str(&var);
+            body.push_str(var);
             body.push_str(" = EmptyOperator(\n");
             body.push_str("        task_id=\"");
             body.push_str(&PlanView::py_string(step_id));
@@ -96,32 +99,16 @@ with DAG(
             body.push_str("    )\n");
         }
 
-        if view.dependency_edges().is_empty() {
-            // Linear chain from step_order when no explicit edges.
-            let order = view.step_order();
-            for window in order.windows(2) {
-                let from = PlanView::python_ident(&window[0]);
-                let to = PlanView::python_ident(&window[1]);
-                body.push_str("    ");
-                body.push_str(&from);
-                body.push_str(" >> ");
-                body.push_str(&to);
-                body.push('\n');
-            }
-        } else {
-            for edge in view.dependency_edges() {
-                let from = PlanView::python_ident(&edge.from);
-                let to = PlanView::python_ident(&edge.to);
-                body.push_str("    ");
-                body.push_str(&from);
-                body.push_str(" >> ");
-                body.push_str(&to);
-                body.push('\n');
-            }
+        // Only wire declared dependency edges — never invent edges from step_order.
+        for edge in view.dependency_edges() {
+            let from = &idents[&edge.from];
+            let to = &idents[&edge.to];
+            body.push_str("    ");
+            body.push_str(from);
+            body.push_str(" >> ");
+            body.push_str(to);
+            body.push('\n');
         }
-
-        // Quality gates / failure semantics as documented metadata tasks comments already
-        // appear in the header; keep EmptyOperators only for steps.
 
         Ok(vec![python_file(&format!("dags/{file_stem}.py"), body)])
     }

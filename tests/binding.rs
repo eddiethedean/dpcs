@@ -2,7 +2,8 @@
 
 use dpcs::{
     bind, bind_contract, parse_target, parse_yaml_file, plan, try_plan, write_bundle,
-    BindingFramework, BindingResult, BindingTarget, CapabilityProfile, DiagnosticStage, PlanResult,
+    BindingBundle, BindingFile, BindingFramework, BindingResult, BindingTarget, CapabilityProfile,
+    DiagnosticStage, PlanResult,
 };
 use std::collections::BTreeSet;
 
@@ -35,6 +36,11 @@ fn parse_target_rejects_unknown() {
         .diagnostics
         .iter()
         .any(|d| d.stage == DiagnosticStage::OrchestratorBinding));
+}
+
+#[test]
+fn parse_target_accepts_k8s_alias() {
+    assert_eq!(parse_target("k8s").unwrap(), BindingTarget::Kubernetes);
 }
 
 #[test]
@@ -86,13 +92,31 @@ fn bind_multi_step_encodes_dependencies() {
         panic!("expected airflow bind");
     };
     let content = &bundle.files[0].content;
-    assert!(content.contains("ingest"));
-    assert!(content.contains("transform"));
-    assert!(content.contains("publish"));
-    assert!(content.contains(">>") || content.contains("dependency"));
-    // Explicit edges from graph
+    assert!(content.contains("ingest >> transform") || content.contains("ingest >>"));
+    assert!(content.contains("transform >> publish") || content.contains(">> publish"));
+
+    let BindingResult::Ok(dagster) = bind(&planned, &profile, BindingTarget::Dagster) else {
+        panic!("expected dagster bind");
+    };
+    let dagster_content = &dagster.files[0].content;
     assert!(
-        content.contains("ingest") && content.contains("transform") && content.contains("publish")
+        dagster_content.contains("transform_op(ingest_result)")
+            || dagster_content.contains("_op(ingest_result)")
+    );
+}
+
+#[test]
+fn airflow_does_not_invent_edges_when_independent() {
+    let contract = parse_yaml_file(fixture("valid/minimal.dpcs.yaml")).unwrap();
+    let planned = try_plan(&contract).expect("plan");
+    assert!(planned.dependency_edges.is_empty());
+    let profile = matching_profile();
+    let BindingResult::Ok(bundle) = bind(&planned, &profile, BindingTarget::Airflow) else {
+        panic!("expected bind");
+    };
+    assert!(
+        !bundle.files[0].content.contains(" >> "),
+        "independent plans must not invent Airflow dependencies"
     );
 }
 
@@ -104,26 +128,42 @@ fn bind_refuses_missing_mandatory_capability() {
     ))
     .unwrap();
 
-    let BindingResult::Err(report) = bind(&planned, &profile, BindingTarget::Airflow) else {
+    let BindingResult::Err {
+        diagnostics,
+        capability,
+    } = bind(&planned, &profile, BindingTarget::Airflow)
+    else {
         panic!("expected capability refusal");
     };
-    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-BIND-001"));
-    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-CAP-005"));
-    assert!(report
+    assert!(diagnostics
+        .diagnostics
+        .iter()
+        .any(|d| d.id == "DPCS-BIND-001"));
+    assert!(diagnostics
+        .diagnostics
+        .iter()
+        .any(|d| d.id == "DPCS-CAP-005"));
+    assert!(diagnostics
         .diagnostics
         .iter()
         .any(|d| d.stage == DiagnosticStage::OrchestratorBinding));
+    let cap = capability.expect("capability report retained");
+    assert!(cap.missing_mandatory.iter().any(|id| id == "sql.readwrite"));
 }
 
 #[test]
 fn bind_contract_refuses_invalid_contract() {
     let contract = parse_yaml_file(fixture("invalid/cycle.dpcs.yaml")).unwrap();
     let profile = matching_profile();
-    let BindingResult::Err(report) = bind_contract(&contract, &profile, BindingTarget::Dagster)
+    let BindingResult::Err { diagnostics, .. } =
+        bind_contract(&contract, &profile, BindingTarget::Dagster)
     else {
         panic!("expected planning refusal");
     };
-    assert!(report.diagnostics.iter().any(|d| d.id == "DPCS-PLN-001"));
+    assert!(diagnostics
+        .diagnostics
+        .iter()
+        .any(|d| d.id == "DPCS-PLN-001"));
 }
 
 #[test]
@@ -147,6 +187,28 @@ fn write_bundle_creates_files() {
 }
 
 #[test]
+fn write_bundle_rejects_path_escape() {
+    let bundle = BindingBundle {
+        target: BindingTarget::Airflow,
+        contract_id: "x".into(),
+        contract_version: "0.1.0".into(),
+        profile_identity: "p".into(),
+        files: vec![BindingFile::new("../escape.py", "text/x-python", "pass\n")],
+        capability: dpcs::CapabilityReport {
+            profile_identity: "p".into(),
+            plan_contract_id: None,
+            satisfied: vec![],
+            missing_mandatory: vec![],
+            unsupported_optional: vec![],
+            diagnostics: vec![],
+        },
+    };
+    let dir = tempfile::tempdir().unwrap();
+    let err = write_bundle(&bundle, dir.path()).unwrap_err();
+    assert!(err.diagnostics.iter().any(|d| d.id == "DPCS-BIND-004"));
+}
+
+#[test]
 fn kubernetes_uses_cronjob_when_scheduled() {
     let planned = execution_plan();
     let profile = matching_profile();
@@ -167,6 +229,28 @@ fn kubernetes_uses_cronjob_when_scheduled() {
         .unwrap();
     assert!(cron.content.contains("kind: CronJob"));
     assert!(cron.content.contains("0 2 * * *"));
+    assert!(cron.content.contains("timeZone: \"UTC\""));
+}
+
+#[test]
+fn kubernetes_uses_init_containers_for_multi_step() {
+    let contract = parse_yaml_file(fixture("valid/with_graph_features.dpcs.yaml")).unwrap();
+    let planned = try_plan(&contract).expect("plan");
+    let profile = matching_profile();
+    let BindingResult::Ok(bundle) = bind(&planned, &profile, BindingTarget::Kubernetes) else {
+        panic!("expected k8s");
+    };
+    let job = bundle
+        .files
+        .iter()
+        .find(|f| f.relative_path == "job.yaml")
+        .expect("job.yaml");
+    assert!(job.content.contains("initContainers:"));
+    assert!(
+        !job.content
+            .contains("containers:\n        - name: ingest\n          image")
+            || job.content.contains("initContainers:")
+    );
 }
 
 #[test]
@@ -179,4 +263,17 @@ fn airflow_embeds_schedule_and_contract_refs() {
     let content = &bundle.files[0].content;
     assert!(content.contains("0 2 * * *"));
     assert!(content.contains("normalize_customer_transform") || content.contains("contractRef"));
+    assert!(!content.contains("dag.timezone ="));
+}
+
+#[test]
+fn temporal_uses_pascal_case_class() {
+    let planned = execution_plan();
+    let profile = matching_profile();
+    let BindingResult::Ok(bundle) = bind(&planned, &profile, BindingTarget::Temporal) else {
+        panic!("expected temporal");
+    };
+    assert!(bundle.files[0]
+        .content
+        .contains("class ValidExecutionModelWorkflow"));
 }

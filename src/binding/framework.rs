@@ -9,7 +9,7 @@ use crate::diagnostics::ValidationReport;
 use crate::model::PipelineContract;
 use crate::plan::{self, PipelinePlan, PlanResult};
 
-use super::adapters::adapter_for;
+use super::adapters::{adapter_for, validate_relative_path};
 use super::artifact::{BindingBundle, BindingTarget};
 use super::diagnostics::{self, write_failed};
 
@@ -28,7 +28,12 @@ pub enum BindingResult {
     /// Binding succeeded and produced a platform artifact bundle.
     Ok(Box<BindingBundle>),
     /// Binding refused (capability gate, planning, or translation failure).
-    Err(ValidationReport),
+    Err {
+        /// Binding-stage (and related) diagnostics.
+        diagnostics: ValidationReport,
+        /// Structured capability report when refusal is due to capability matching.
+        capability: Option<Box<CapabilityReport>>,
+    },
 }
 
 impl BindingResult {
@@ -36,7 +41,7 @@ impl BindingResult {
     pub fn bundle(self) -> Option<BindingBundle> {
         match self {
             Self::Ok(bundle) => Some(*bundle),
-            Self::Err(_) => None,
+            Self::Err { .. } => None,
         }
     }
 
@@ -44,7 +49,7 @@ impl BindingResult {
     pub fn as_bundle(&self) -> Option<&BindingBundle> {
         match self {
             Self::Ok(bundle) => Some(bundle),
-            Self::Err(_) => None,
+            Self::Err { .. } => None,
         }
     }
 
@@ -57,7 +62,29 @@ impl BindingResult {
     pub fn report(&self) -> Option<&ValidationReport> {
         match self {
             Self::Ok(_) => None,
-            Self::Err(report) => Some(report),
+            Self::Err { diagnostics, .. } => Some(diagnostics),
+        }
+    }
+
+    /// Returns the capability report retained on capability-gate refusal.
+    pub fn capability_report(&self) -> Option<&CapabilityReport> {
+        match self {
+            Self::Ok(_) => None,
+            Self::Err { capability, .. } => capability.as_deref(),
+        }
+    }
+
+    fn err(diagnostics: ValidationReport) -> Self {
+        Self::Err {
+            diagnostics,
+            capability: None,
+        }
+    }
+
+    fn err_with_capability(diagnostics: ValidationReport, report: CapabilityReport) -> Self {
+        Self::Err {
+            diagnostics,
+            capability: Some(Box::new(report)),
         }
     }
 }
@@ -82,8 +109,14 @@ pub fn bind(
 ) -> BindingResult {
     let capability = match evaluate(plan, profile) {
         CapabilityResult::Ok(report) => report,
-        CapabilityResult::Err { diagnostics, .. } => {
-            return BindingResult::Err(diagnostics::report_capability_gate(diagnostics));
+        CapabilityResult::Err {
+            report,
+            diagnostics,
+        } => {
+            return BindingResult::err_with_capability(
+                diagnostics::report_capability_gate(diagnostics),
+                *report,
+            );
         }
     };
 
@@ -96,9 +129,14 @@ pub fn bind(
     match adapter.translate(plan, &ctx) {
         Ok(files) => {
             if files.is_empty() {
-                return BindingResult::Err(diagnostics::report_error(
+                return BindingResult::err(diagnostics::report_error(
                     diagnostics::translation_incomplete("binding adapter produced no artifacts"),
                 ));
+            }
+            for file in &files {
+                if let Err(report) = validate_relative_path(&file.relative_path) {
+                    return BindingResult::err(report);
+                }
             }
             BindingResult::Ok(Box::new(BindingBundle {
                 target,
@@ -109,7 +147,7 @@ pub fn bind(
                 capability: *capability,
             }))
         }
-        Err(report) => BindingResult::Err(report),
+        Err(report) => BindingResult::err(report),
     }
 }
 
@@ -124,17 +162,25 @@ pub fn bind_contract(
 ) -> BindingResult {
     match plan::plan(contract) {
         PlanResult::Ok(planned) => bind(&planned, profile, target),
-        PlanResult::Err(report) => BindingResult::Err(report),
+        PlanResult::Err(report) => BindingResult::err(report),
     }
 }
 
 /// Write a binding bundle's files under `out_dir`.
 ///
-/// Creates parent directories as needed. Returns a binding-stage diagnostic
-/// report on filesystem errors.
+/// Creates parent directories as needed. Rejects absolute paths, `..` segments,
+/// and empty relative paths (`DPCS-BIND-004`). Returns a binding-stage
+/// diagnostic report on filesystem errors.
 pub fn write_bundle(bundle: &BindingBundle, out_dir: &Path) -> Result<(), ValidationReport> {
+    if let Err(err) = fs::create_dir_all(out_dir) {
+        return Err(diagnostics::report_error(write_failed(format!(
+            "failed to create directory {}: {err}",
+            out_dir.display()
+        ))));
+    }
     for file in &bundle.files {
-        let path = out_dir.join(&file.relative_path);
+        validate_relative_path(&file.relative_path)?;
+        let path = out_dir.join(Path::new(&file.relative_path));
         if let Some(parent) = path.parent() {
             if let Err(err) = fs::create_dir_all(parent) {
                 return Err(diagnostics::report_error(write_failed(format!(

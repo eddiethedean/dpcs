@@ -22,14 +22,6 @@ Tagged releases use `.github/workflows/release.yml`:
 Store a crates.io API token in the repository secret named `CARGO_REGISTRY_TOKEN`.
 Do not use a PyPI token here; this project does not publish a Python package yet.
 
-
-```bash
-rustup toolchain install stable
-cargo test --all-features
-```
-
-MSRV is **1.85**.
-
 ## Workflow
 
 1. Create a focused branch.
@@ -40,6 +32,7 @@ MSRV is **1.85**.
    cargo fmt --all
    cargo clippy --all-targets --all-features -- -D warnings
    cargo test --all-features
+   # or: make ci
    ```
 
 4. Update docs when public behavior changes.
@@ -55,9 +48,23 @@ MSRV is **1.85**.
 | `src/parser` | YAML/JSON parsing |
 | `src/validation` | Phase-based validation |
 | `src/diagnostics` | Diagnostic types and reports |
+| `src/plan` | Pipeline Plan generation |
+| `src/capabilities` | Capability profiles and matching |
+| `src/binding` | Orchestrator binding scaffolds |
+| `src/cli` | CLI commands |
+| `examples/` | Example contracts and profiles |
 | `tests/fixtures` | Conformance-oriented fixtures |
 | `docs/` | Design guides |
 | `adr/` | Architecture decisions |
+
+## Development setup
+
+```bash
+rustup toolchain install stable
+cargo test --all-features
+```
+
+MSRV is **1.85**. Local parity with CI: `make ci` (lint, test, example smokes including `bind`, release build).
 
 ## Validation diagnostics
 

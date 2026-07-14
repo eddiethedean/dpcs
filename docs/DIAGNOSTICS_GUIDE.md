@@ -53,7 +53,13 @@ pub struct Diagnostic {
 
 Planning failures use `DiagnosticStage::Planning` (for example `DPCS-PLN-001`).
 Capability match failures use `DiagnosticStage::CapabilityEvaluation`
-(`DPCS-CAP-001`–`006`). Binding failures use `DiagnosticStage::OrchestratorBinding`
-(`DPCS-BIND-001`–`004`).
+(`DPCS-CAP-001`–`006`). Binding failures use `DiagnosticStage::OrchestratorBinding`:
+
+| ID | Meaning |
+| --- | --- |
+| `DPCS-BIND-001` | Capability gate failed before translation |
+| `DPCS-BIND-002` | Unknown binding target |
+| `DPCS-BIND-003` | Translation incomplete / empty artifacts |
+| `DPCS-BIND-004` | Artifact write failure or unsafe relative path |
 
 Diagnostics describe observations only. They must not change pipeline semantics.

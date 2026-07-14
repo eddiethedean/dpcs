@@ -145,7 +145,9 @@ use dpcs::{bind, BindingResult, BindingTarget};
 if let PlanResult::Ok(planned) = plan(&contract) {
     match bind(&planned, &profile, BindingTarget::Airflow) {
         BindingResult::Ok(bundle) => println!("files: {}", bundle.files.len()),
-        BindingResult::Err(report) => eprintln!("bind failed: {}", report.error_count()),
+        BindingResult::Err { diagnostics, .. } => {
+            eprintln!("bind failed: {}", diagnostics.error_count())
+        }
     }
 }
 ```

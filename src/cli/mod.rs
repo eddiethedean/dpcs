@@ -89,7 +89,7 @@ enum Commands {
         /// Path to an orchestrator capability profile.
         #[arg(long)]
         profile: PathBuf,
-        /// Target orchestrator: airflow, dagster, prefect, temporal, kubernetes.
+        /// Target orchestrator: airflow, dagster, prefect, temporal, kubernetes (alias: k8s).
         ///
         /// `temporal` and `kubernetes` are experimental.
         #[arg(long)]
@@ -449,8 +449,8 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                     }
                     Ok(EXIT_OK)
                 }
-                BindingResult::Err(report) => {
-                    print_report(&report, json)?;
+                BindingResult::Err { diagnostics, .. } => {
+                    print_report(&diagnostics, json)?;
                     Ok(EXIT_VALIDATION)
                 }
             }
