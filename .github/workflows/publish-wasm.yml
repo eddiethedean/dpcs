@@ -1,67 +1,37 @@
-name: Release
+# Manually (re)publish WASM packages to npm and Wasmer after a tag release.
+#
+# Uses secrets `NPM_TOKEN` and `WASM_TOKEN` (same as release.yml).
+
+name: Publish WASM packages
 
 on:
-  push:
-    tags:
-      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Git tag to checkout and publish (for example v0.10.0)
+        required: true
+        default: v0.10.0
+      publish_npm:
+        description: Publish the npm package
+        type: boolean
+        default: true
+      publish_wasmer:
+        description: Publish the Wasmer package
+        type: boolean
+        default: true
 
 permissions:
   contents: read
 
 jobs:
-  ci:
-    name: CI
-    uses: ./.github/workflows/ci-checks.yml
-
-  publish-crates:
-    name: Publish crates.io
-    needs: ci
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-      - name: Publish dpcs
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: cargo publish -p dpcs --locked
-      - name: Wait for crates.io index
-        run: sleep 45
-      - name: Publish dpcs-cli
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: |
-          for i in 1 2 3 4 5; do
-            cargo publish -p dpcs-cli --locked && exit 0
-            echo "publish attempt $i failed; waiting..."
-            sleep 30
-          done
-          exit 1
-
-  publish-pypi:
-    name: Publish PyPI
-    needs: ci
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Install maturin
-        run: pip install maturin
-      - name: Build and publish
-        working-directory: bindings/python
-        env:
-          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
-        run: maturin publish --username __token__ --password "$MATURIN_PYPI_TOKEN"
-
   publish-npm:
     name: Publish npm
-    needs: ci
+    if: ${{ inputs.publish_npm }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
@@ -88,10 +58,12 @@ jobs:
 
   publish-wasmer:
     name: Publish Wasmer
-    needs: ci
+    if: ${{ inputs.publish_wasmer }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
@@ -102,7 +74,8 @@ jobs:
       - name: Build wasm
         working-directory: bindings/wasm
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${{ inputs.tag }}"
+          VERSION="${VERSION#v}"
           wasm-pack build --target web --release --out-dir pkg --out-name dpcs
           WASM=$(ls pkg/*_bg.wasm | head -1)
           cat > wasmer.toml << EOF

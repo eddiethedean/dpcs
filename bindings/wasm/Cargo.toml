@@ -21,3 +21,11 @@ console_error_panic_hook = { workspace = true }
 
 [dev-dependencies]
 wasm-bindgen-test = { workspace = true }
+
+# Rust 1.87+ enables WASM bulk-memory / nontrapping fptoint by default; the
+# wasm-opt binary that wasm-pack downloads must be told about those features.
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ["-O", "--enable-bulk-memory", "--enable-nontrapping-float-to-int"]
+
+[package.metadata.wasm-pack.profile.dev]
+wasm-opt = false
