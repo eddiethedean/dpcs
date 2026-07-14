@@ -36,6 +36,13 @@ jobs:
           cargo run -p dpcs-cli --release -- registry validate examples/registry.yaml
           cargo run -p dpcs-cli --release -- conformance validate examples/conformance.profile.yaml
           cargo run -p dpcs-cli --release -- package validate examples/packages/minimal.dpcspkg
+          cargo run -p dpcs-cli --release -- inspect examples/minimal.dpcs.yaml --format markdown --out /tmp/dpcs-inspect.md
+          cargo run -p dpcs-cli --release -- graph examples/with_execution.dpcs.yaml --format mermaid --out /tmp/dpcs-graph.mmd
+          cargo run -p dpcs-cli --release -- graph examples/with_execution.dpcs.yaml --format html --out /tmp/dpcs-graph.html
+          test -s /tmp/dpcs-inspect.md
+          test -s /tmp/dpcs-graph.mmd
+          grep -q flowchart /tmp/dpcs-graph.mmd
+          grep -q Pipeline /tmp/dpcs-inspect.md
       - name: Schema drift check
         run: |
           cargo run -p dpcs-cli --release -- schema json --out /tmp/dpcs-schemas

@@ -74,7 +74,7 @@ dependencies = [
 
 [[package]]
 name = "dpcs"
-version = "0.10.0"
+version = "0.11.0"
 dependencies = [
  "indexmap",
  "serde",
@@ -87,7 +87,7 @@ dependencies = [
 
 [[package]]
 name = "dpcs-python"
-version = "0.10.0"
+version = "0.11.0"
 dependencies = [
  "dpcs",
  "pyo3",

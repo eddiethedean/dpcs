@@ -2,7 +2,7 @@
 #
 # Builds from the ref this workflow runs on (push the wasm-opt fix to main first).
 # `tag` only selects the version that must match Cargo.toml
-# (for example v0.10.0). Secrets: `NPM_TOKEN`, `WASM_TOKEN`.
+# (for example v0.11.0). Secrets: `NPM_TOKEN`, `WASM_TOKEN`.
 
 name: Publish WASM packages
 
@@ -10,9 +10,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Release tag whose version to publish (for example v0.10.0)
+        description: Release tag whose version to publish (for example v0.11.0)
         required: true
-        default: v0.10.0
+        default: v0.11.0
       publish_npm:
         description: Publish the npm package
         type: boolean
