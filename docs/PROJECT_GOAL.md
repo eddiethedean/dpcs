@@ -2,7 +2,7 @@
 
 Build `dpcs`, a Rust-first implementation of the Data Pipeline Contract Standard.
 
-The crate implements foundational DPCS specification logic through ROADMAP 0.10.0:
+The crate implements foundational DPCS specification logic through ROADMAP 0.11.0:
 
 - Canonical Object Model
 - YAML and JSON parsing
@@ -21,11 +21,13 @@ The crate implements foundational DPCS specification logic through ROADMAP 0.10.
 - Pipeline packages (`.dpcspkg`)
 - JSON Schema / OpenAPI helpers
 - Python and WASM bindings (PyPI `dpcs`, npm `@eddiethedean/dpcs`, Wasmer `eddiethedean/dpcs`)
+- Report renderers (Markdown / HTML / Mermaid / DOT) and rich CLI formats
+- Interactive TUI inspector
 - CLI
 
 See [`BINDINGS.md`](BINDINGS.md) for install and release channel names.
 
 Future milestones:
 
-- Developer experience tooling (0.11)
 - Performance work (0.12)
+- Full reference-implementation / conformance completion (0.13)

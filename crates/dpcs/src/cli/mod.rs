@@ -9,6 +9,7 @@ use crate::diagnostics::{DiagnosticReport, ValidationReport};
 use crate::error::Error;
 use crate::parser;
 use crate::plan;
+use crate::report::{graph_view_from_contract, inspect_view_from_contract, ReportFormat};
 use crate::DPCS_SPEC_VERSION;
 use crate::{
     apply_profile_to_contract, bind, compare_contracts, evaluate, openapi_document, pack,
@@ -17,6 +18,15 @@ use crate::{
     write_openapi_documents, BindingResult, CapabilityProfile, CapabilityResult,
     ConformanceProfile, OpenApiKind, PackageLayout, PublishRequest, Registry, RegistryCache,
     RegistryClient, RegistryClientError, ServeOptions, VERSION,
+};
+
+mod output;
+#[cfg(feature = "tui")]
+mod tui;
+
+use output::{
+    emit_capability, emit_compatibility, emit_diagnostic_report, emit_graph, emit_inspect,
+    emit_validation, EmitOpts,
 };
 
 /// Exit code for successful validation.
@@ -45,9 +55,15 @@ enum Commands {
     Validate {
         /// Path to a `.yaml`, `.yml`, or `.json` document.
         path: PathBuf,
-        /// Emit diagnostics as JSON.
+        /// Emit diagnostics as JSON (alias for `--format json`).
         #[arg(long)]
         json: bool,
+        /// Output format: `text`, `json`, `markdown`, `html`.
+        #[arg(long, value_name = "FORMAT")]
+        format: Option<String>,
+        /// Write report to a file instead of stdout.
+        #[arg(long, value_name = "PATH")]
+        out: Option<PathBuf>,
         /// Treat warnings as errors.
         #[arg(long)]
         strict: bool,
@@ -59,25 +75,46 @@ enum Commands {
     Inspect {
         /// Path to a Pipeline Contract document.
         path: PathBuf,
-        /// Emit the summary as JSON.
+        /// Emit the summary as JSON (alias for `--format json`).
         #[arg(long)]
         json: bool,
+        /// Output format: `text`, `json`, `markdown`, `html`.
+        #[arg(long, value_name = "FORMAT")]
+        format: Option<String>,
+        /// Write report to a file instead of stdout.
+        #[arg(long, value_name = "PATH")]
+        out: Option<PathBuf>,
+        /// Launch the interactive TUI inspector (requires `tui` feature).
+        #[arg(long)]
+        tui: bool,
     },
     /// Emit diagnostics for a Pipeline Contract.
     Diagnostics {
         /// Path to a Pipeline Contract document.
         path: PathBuf,
-        /// Emit diagnostics as JSON.
+        /// Emit diagnostics as JSON (alias for `--format json`).
         #[arg(long)]
         json: bool,
+        /// Output format: `text`, `json`, `markdown`, `html`.
+        #[arg(long, value_name = "FORMAT")]
+        format: Option<String>,
+        /// Write report to a file instead of stdout.
+        #[arg(long, value_name = "PATH")]
+        out: Option<PathBuf>,
     },
     /// Print the pipeline graph edges.
     Graph {
         /// Path to a Pipeline Contract document.
         path: PathBuf,
-        /// Emit the graph as JSON.
+        /// Emit the graph as JSON (alias for `--format json`).
         #[arg(long)]
         json: bool,
+        /// Output format: `text`, `json`, `markdown`, `html`, `mermaid`, `dot`.
+        #[arg(long, value_name = "FORMAT")]
+        format: Option<String>,
+        /// Write report to a file instead of stdout.
+        #[arg(long, value_name = "PATH")]
+        out: Option<PathBuf>,
     },
     /// Evaluate a capability profile against a planned Pipeline Contract.
     Capabilities {
@@ -86,9 +123,15 @@ enum Commands {
         /// Path to a Pipeline Contract used to build the plan under evaluation.
         #[arg(long)]
         plan: PathBuf,
-        /// Emit the capability report (or diagnostics) as JSON.
+        /// Emit the capability report (or diagnostics) as JSON (alias for `--format json`).
         #[arg(long)]
         json: bool,
+        /// Output format: `text`, `json`, `markdown`, `html`.
+        #[arg(long, value_name = "FORMAT")]
+        format: Option<String>,
+        /// Write report to a file instead of stdout.
+        #[arg(long, value_name = "PATH")]
+        out: Option<PathBuf>,
     },
     /// Bind a Pipeline Contract to an orchestrator target (scaffold artifacts).
     Bind {
@@ -115,9 +158,21 @@ enum Commands {
         baseline: PathBuf,
         /// Candidate Pipeline Contract.
         candidate: PathBuf,
-        /// Emit the compatibility report as JSON.
+        /// Emit the compatibility report as JSON (alias for `--format json`).
         #[arg(long)]
         json: bool,
+        /// Output format: `text`, `json`, `markdown`, `html`.
+        #[arg(long, value_name = "FORMAT")]
+        format: Option<String>,
+        /// Write report to a file instead of stdout.
+        #[arg(long, value_name = "PATH")]
+        out: Option<PathBuf>,
+    },
+    /// Interactive TUI inspector for one Pipeline Contract.
+    #[cfg(feature = "tui")]
+    Tui {
+        /// Path to a Pipeline Contract document.
+        path: PathBuf,
     },
     /// Registry document and network operations.
     Registry {
@@ -392,16 +447,21 @@ fn execute(cli: Cli) -> Result<u8, Error> {
             }
             Ok(EXIT_OK)
         }
+        #[cfg(feature = "tui")]
+        Commands::Tui { path } => run_inspect_tui(&path),
         Commands::Validate {
             path,
             json,
+            format,
+            out,
             strict,
             profile,
         } => {
+            let opts = EmitOpts::from_flags(json, format.as_deref(), out)?;
             let contract = match parser::parse_file(&path) {
                 Ok(contract) => contract,
                 Err(Error::InvalidDocument { report }) => {
-                    print_report(&report, json)?;
+                    emit_validation(&opts, &report)?;
                     return Ok(EXIT_FAILURE);
                 }
                 Err(err) => return Err(err),
@@ -411,189 +471,109 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                 let profile = match ConformanceProfile::from_file(&profile_path) {
                     Ok(profile) => profile,
                     Err(Error::InvalidDocument { report }) => {
-                        print_report(&report, json)?;
+                        emit_validation(&opts, &report)?;
                         return Ok(EXIT_FAILURE);
                     }
                     Err(err) => return Err(err),
                 };
                 let profile_report = validate_conformance_profile(&profile);
                 if !profile_report.is_valid() {
-                    print_report(&profile_report, json)?;
+                    emit_validation(&opts, &profile_report)?;
                     return Ok(EXIT_VALIDATION);
                 }
                 report.extend(apply_profile_to_contract(&contract, &profile));
                 report.sort_deterministic();
             }
-            if json {
-                print_diagnostic_report(&DiagnosticReport::from_validation(
-                    report.clone(),
-                    Some(contract.id.clone()),
-                ))?;
+            if opts.format == ReportFormat::Json {
+                emit_diagnostic_report(
+                    &opts,
+                    &DiagnosticReport::from_validation(report.clone(), Some(contract.id.clone())),
+                )?;
             } else {
-                print_report(&report, false)?;
+                emit_validation(&opts, &report)?;
             }
             Ok(exit_code_for_report(&report, strict))
         }
-        Commands::Inspect { path, json } => {
+        Commands::Inspect {
+            path,
+            json,
+            format,
+            out,
+            tui,
+        } => {
+            if tui {
+                return run_inspect_tui(&path);
+            }
+            let opts = EmitOpts::from_flags(json, format.as_deref(), out)?;
             let contract = match parser::parse_file(&path) {
                 Ok(contract) => contract,
                 Err(Error::InvalidDocument { report }) => {
-                    print_report(&report, json)?;
+                    emit_validation(&opts, &report)?;
                     return Ok(EXIT_FAILURE);
                 }
                 Err(err) => return Err(err),
             };
-            let valid = contract.validate().is_valid();
-            let planned = plan::try_plan(&contract);
-            let planning_refused = planned.is_none();
-            let summary = InspectSummary {
-                id: contract.id.clone(),
-                name: contract.name.clone(),
-                version: contract.version.clone(),
-                dpcs_version: contract.dpcs_version.clone(),
-                step_count: contract.steps.len(),
-                edge_count: contract.graph.edges.len(),
-                input_count: contract.interface.inputs.len(),
-                output_count: contract.interface.outputs.len(),
-                contract_reference_count: contract.contract_references.len(),
-                data_flow_count: contract.data_flow.len(),
-                control_flow_count: contract.control_flow.len(),
-                scheduling_count: contract.scheduling.len(),
-                quality_gate_count: contract.quality_gates.len(),
-                failure_semantics_count: contract.failure_semantics.len(),
-                has_execution: contract.execution.is_some(),
-                has_lineage: contract.lineage.is_some(),
-                valid,
-                planning_refused,
-                step_order: planned.as_ref().map(|plan| plan.step_order.clone()),
-            };
-            if json {
-                let payload = serde_json::to_string_pretty(&summary).map_err(|err| {
-                    Error::Serialization(format!("failed to serialize inspect summary: {err}"))
-                })?;
-                println!("{payload}");
-            } else {
-                println!("id: {}", summary.id);
-                if let Some(name) = &summary.name {
-                    println!("name: {name}");
-                }
-                println!("version: {}", summary.version);
-                println!("dpcsVersion: {}", summary.dpcs_version);
-                println!("steps: {}", summary.step_count);
-                println!("edges: {}", summary.edge_count);
-                println!("inputs: {}", summary.input_count);
-                println!("outputs: {}", summary.output_count);
-                println!("contractReferences: {}", summary.contract_reference_count);
-                println!("dataFlow: {}", summary.data_flow_count);
-                println!("controlFlow: {}", summary.control_flow_count);
-                println!("scheduling: {}", summary.scheduling_count);
-                println!("qualityGates: {}", summary.quality_gate_count);
-                println!("failureSemantics: {}", summary.failure_semantics_count);
-                println!("execution: {}", summary.has_execution);
-                println!("lineage: {}", summary.has_lineage);
-                println!("valid: {}", summary.valid);
-                if let Some(order) = &summary.step_order {
-                    println!("stepOrder: {}", order.join(", "));
-                } else {
-                    println!("planning: refused");
-                }
-            }
+            let view = inspect_view_from_contract(&contract);
+            emit_inspect(&opts, &view)?;
             Ok(EXIT_OK)
         }
-        Commands::Diagnostics { path, json } => {
+        Commands::Diagnostics {
+            path,
+            json,
+            format,
+            out,
+        } => {
+            let opts = EmitOpts::from_flags(json, format.as_deref(), out)?;
             let contract = match parser::parse_file(&path) {
                 Ok(contract) => contract,
                 Err(Error::InvalidDocument { report }) => {
-                    print_report(&report, json)?;
+                    emit_validation(&opts, &report)?;
                     return Ok(EXIT_FAILURE);
                 }
                 Err(err) => return Err(err),
             };
             let report = validate(&contract);
-            if json {
-                print_diagnostic_report(&DiagnosticReport::from_validation(
-                    report.clone(),
-                    Some(contract.id.clone()),
-                ))?;
+            if opts.format == ReportFormat::Json {
+                emit_diagnostic_report(
+                    &opts,
+                    &DiagnosticReport::from_validation(report.clone(), Some(contract.id.clone())),
+                )?;
             } else {
-                print_report(&report, false)?;
+                emit_validation(&opts, &report)?;
             }
             Ok(exit_code_for_report(&report, false))
         }
-        Commands::Graph { path, json } => {
+        Commands::Graph {
+            path,
+            json,
+            format,
+            out,
+        } => {
+            let opts = EmitOpts::from_flags(json, format.as_deref(), out)?;
             let contract = match parser::parse_file(&path) {
                 Ok(contract) => contract,
                 Err(Error::InvalidDocument { report }) => {
-                    print_report(&report, json)?;
+                    emit_validation(&opts, &report)?;
                     return Ok(EXIT_FAILURE);
                 }
                 Err(err) => return Err(err),
             };
-            let plan_result = plan::plan(&contract);
-            let (step_order, planning_refused) = match &plan_result {
-                plan::PlanResult::Ok(planned) => (Some(planned.step_order.clone()), false),
-                plan::PlanResult::Err(_) => (None, true),
-            };
-            if json {
-                let payload = GraphPayload {
-                    entry_points: contract.graph.entry_points.clone(),
-                    exit_points: contract.graph.exit_points.clone(),
-                    edges: contract
-                        .graph
-                        .edges
-                        .iter()
-                        .map(|e| GraphEdgeView {
-                            from: e.from.clone(),
-                            to: e.to.clone(),
-                            kind: e.kind.clone(),
-                        })
-                        .collect(),
-                    step_order,
-                    planning_refused,
-                };
-                let payload = serde_json::to_string_pretty(&payload).map_err(|err| {
-                    Error::Serialization(format!("failed to serialize graph payload: {err}"))
-                })?;
-                println!("{payload}");
-            } else {
-                if !contract.graph.entry_points.is_empty() {
-                    println!("entryPoints: {}", contract.graph.entry_points.join(", "));
-                }
-                if !contract.graph.exit_points.is_empty() {
-                    println!("exitPoints: {}", contract.graph.exit_points.join(", "));
-                }
-                if contract.graph.edges.is_empty() {
-                    println!("(no edges)");
-                } else {
-                    for edge in &contract.graph.edges {
-                        match &edge.kind {
-                            Some(kind) => println!("{} -> {} ({kind})", edge.from, edge.to),
-                            None => println!("{} -> {}", edge.from, edge.to),
-                        }
-                    }
-                }
-                match &step_order {
-                    Some(order) => println!("stepOrder: {}", order.join(", ")),
-                    None => {
-                        if let plan::PlanResult::Err(report) = &plan_result {
-                            println!("planning: refused ({} errors)", report.error_count());
-                        } else {
-                            println!("planning: refused");
-                        }
-                    }
-                }
-            }
+            let view = graph_view_from_contract(&contract);
+            emit_graph(&opts, &view)?;
             Ok(EXIT_OK)
         }
         Commands::Capabilities {
             profile,
             plan: contract_path,
             json,
+            format,
+            out,
         } => {
+            let opts = EmitOpts::from_flags(json, format.as_deref(), out)?;
             let profile = match CapabilityProfile::from_file(&profile) {
                 Ok(profile) => profile,
                 Err(Error::InvalidDocument { report }) => {
-                    print_report(&report, json)?;
+                    emit_validation(&opts, &report)?;
                     return Ok(EXIT_FAILURE);
                 }
                 Err(err) => return Err(err),
@@ -601,7 +581,7 @@ fn execute(cli: Cli) -> Result<u8, Error> {
             let contract = match parser::parse_file(&contract_path) {
                 Ok(contract) => contract,
                 Err(Error::InvalidDocument { report }) => {
-                    print_report(&report, json)?;
+                    emit_validation(&opts, &report)?;
                     return Ok(EXIT_FAILURE);
                 }
                 Err(err) => return Err(err),
@@ -610,63 +590,32 @@ fn execute(cli: Cli) -> Result<u8, Error> {
             let planned = match plan::plan(&contract) {
                 plan::PlanResult::Ok(planned) => planned,
                 plan::PlanResult::Err(report) => {
-                    print_report(&report, json)?;
+                    emit_validation(&opts, &report)?;
                     return Ok(EXIT_VALIDATION);
                 }
             };
 
             match evaluate(&planned, &profile) {
                 CapabilityResult::Ok(report) => {
-                    if json {
-                        let payload = serde_json::to_string_pretty(&*report).map_err(|err| {
-                            Error::Serialization(format!(
-                                "failed to serialize capability report: {err}"
-                            ))
-                        })?;
-                        println!("{payload}");
-                    } else {
-                        println!("profile: {}", report.profile_identity);
-                        if let Some(contract_id) = &report.plan_contract_id {
-                            println!("contractId: {contract_id}");
-                        }
-                        println!("satisfied: {}", report.satisfied.join(", "));
-                        if !report.unsupported_optional.is_empty() {
-                            println!(
-                                "unsupportedOptional: {}",
-                                report.unsupported_optional.join(", ")
-                            );
-                        }
-                        for diagnostic in &report.diagnostics {
-                            println!(
-                                "{} {}: {} — {}",
-                                diagnostic.severity,
-                                diagnostic.id,
-                                diagnostic.stage,
-                                diagnostic.message
-                            );
-                        }
-                        println!("match: ok");
-                    }
+                    emit_capability(&opts, &report, true)?;
                     Ok(EXIT_OK)
                 }
                 CapabilityResult::Err {
                     report,
                     diagnostics,
                 } => {
-                    if json {
-                        let mut payload = (*report).clone();
-                        payload.diagnostics = diagnostics.diagnostics.clone();
-                        let payload = serde_json::to_string_pretty(&payload).map_err(|err| {
-                            Error::Serialization(format!(
-                                "failed to serialize capability report: {err}"
-                            ))
-                        })?;
-                        println!("{payload}");
-                    } else {
-                        print_report(&diagnostics, false)?;
+                    let mut merged = (*report).clone();
+                    merged.diagnostics = diagnostics.diagnostics.clone();
+                    if opts.format == ReportFormat::Text {
+                        emit_validation(&opts, &diagnostics)?;
                         if !report.missing_mandatory.is_empty() {
-                            println!("missingMandatory: {}", report.missing_mandatory.join(", "));
+                            println!(
+                                "missingMandatory: {}",
+                                report.missing_mandatory.join(", ")
+                            );
                         }
+                    } else {
+                        emit_capability(&opts, &merged, false)?;
                     }
                     Ok(EXIT_VALIDATION)
                 }
@@ -754,11 +703,14 @@ fn execute(cli: Cli) -> Result<u8, Error> {
             baseline,
             candidate,
             json,
+            format,
+            out,
         } => {
+            let opts = EmitOpts::from_flags(json, format.as_deref(), out)?;
             let baseline_contract = match parser::parse_file(&baseline) {
                 Ok(contract) => contract,
                 Err(Error::InvalidDocument { report }) => {
-                    print_report(&report, json)?;
+                    emit_validation(&opts, &report)?;
                     return Ok(EXIT_FAILURE);
                 }
                 Err(err) => return Err(err),
@@ -766,43 +718,14 @@ fn execute(cli: Cli) -> Result<u8, Error> {
             let candidate_contract = match parser::parse_file(&candidate) {
                 Ok(contract) => contract,
                 Err(Error::InvalidDocument { report }) => {
-                    print_report(&report, json)?;
+                    emit_validation(&opts, &report)?;
                     return Ok(EXIT_FAILURE);
                 }
                 Err(err) => return Err(err),
             };
             let result = compare_contracts(&baseline_contract, &candidate_contract);
             let report = result.report();
-            if json {
-                let payload = serde_json::to_string_pretty(report).map_err(|err| {
-                    Error::Serialization(format!("failed to serialize compatibility report: {err}"))
-                })?;
-                println!("{payload}");
-            } else {
-                println!(
-                    "baseline: {}@{}",
-                    report.baseline_id, report.baseline_version
-                );
-                println!(
-                    "candidate: {}@{}",
-                    report.candidate_id, report.candidate_version
-                );
-                println!("category: {}", report.category);
-                for diagnostic in &report.diagnostics {
-                    println!(
-                        "{} {}: {} — {}",
-                        diagnostic.severity, diagnostic.id, diagnostic.stage, diagnostic.message
-                    );
-                }
-                println!(
-                    "compatibility: {}",
-                    if report.category.is_compatible() {
-                        "ok"
-                    } else {
-                        "incompatible"
-                    }
-                );
-            }
+            emit_compatibility(&opts, report)?;
             Ok(if report.category.is_compatible() {
                 EXIT_OK
             } else {
@@ -1166,59 +1089,23 @@ fn execute(cli: Cli) -> Result<u8, Error> {
 }
 
 fn print_report(report: &ValidationReport, json: bool) -> Result<(), Error> {
-    if json {
-        let payload = serde_json::to_string_pretty(report).map_err(|err| {
-            Error::Serialization(format!("failed to serialize diagnostics: {err}"))
-        })?;
-        println!("{payload}");
-        return Ok(());
-    }
-
-    if report.diagnostics.is_empty() {
-        println!("valid: no diagnostics");
-        return Ok(());
-    }
-
-    for diagnostic in &report.diagnostics {
-        let object = diagnostic
-            .object_ref
-            .as_deref()
-            .map(|value| format!(" @ {value}"))
-            .unwrap_or_default();
-        let location = diagnostic
-            .source_location
-            .as_deref()
-            .map(|value| format!(" ({value})"))
-            .unwrap_or_default();
-        println!(
-            "{} {}: {}{} — {}{}",
-            diagnostic.severity,
-            diagnostic.id,
-            diagnostic.stage,
-            object,
-            diagnostic.message,
-            location
-        );
-        if let Some(remediation) = &diagnostic.remediation {
-            println!("  remediation: {remediation}");
-        }
-    }
-
-    println!(
-        "summary: {} error(s), {} warning(s), {} information(s)",
-        report.error_count(),
-        report.warning_count(),
-        report.information_count()
-    );
-    Ok(())
+    let opts = EmitOpts::from_flags(json, None, None)?;
+    emit_validation(&opts, report)
 }
 
-fn print_diagnostic_report(report: &DiagnosticReport) -> Result<(), Error> {
-    let payload = serde_json::to_string_pretty(report).map_err(|err| {
-        Error::Serialization(format!("failed to serialize diagnostic report: {err}"))
-    })?;
-    println!("{payload}");
-    Ok(())
+fn run_inspect_tui(path: &std::path::Path) -> Result<u8, Error> {
+    #[cfg(feature = "tui")]
+    {
+        tui::run(path)
+    }
+    #[cfg(not(feature = "tui"))]
+    {
+        let _ = path;
+        Err(Error::Serialization(
+            "interactive inspector requires the `tui` feature (install `dpcs-cli` or build with `--features full`)"
+                .to_owned(),
+        ))
+    }
 }
 
 fn build_registry_client(
@@ -1253,53 +1140,6 @@ fn exit_code_for_report(report: &ValidationReport, strict: bool) -> u8 {
         return EXIT_VALIDATION;
     }
     EXIT_OK
-}
-
-#[derive(Debug, serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-struct InspectSummary {
-    id: String,
-    name: Option<String>,
-    version: String,
-    dpcs_version: String,
-    step_count: usize,
-    edge_count: usize,
-    input_count: usize,
-    output_count: usize,
-    contract_reference_count: usize,
-    data_flow_count: usize,
-    control_flow_count: usize,
-    scheduling_count: usize,
-    quality_gate_count: usize,
-    failure_semantics_count: usize,
-    has_execution: bool,
-    has_lineage: bool,
-    valid: bool,
-    planning_refused: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    step_order: Option<Vec<String>>,
-}
-
-#[derive(Debug, serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-struct GraphPayload {
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    entry_points: Vec<String>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    exit_points: Vec<String>,
-    edges: Vec<GraphEdgeView>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    step_order: Option<Vec<String>>,
-    planning_refused: bool,
-}
-
-#[derive(Debug, serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-struct GraphEdgeView {
-    from: String,
-    to: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    kind: Option<String>,
 }
 
 #[derive(Debug, serde::Serialize)]

@@ -120,6 +120,15 @@ impl ProcessingResult {
     }
 }
 
+impl std::fmt::Display for ProcessingResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Valid => write!(f, "valid"),
+            Self::Invalid => write!(f, "invalid"),
+        }
+    }
+}
+
 /// Implementation identity metadata attached to diagnostic reports.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "jsonschema", derive(schemars::JsonSchema))]

@@ -36,6 +36,7 @@ pub mod model;
 pub mod package;
 pub mod parser;
 pub mod plan;
+pub mod report;
 pub mod validation;
 
 mod paths;
@@ -94,6 +95,13 @@ pub use parser::{
     to_json_file, to_yaml, to_yaml_file,
 };
 pub use plan::{plan, try_plan, PipelinePlan, PlanDependencyEdge, PlanResult};
+pub use report::{
+    capability_to_html, capability_to_markdown, compatibility_to_html, compatibility_to_markdown,
+    diagnostic_to_html, diagnostic_to_markdown, graph_to_dot, graph_to_html, graph_to_markdown,
+    graph_to_mermaid, graph_view_from_contract, inspect_to_html, inspect_to_markdown,
+    inspect_view_from_contract, to_dot, to_mermaid, validation_to_html, validation_to_markdown,
+    GraphEdgeView, GraphView, InspectView, ReportFormat,
+};
 pub use validation::{
     validate, validate_extension_definition, validate_governance, validate_security,
 };

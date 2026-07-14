@@ -24,7 +24,7 @@ Orchestrator Binding
 Execution Runtime
 ```
 
-Current implementation scope (through ROADMAP 0.10.0):
+Current implementation scope (through ROADMAP 0.11.0):
 
 ```text
 DPCS Document
@@ -54,6 +54,7 @@ Also first-class (not mutating contracts):
   Compatibility analysis · Registry document validate · Registry HTTP client/server
   Conformance claims/profiles · Pipeline packages · JSON Schema / OpenAPI emit
   Language bindings (Python / WASM; see BINDINGS.md)
+  Reports (Markdown/HTML/Mermaid/DOT) · Rich CLI formats · TUI inspector
 ```
 
 Execution runtimes remain out of scope. Binding adapters emit implementation-defined

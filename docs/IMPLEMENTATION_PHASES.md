@@ -123,3 +123,9 @@ Closes SPEC Chapters 18–25:
 - WASM bindings (wasm-bindgen → npm `@eddiethedean/dpcs`, Wasmer `eddiethedean/dpcs`)
 
 Distribution details: [`BINDINGS.md`](BINDINGS.md).
+
+## Phase 12 — Developer experience (complete in 0.11.0)
+
+- Report module: Markdown / HTML / Mermaid / DOT exports
+- Rich CLI `--format` / `--out` (with `--json` alias)
+- Interactive TUI inspector (`tui` feature; `dpcs tui` / `inspect --tui`)

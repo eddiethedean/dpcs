@@ -254,11 +254,29 @@ assert!(validate_package("examples/packages/minimal.dpcspkg").is_valid());
 write_document_schemas("schemas")?;
 ```
 
-Optional features: `cli`, `jsonschema`, `registry-client`, `registry-server`, and `full`.
+Optional features: `cli`, `tui`, `jsonschema`, `registry-client`, `registry-server`, and `full`
+(`full` = `cli` + `tui`).
 Enable `jsonschema` for `openapi_document` / `write_openapi_documents`.
 Enable `registry-client` for `RegistryClient` / `RegistryCache`, and
 `registry-server` for `serve` / `serve_listener`. Both registry features share
 `PublishRequest` (server no longer depends on the client feature).
+Enable `tui` for the interactive inspector (pulled in by `dpcs-cli`).
+
+## Reports and views (0.11.0)
+
+```rust
+use dpcs::{
+    graph_view_from_contract, inspect_view_from_contract, parse_yaml_file, to_mermaid,
+    validation_to_markdown,
+};
+
+let contract = parse_yaml_file("pipeline.dpcs.yaml")?;
+let inspect = inspect_view_from_contract(&contract);
+let graph = graph_view_from_contract(&contract);
+let _md = validation_to_markdown(&dpcs::validate(&contract));
+let _mmd = to_mermaid(&contract);
+let _ = (inspect, graph);
+```
 
 ## Language bindings (0.10.0)
 

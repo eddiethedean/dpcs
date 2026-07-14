@@ -183,15 +183,16 @@ See [`docs/BINDINGS.md`](docs/BINDINGS.md) for install and republish details.
 
 ------------------------------------------------------------------------
 
-# 0.11.0 --- Developer Experience
+# 0.11.0 --- Developer Experience (shipped)
 
 ### Deliverables
 
--   TUI inspector
--   Graph visualization
--   Rich CLI
+-   TUI inspector (`dpcs tui` / `dpcs inspect --tui`, feature `tui`)
+-   Graph visualization (Mermaid + Graphviz DOT + HTML Mermaid page)
+-   Rich CLI (`--format` / `--out`, colored text; `--json` alias)
 -   HTML reports
 -   Markdown reports
+-   Library `report` module (`InspectView`, `GraphView`, renderers)
 
 ------------------------------------------------------------------------
 

@@ -5,6 +5,27 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.0] - 2026-07-14
+
+### Added
+
+- Library `report` module: `InspectView` / `GraphView`, Markdown/HTML renderers,
+  Mermaid and Graphviz DOT graph exporters (`to_mermaid` / `to_dot`)
+- CLI `--format text|json|markdown|html|mermaid|dot` and `--out <path>` for
+  validate / diagnostics / inspect / graph / capabilities / compatibility
+- Interactive TUI inspector (`dpcs tui <path>`, `dpcs inspect --tui`) behind the
+  `tui` feature (ratatui/crossterm); panes for overview, steps, edges,
+  diagnostics, and plan order
+- CLI smoke coverage for markdown `--out`, Mermaid graph export, and TUI
+  non-TTY failure
+
+### Changed
+
+- Crate version `0.11.0`
+- `--json` soft-deprecated as an alias of `--format json` (still supported)
+- Feature `full` now enables `cli` + `tui`; text validation output uses ANSI
+  severity colors on a TTY (honors `NO_COLOR`)
+
 ## [0.10.0] - 2026-07-14
 
 ### Added
@@ -310,6 +331,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `dpcs` CLI: `validate`, `inspect`, `diagnostics`, `graph`, `version`
 - Examples, fixtures, CI, and contributor documentation
 
+[0.11.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.11.0
 [0.10.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.10.0
 [0.9.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.9.0
 [0.8.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.8.0

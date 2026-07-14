@@ -97,6 +97,66 @@ fn inspect_json() {
 }
 
 #[test]
+fn inspect_format_json_aliases_json_flag() {
+    bin()
+        .args([
+            "inspect",
+            &fixture("valid/minimal.dpcs.yaml"),
+            "--format",
+            "json",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("\"id\": \"valid.minimal\""));
+}
+
+#[test]
+fn inspect_markdown_out_writes_file() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let out = dir.path().join("inspect.md");
+    bin()
+        .args([
+            "inspect",
+            &fixture("valid/minimal.dpcs.yaml"),
+            "--format",
+            "markdown",
+            "--out",
+            out.to_str().unwrap(),
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::is_empty());
+    let body = std::fs::read_to_string(&out).expect("read markdown");
+    assert!(body.contains("# Pipeline Inspect"));
+    assert!(body.contains("valid.minimal"));
+}
+
+#[test]
+fn graph_mermaid_contains_known_steps() {
+    bin()
+        .args([
+            "graph",
+            &fixture("valid/with_graph_features.dpcs.yaml"),
+            "--format",
+            "mermaid",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("flowchart"))
+        .stdout(predicate::str::contains("ingest"));
+}
+
+#[test]
+fn tui_requires_tty() {
+    bin()
+        .args(["tui", &fixture("valid/minimal.dpcs.yaml")])
+        .assert()
+        .failure()
+        .code(2)
+        .stderr(predicate::str::contains("TTY"));
+}
+
+#[test]
 fn inspect_parse_failure_json_includes_parse_stage() {
     bin()
         .args(["inspect", &fixture("invalid/malformed.dpcs.yaml"), "--json"])

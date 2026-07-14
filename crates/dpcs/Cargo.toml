@@ -21,10 +21,11 @@ rustdoc-args = ["--cfg", "docsrs"]
 [features]
 default = []
 cli = ["dep:clap", "jsonschema", "registry-client", "registry-server"]
+tui = ["cli", "dep:ratatui", "dep:crossterm"]
 jsonschema = ["dep:schemars"]
 registry-client = ["dep:reqwest", "dep:url"]
 registry-server = ["dep:axum", "dep:tokio", "dep:tower-http", "dep:url"]
-full = ["cli"]
+full = ["cli", "tui"]
 
 [[test]]
 name = "schema"
@@ -47,6 +48,8 @@ axum = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
 tower-http = { workspace = true, optional = true }
 url = { workspace = true, optional = true }
+ratatui = { workspace = true, optional = true }
+crossterm = { workspace = true, optional = true }
 zip = { workspace = true }
 walkdir = { workspace = true }
 

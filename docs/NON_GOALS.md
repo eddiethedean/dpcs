@@ -1,9 +1,10 @@
-# Non-Goals Beyond 0.10.0
+# Non-Goals Beyond 0.11.0
 
-Completed through 0.10.0: orchestrator binding scaffolds, SPEC Ch 18–25 document
+Completed through 0.11.0: orchestrator binding scaffolds, SPEC Ch 18–25 document
 models, JSON Schema/OpenAPI helpers, reference registry HTTP API, pipeline
-packages, and Python/WASM distribution packages (PyPI `dpcs`, npm
-`@eddiethedean/dpcs`, Wasmer `eddiethedean/dpcs`; see [`BINDINGS.md`](BINDINGS.md)).
+packages, Python/WASM distribution packages, Markdown/HTML reports, Mermaid/DOT
+graph exports, rich CLI `--format`/`--out`, and the interactive TUI inspector
+(see [`BINDINGS.md`](BINDINGS.md), [`CLI_SPEC.md`](CLI_SPEC.md)).
 
 Do **not** implement yet:
 
@@ -14,7 +15,8 @@ Do **not** implement yet:
 - ETL execution
 - ODCS validation internals
 - DTCS validation internals
-- TUI / rich HTML reports (ROADMAP 0.11)
+- parallel / incremental validation and zero-copy parsing (ROADMAP 0.12)
+- multi-document TUI workspace browser / registry-serve TUI
 
 DPCS should reference ODCS and DTCS contracts, not implement them internally.
 Binding produces orchestration artifacts; it does not run pipelines.
