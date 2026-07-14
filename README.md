@@ -13,7 +13,7 @@ contract-first data pipeline definitions. The full specification lives in
 [`SPEC.md`](SPEC.md) and is the authoritative source of truth.
 
 ```text
-DPCS Document -> Parser -> Canonical Object Model -> Validator -> Diagnostics
+DPCS Document -> Parser -> COM -> Validator -> Pipeline Plan -> Capability Evaluation
 ```
 
 Orchestrator binding, execution runtimes, and Airflow/Dagster/Prefect generation
@@ -23,11 +23,11 @@ are intentionally out of scope until roadmap 0.8.0. See [`ROADMAP.md`](ROADMAP.m
 
 | Item | Value |
 | --- | --- |
-| Crate version | `0.6.0` |
+| Crate version | `0.7.0` |
 | Spec version | `1.0.0-draft` |
 | Language | Rust 2021 (MSRV 1.85) |
 | License | Apache-2.0 OR MIT |
-| Release focus | Execution model (ROADMAP 0.6.0) |
+| Release focus | Capability model (ROADMAP 0.7.0) |
 
 ## Quick start
 
@@ -36,7 +36,7 @@ are intentionally out of scope until roadmap 0.8.0. See [`ROADMAP.md`](ROADMAP.m
 ```bash
 cargo install --path .
 # or, after crates.io publish:
-# cargo install dpcs --version 0.6.0
+# cargo install dpcs --version 0.7.0
 ```
 
 ### Validate a pipeline contract
@@ -53,6 +53,7 @@ dpcs validate examples/minimal.dpcs.yaml --strict
 dpcs inspect examples/minimal.dpcs.yaml
 dpcs diagnostics examples/minimal.dpcs.yaml --json
 dpcs graph examples/minimal.dpcs.yaml
+dpcs capabilities examples/orchestrator.capabilities.yaml --plan examples/with_execution.dpcs.yaml
 dpcs version
 ```
 
@@ -60,8 +61,8 @@ dpcs version
 
 | Code | Meaning |
 | --- | --- |
-| `0` | `validate`/`diagnostics`: valid; `inspect`/`graph`: successful parse |
-| `1` | Validation errors (`validate`/`diagnostics`) |
+| `0` | `validate`/`diagnostics`: valid; `capabilities`: match ok; `inspect`/`graph`: successful parse |
+| `1` | Validation or capability errors (`validate`/`diagnostics`/`capabilities`) |
 | `2` | Parse or I/O failure |
 
 ## Library usage
@@ -119,6 +120,20 @@ match plan(&contract) {
 }
 ```
 
+Capability evaluation (0.7.0):
+
+```rust
+use dpcs::{evaluate, CapabilityProfile, CapabilityResult, PlanResult};
+
+let profile = CapabilityProfile::from_yaml_file("orchestrator.capabilities.yaml")?;
+if let PlanResult::Ok(planned) = plan(&contract) {
+    match evaluate(&planned, &profile) {
+        CapabilityResult::Ok(report) => println!("satisfied: {:?}", report.satisfied),
+        CapabilityResult::Err(report) => eprintln!("capability errors: {}", report.error_count()),
+    }
+}
+```
+
 ## Repository layout
 
 ```text
@@ -131,10 +146,10 @@ match plan(&contract) {
 │   ├── validation/         # Phase-based validation
 │   ├── diagnostics/        # Deterministic diagnostics
 │   ├── plan/               # Deterministic Pipeline Plan IR
-│   ├── capabilities/       # Capability model skeleton
+│   ├── capabilities/       # Capability profiles and matcher
 │   ├── binding/            # Binding placeholder (future)
 │   └── cli/                # CLI implementation
-├── examples/               # Example contracts
+├── examples/               # Example contracts and profiles
 ├── tests/fixtures/         # Valid and invalid fixtures
 ├── docs/                   # Design and contributor guides
 └── adr/                    # Architecture decision records

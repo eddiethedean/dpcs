@@ -5,6 +5,23 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-07-14
+
+### Added
+
+- `CapabilityProfile` / `CapabilityDecl` COM with YAML/JSON load helpers and serde alias `profile` → `identity`
+- Profile validation (`validate_profile`) with `DPCS-CAP-001`–`004`
+- Post-plan capability matching: `evaluate`, `evaluate_requirements`, `evaluate_many`
+- `CapabilityReport` / `CapabilityResult` plus `DPCS-CAP-005` (missing mandatory) and `DPCS-CAP-006` (version mismatch warning)
+- Diagnostic category `capability` and stage helpers for `CapabilityEvaluation`
+- CLI `dpcs capabilities <profile> --plan <contract> [--json]`
+- Example `examples/orchestrator.capabilities.yaml` and capability fixtures/tests
+
+### Changed
+
+- Orchestrator capability matching is no longer deferred; binding adapters remain ROADMAP 0.8.0
+- `OrchestratorCapabilities` is a type alias for `CapabilityProfile`
+
 ## [0.6.0] - 2026-07-14
 
 ### Added
@@ -26,8 +43,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `PipelineLineage` uses dataset/step/provenance structures (replaced loose `upstream`/`downstream` strings)
 - `plan()` returns `PlanResult` and refuses invalid contracts
 - CLI `inspect` / `graph` surface `planningRefused` and omit fake `stepOrder` when planning fails
-- Capability matching against orchestrator profiles remains deferred to ROADMAP 0.7.0
-
 ### Fixed
 
 - Retry responses require meaningful `retry` policy (reject empty `retry: {}` and `eligible: false`)
@@ -163,6 +178,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `dpcs` CLI: `validate`, `inspect`, `diagnostics`, `graph`, `version`
 - Examples, fixtures, CI, and contributor documentation
 
+[0.7.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.7.0
 [0.6.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.6.0
 [0.5.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.5.0
 [0.4.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.4.0

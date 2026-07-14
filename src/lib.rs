@@ -37,6 +37,10 @@ pub mod validation;
 #[cfg(feature = "cli")]
 pub mod cli;
 
+pub use capabilities::{
+    evaluate, evaluate_many, evaluate_requirements, validate_profile, CapabilityDecl,
+    CapabilityProfile, CapabilityReport, CapabilityResult, OrchestratorCapabilities,
+};
 pub use diagnostics::{Diagnostic, DiagnosticStage, Severity, ValidationReport};
 pub use error::{Error, Result};
 pub use model::{

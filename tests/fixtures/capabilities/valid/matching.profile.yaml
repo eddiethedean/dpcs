@@ -1,0 +1,10 @@
+identity: "reference.batch"
+dpcsVersion: "1.0.0-draft"
+capabilities:
+  - id: "batch.compute"
+    category: "execution"
+  - id: "sql.readwrite"
+    category: "execution"
+  - id: "observability.metrics"
+    category: "observability"
+    optional: true

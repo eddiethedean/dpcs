@@ -4,7 +4,7 @@ Validation is deterministic and phase-based. It returns a `ValidationReport`
 and does not panic on invalid contracts. Phases always complete and findings are
 accumulated, then sorted deterministically.
 
-## Phases (0.6.0)
+## Phases (0.6.0–0.7.0)
 
 1. Document — unsupported `dpcsVersion` warnings (`DPCS-DOC-002`)
 2. Canonical Object Model — identity, uniqueness, interface completeness, reserved extension keys
@@ -23,7 +23,10 @@ accumulated, then sorted deterministically.
 Quality/failure **identity** (empty/duplicate ids) remains COM-owned
 (`DPCS-COM-004` / `DPCS-COM-005`).
 
-Capability matching against orchestrator profiles is deferred to ROADMAP 0.7.0.
+Capability matching is separate from contract validation: after a successful
+`plan()`, call `evaluate` / `evaluate_requirements` against a `CapabilityProfile`
+(`DPCS-CAP-*` at `CapabilityEvaluation`). Profile-only consistency uses
+`validate_profile`.
 
 ## Important validations today
 
@@ -48,6 +51,17 @@ Capability matching against orchestrator profiles is deferred to ROADMAP 0.7.0.
 - quality gates require purpose, criteria, and resolvable placement/refs
 - failure semantics require scope, triggers, responses; retry response needs retry policy
 - lineage dataset/step/contract references resolve against the contract
+
+## Selected diagnostic IDs (0.7 capability matching)
+
+| ID | Meaning |
+| --- | --- |
+| `DPCS-CAP-001` | Empty capability id in profile |
+| `DPCS-CAP-002` | Duplicate capability id in profile |
+| `DPCS-CAP-003` | Empty / missing profile identity |
+| `DPCS-CAP-004` | Empty / missing profile `dpcsVersion` |
+| `DPCS-CAP-005` | Unsupported mandatory capability vs plan/requirements |
+| `DPCS-CAP-006` | Profile `dpcsVersion` mismatch warning |
 
 ## Selected diagnostic IDs (0.6 additions)
 

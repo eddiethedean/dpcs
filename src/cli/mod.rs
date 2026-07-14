@@ -9,7 +9,7 @@ use crate::diagnostics::ValidationReport;
 use crate::error::Error;
 use crate::parser;
 use crate::plan;
-use crate::{validate, VERSION};
+use crate::{evaluate, validate, CapabilityProfile, CapabilityResult, VERSION};
 
 /// Exit code for successful validation.
 pub const EXIT_OK: u8 = 0;
@@ -65,6 +65,17 @@ enum Commands {
         /// Path to a Pipeline Contract document.
         path: PathBuf,
         /// Emit the graph as JSON.
+        #[arg(long)]
+        json: bool,
+    },
+    /// Evaluate a capability profile against a planned Pipeline Contract.
+    Capabilities {
+        /// Path to an orchestrator capability profile (`.yaml`, `.yml`, or `.json`).
+        profile: PathBuf,
+        /// Path to a Pipeline Contract used to build the plan under evaluation.
+        #[arg(long)]
+        plan: PathBuf,
+        /// Emit the capability report (or diagnostics) as JSON.
         #[arg(long)]
         json: bool,
     },
@@ -256,6 +267,79 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                 }
             }
             Ok(EXIT_OK)
+        }
+        Commands::Capabilities {
+            profile,
+            plan: contract_path,
+            json,
+        } => {
+            let profile = match CapabilityProfile::from_file(&profile) {
+                Ok(profile) => profile,
+                Err(Error::InvalidDocument { report }) => {
+                    print_report(&report, json)?;
+                    return Ok(EXIT_FAILURE);
+                }
+                Err(err) => return Err(err),
+            };
+            let contract = match parser::parse_file(&contract_path) {
+                Ok(contract) => contract,
+                Err(Error::InvalidDocument { report }) => {
+                    print_report(&report, json)?;
+                    return Ok(EXIT_FAILURE);
+                }
+                Err(err) => return Err(err),
+            };
+
+            let planned = match plan::plan(&contract) {
+                plan::PlanResult::Ok(planned) => planned,
+                plan::PlanResult::Err(report) => {
+                    print_report(&report, json)?;
+                    return Ok(EXIT_VALIDATION);
+                }
+            };
+
+            match evaluate(&planned, &profile) {
+                CapabilityResult::Ok(report) => {
+                    if json {
+                        let payload = serde_json::to_string_pretty(&*report).map_err(|err| {
+                            Error::Serialization(format!(
+                                "failed to serialize capability report: {err}"
+                            ))
+                        })?;
+                        println!("{payload}");
+                    } else {
+                        println!("profile: {}", report.profile_identity);
+                        if let Some(contract_id) = &report.plan_contract_id {
+                            println!("contractId: {contract_id}");
+                        }
+                        println!("satisfied: {}", report.satisfied.join(", "));
+                        if !report.missing_mandatory.is_empty() {
+                            println!("missingMandatory: {}", report.missing_mandatory.join(", "));
+                        }
+                        if !report.unsupported_optional.is_empty() {
+                            println!(
+                                "unsupportedOptional: {}",
+                                report.unsupported_optional.join(", ")
+                            );
+                        }
+                        for diagnostic in &report.diagnostics {
+                            println!(
+                                "{} {}: {} — {}",
+                                diagnostic.severity,
+                                diagnostic.id,
+                                diagnostic.stage,
+                                diagnostic.message
+                            );
+                        }
+                        println!("match: ok");
+                    }
+                    Ok(EXIT_OK)
+                }
+                CapabilityResult::Err(report) => {
+                    print_report(&report, json)?;
+                    Ok(EXIT_VALIDATION)
+                }
+            }
         }
     }
 }

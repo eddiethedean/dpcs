@@ -148,7 +148,32 @@ match plan(&contract) {
 assert!(!dpcs::binding::BindingFramework::is_available());
 ```
 
-Orchestrator binding adapters remain ROADMAP 0.8.0. Capability matching remains
-ROADMAP 0.7.0.
+## Capability evaluation (0.7.0)
+
+Match a planned pipeline (or raw `ExecutionRequirements`) against an orchestrator
+profile without mutating the plan:
+
+```rust
+use dpcs::{
+    evaluate, parse_yaml_file, plan, CapabilityProfile, CapabilityResult, PlanResult,
+};
+
+let contract = parse_yaml_file("pipeline.dpcs.yaml")?;
+let profile = CapabilityProfile::from_yaml_file("orchestrator.capabilities.yaml")?;
+let PlanResult::Ok(planned) = plan(&contract) else {
+    panic!("contract must plan");
+};
+
+match evaluate(&planned, &profile) {
+    CapabilityResult::Ok(report) => {
+        assert!(report.missing_mandatory.is_empty());
+    }
+    CapabilityResult::Err(diagnostics) => {
+        assert!(diagnostics.diagnostics.iter().any(|d| d.id == "DPCS-CAP-005"));
+    }
+}
+```
+
+Orchestrator binding adapters remain ROADMAP 0.8.0.
 
 [`Error::InvalidDocument`]: ../src/error.rs

@@ -1,0 +1,5 @@
+identity: "legacy.named"
+dpcsVersion: "9.9.9"
+capabilities:
+  - id: "batch.compute"
+  - id: "sql.readwrite"

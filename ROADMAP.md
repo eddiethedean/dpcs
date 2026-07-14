@@ -115,7 +115,7 @@ Implements Chapters 10--15.
 
 ------------------------------------------------------------------------
 
-# 0.7.0 --- Capability Model
+# 0.7.0 --- Capability Model (shipped)
 
 Implements Chapter 16.
 

@@ -32,4 +32,6 @@ pub mod categories {
     pub const LINEAGE: &str = "lineage";
     /// Planning issues.
     pub const PLANNING: &str = "planning";
+    /// Capability evaluation issues.
+    pub const CAPABILITY: &str = "capability";
 }

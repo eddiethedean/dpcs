@@ -60,6 +60,15 @@ Required test categories:
 - execution-model YAML/JSON round-trip
 - validate shipped example: `examples/with_execution.dpcs.yaml`
 
+## Capability Model (0.7.0)
+
+- validate profiles for empty/duplicate capability ids and identity/version
+- `evaluate` matches plan demand (`requiredCapabilities`, external deps, software capabilities)
+- missing mandatories emit `DPCS-CAP-005`; version mismatch warns `DPCS-CAP-006`
+- `evaluate_requirements` checks without planning; `evaluate_many` ranks profiles
+- CLI `capabilities` exit codes and `--json` report shape
+- match shipped example pair: `examples/orchestrator.capabilities.yaml` + `examples/with_execution.dpcs.yaml`
+
 ## Validation
 
 - reject duplicate step identifiers (`DPCS-COM-005`)
@@ -87,4 +96,5 @@ Required test categories:
 - `inspect --json` summary shape including planning status
 - `diagnostics --json` includes diagnostic ids
 - `graph --json` omits `stepOrder` when planning is refused
+- `capabilities` match success and missing-mandatory failure
 - validate shipped example: `examples/minimal.dpcs.yaml`

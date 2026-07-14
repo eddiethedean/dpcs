@@ -129,7 +129,7 @@ Later validation phases (structural, graph, references, flows, execution,
 scheduling, quality, failure, lineage) build on the COM.
 
 Full validation for the execution model shipped in roadmap 0.6.0. Capability
-matching against orchestrator profiles remains roadmap 0.7.0.
+matching against orchestrator profiles shipped in roadmap 0.7.0.
 
 ## Execution model COM (0.6.0)
 
@@ -140,6 +140,13 @@ matching against orchestrator profiles remains roadmap 0.7.0.
 | `QualityGate` | `id`, `purpose`, `criteria`, `onSuccess`, `onFailure`, optional `placement` |
 | `FailureSemantics` | `id`, `scope`, `triggers`, `responses`, optional `retry` / `recovery` |
 | `PipelineLineage` | `datasets`, `steps`, `provenance`, optional `audit` |
+
+## Capability profile COM (0.7.0)
+
+| Type | Key fields |
+| --- | --- |
+| `CapabilityProfile` | `identity` (alias `profile`), `dpcsVersion`, `capabilities`, `limitations`, optional `metadata` |
+| `CapabilityDecl` | `id`, optional `category`, `optional` (default false) |
 
 [`PipelineGraph`]: ../../src/model/graph.rs
 [`DataFlow`]: ../../src/model/data_flow.rs

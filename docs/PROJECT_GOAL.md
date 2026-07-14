@@ -11,14 +11,12 @@ The crate should implement the foundational DPCS specification logic:
 - Pipeline graph validation
 - Contract reference model
 - Data Flow and Control Flow validation
-- Pipeline Plan skeleton
-- Orchestrator Capability Model skeleton
+- Pipeline Plan generation
+- Orchestrator Capability Model (profiles and matching)
 - CLI
 
 Future milestones:
 
-- Pipeline Plan generation
-- Capability evaluation
 - Orchestrator Binding
 - Airflow/Dagster/Prefect/Temporal/Kubernetes backends
 - Python bindings

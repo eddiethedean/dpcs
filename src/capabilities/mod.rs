@@ -1,7 +1,13 @@
-//! Orchestrator capability model skeleton.
+//! Orchestrator capability model (SPEC Ch 16).
 //!
-//! Full capability evaluation is roadmap 0.7.0.
+//! Capability profiles declare what an orchestrator can support. Matching
+//! compares Pipeline Plan execution requirements against a profile without
+//! modifying plan semantics.
 
-mod orchestrator;
+mod evaluate;
+mod profile;
 
-pub use orchestrator::*;
+pub use evaluate::{
+    evaluate, evaluate_many, evaluate_requirements, CapabilityReport, CapabilityResult,
+};
+pub use profile::{validate_profile, CapabilityDecl, CapabilityProfile, OrchestratorCapabilities};

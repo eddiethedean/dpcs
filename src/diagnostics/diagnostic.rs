@@ -101,6 +101,42 @@ impl Diagnostic {
         }
     }
 
+    /// Create a capability-evaluation-stage error diagnostic.
+    pub fn capability_error(
+        id: impl Into<String>,
+        category: impl Into<String>,
+        message: impl Into<String>,
+    ) -> Self {
+        Self {
+            id: id.into(),
+            severity: Severity::Error,
+            stage: DiagnosticStage::CapabilityEvaluation,
+            category: category.into(),
+            message: message.into(),
+            object_ref: None,
+            remediation: None,
+            source_location: None,
+        }
+    }
+
+    /// Create a capability-evaluation-stage warning diagnostic.
+    pub fn capability_warning(
+        id: impl Into<String>,
+        category: impl Into<String>,
+        message: impl Into<String>,
+    ) -> Self {
+        Self {
+            id: id.into(),
+            severity: Severity::Warning,
+            stage: DiagnosticStage::CapabilityEvaluation,
+            category: category.into(),
+            message: message.into(),
+            object_ref: None,
+            remediation: None,
+            source_location: None,
+        }
+    }
+
     /// Attach an object reference.
     pub fn with_object_ref(mut self, object_ref: impl Into<String>) -> Self {
         self.object_ref = Some(object_ref.into());

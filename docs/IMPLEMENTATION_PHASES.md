@@ -79,6 +79,7 @@ dpcs validate <path>
 dpcs inspect <path>
 dpcs diagnostics <path>
 dpcs graph <path>
+dpcs capabilities <profile> --plan <contract>
 dpcs version
 ```
 
@@ -88,4 +89,9 @@ dpcs version
 edges, deterministic `stepOrder`, and preserved execution/scheduling/quality/
 failure/lineage intents. Planning is gated on successful validation.
 
-Do not implement orchestrator binding yet (ROADMAP 0.8.0).
+## Phase 8 — Capability Model (complete in 0.7.0)
+
+`CapabilityProfile` declares orchestrator supply. `evaluate` / `evaluate_requirements`
+match plan or execution demands without mutating the plan. CLI
+`dpcs capabilities` reports match results. Orchestrator binding remains
+ROADMAP 0.8.0.

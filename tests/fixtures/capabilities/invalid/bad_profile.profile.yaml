@@ -1,0 +1,6 @@
+identity: "broken.profile"
+dpcsVersion: "1.0.0-draft"
+capabilities:
+  - id: ""
+  - id: "dup.cap"
+  - id: "dup.cap"

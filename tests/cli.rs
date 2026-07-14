@@ -152,3 +152,36 @@ fn inspect_json_signals_planning_refused() {
         .stdout(predicate::str::contains("\"planningRefused\": true"))
         .stdout(predicate::str::contains("\"valid\": false"));
 }
+
+#[test]
+fn capabilities_match_example_pair() {
+    let profile = format!(
+        "{}/examples/orchestrator.capabilities.yaml",
+        env!("CARGO_MANIFEST_DIR")
+    );
+    let contract = format!(
+        "{}/examples/with_execution.dpcs.yaml",
+        env!("CARGO_MANIFEST_DIR")
+    );
+    bin()
+        .args(["capabilities", &profile, "--plan", &contract])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("match: ok"));
+}
+
+#[test]
+fn capabilities_json_reports_missing_mandatory() {
+    bin()
+        .args([
+            "capabilities",
+            &fixture("capabilities/invalid/missing_mandatory.profile.yaml"),
+            "--plan",
+            &fixture("valid/with_execution_model.dpcs.yaml"),
+            "--json",
+        ])
+        .assert()
+        .failure()
+        .code(1)
+        .stdout(predicate::str::contains("DPCS-CAP-005"));
+}
