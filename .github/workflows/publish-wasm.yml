@@ -1,6 +1,8 @@
-# Manually (re)publish WASM packages to npm and Wasmer after a tag release.
+# Manually (re)publish WASM packages to npm and Wasmer.
 #
-# Uses secrets `NPM_TOKEN` and `WASM_TOKEN` (same as release.yml).
+# Builds from the ref this workflow runs on (push the wasm-opt fix to main first).
+# `tag` only selects the version that must match Cargo.toml
+# (for example v0.10.0). Secrets: `NPM_TOKEN`, `WASM_TOKEN`.
 
 name: Publish WASM packages
 
@@ -8,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Git tag to checkout and publish (for example v0.10.0)
+        description: Release tag whose version to publish (for example v0.10.0)
         required: true
         default: v0.10.0
       publish_npm:
@@ -30,8 +32,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.tag }}
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
@@ -39,6 +39,15 @@ jobs:
         with:
           node-version: "20"
           registry-url: "https://registry.npmjs.org"
+      - name: Check version matches tag
+        run: |
+          WANT="${{ inputs.tag }}"
+          WANT="${WANT#v}"
+          HAVE=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
+          if [ "$HAVE" != "$WANT" ]; then
+            echo "workspace version $HAVE does not match tag version $WANT" >&2
+            exit 1
+          fi
       - name: Install wasm-pack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
       - name: Build package
@@ -62,11 +71,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.tag }}
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
+      - name: Check version matches tag
+        run: |
+          WANT="${{ inputs.tag }}"
+          WANT="${WANT#v}"
+          HAVE=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
+          if [ "$HAVE" != "$WANT" ]; then
+            echo "workspace version $HAVE does not match tag version $WANT" >&2
+            exit 1
+          fi
       - name: Install wasm-pack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
       - name: Install Wasmer CLI
