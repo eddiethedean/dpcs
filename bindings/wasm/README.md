@@ -3,13 +3,13 @@
 JavaScript/TypeScript bindings for the DPCS Rust toolkit via `wasm-bindgen`.
 
 ```bash
-npm install dpcs
+npm install @eddiethedean/dpcs
 # from this repo after wasm-pack build:
 # npm install ./bindings/wasm/pkg
 ```
 
 ```js
-const dpcs = require("dpcs");
+const dpcs = require("@eddiethedean/dpcs");
 const report = dpcs.validate_yaml(yamlSource);
 console.log(report.diagnostics);
 ```

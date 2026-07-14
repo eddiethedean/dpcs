@@ -1,5 +1,5 @@
 [package]
-name = "dpcs"
+name = "eddiethedean/dpcs"
 version = "0.10.0"
 description = "DPCS WebAssembly toolkit (wasm-bindgen)"
 license = "Apache-2.0 OR MIT"

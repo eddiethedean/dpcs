@@ -62,7 +62,7 @@ jobs:
             echo "NPM_TOKEN secret is missing" >&2
             exit 1
           fi
-          npm pkg set name=dpcs
+          npm pkg set name=@eddiethedean/dpcs
           npm publish --access public
 
   publish-wasmer:
@@ -96,7 +96,7 @@ jobs:
           WASM=$(ls pkg/*_bg.wasm | head -1)
           cat > wasmer.toml << EOF
           [package]
-          name = "dpcs"
+          name = "eddiethedean/dpcs"
           version = "${VERSION}"
           description = "DPCS WebAssembly toolkit (wasm-bindgen; host JS required)"
           license = "Apache-2.0 OR MIT"
@@ -117,5 +117,5 @@ jobs:
             exit 1
           fi
           export PATH="$HOME/.wasmer/bin:$PATH"
-          wasmer login --token "$WASMER_TOKEN"
+          wasmer login "$WASMER_TOKEN"
           wasmer publish

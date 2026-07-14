@@ -38,7 +38,7 @@ cargo install --path crates/dpcs-cli
 # or, after crates.io publish:
 # cargo install dpcs-cli --version 0.10.0
 # pip install dpcs
-# npm install dpcs
+# npm install @eddiethedean/dpcs
 ```
 
 ### Validate a pipeline contract
