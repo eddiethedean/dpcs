@@ -274,6 +274,63 @@ async fn registry_disk_cache_serves_lookup_hits() {
     server.abort();
 }
 
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn registry_rejects_content_changing_republish() {
+    let root = tempfile::tempdir().unwrap();
+    let (url, server) = spawn_server(root.path().to_path_buf(), Some("secret".into())).await;
+
+    tokio::task::spawn_blocking(move || {
+        let mut client = RegistryClient::new(&url).unwrap().with_token("secret");
+        client
+            .publish(
+                "demo",
+                &PublishRequest {
+                    artifact: sample_artifact("demo", "0.1.0"),
+                    content: Some("id: demo\nversion: 0.1.0\n".into()),
+                    content_encoding: Some("utf-8".into()),
+                },
+            )
+            .unwrap();
+        // Idempotent same content is allowed.
+        client
+            .publish(
+                "demo",
+                &PublishRequest {
+                    artifact: sample_artifact("demo", "0.1.0"),
+                    content: Some("id: demo\nversion: 0.1.0\n".into()),
+                    content_encoding: Some("utf-8".into()),
+                },
+            )
+            .unwrap();
+        let err = client
+            .publish(
+                "demo",
+                &PublishRequest {
+                    artifact: sample_artifact("demo", "0.1.0"),
+                    content: Some("id: demo\nversion: CHANGED\n".into()),
+                    content_encoding: Some("utf-8".into()),
+                },
+            )
+            .unwrap_err();
+        match err {
+            dpcs::RegistryClientError::Http {
+                status, message, ..
+            } => {
+                assert_eq!(status, 409);
+                assert!(
+                    message.contains("DPCS-REG-016"),
+                    "unexpected message: {message}"
+                );
+            }
+            other => panic!("expected HTTP 409, got {other:?}"),
+        }
+    })
+    .await
+    .unwrap();
+
+    server.abort();
+}
+
 #[tokio::test]
 async fn registry_cache_namespaces_are_origin_specific() {
     let mut cache = RegistryCache::memory();

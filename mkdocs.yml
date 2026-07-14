@@ -60,6 +60,7 @@ nav:
       - Non-goals: NON_GOALS.md
       - Relationship to ODCS / DTCS: RELATIONSHIP_TO_ODCS_DTCS.md
   - Using the toolkit:
+      - Getting started: GETTING_STARTED.md
       - Public API: PUBLIC_API.md
       - CLI specification: CLI_SPEC.md
       - Language bindings: BINDINGS.md
@@ -67,6 +68,9 @@ nav:
       - Registry HTTP API: REGISTRY_API.md
   - Guides:
       - Validation: VALIDATION_GUIDE.md
+      - Planning and binding: PLANNING.md
+      - Conformance: CONFORMANCE.md
+      - SPEC coverage: SPEC_COVERAGE.md
       - Diagnostics: DIAGNOSTICS_GUIDE.md
       - Model: MODEL_GUIDE.md
       - Testing plan: TESTING_PLAN.md

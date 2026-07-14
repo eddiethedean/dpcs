@@ -1,5 +1,22 @@
 # Public API
 
+## Stability (0.13.0)
+
+SemVer before 1.0 applies to:
+
+- Crate-root exports documented in this guide and in rustdoc
+- Documented Cargo features (`cli`, `tui`, `parallel`, `jsonschema`,
+  `registry-client`, `registry-server`, `full`)
+
+Excluded from the stability guarantee:
+
+- `dpcs::synth` (bench helpers; `#[doc(hidden)]`)
+- Experimental binding targets `Temporal` and `Kubernetes` (same API surface;
+  scaffold fidelity may deepen without a major bump)
+- Undocumented `dpcs::model::*` helpers not re-exported at the crate root
+
+CLI `--json` is a permanent alias of `--format json`.
+
 ## Parsing and validation
 
 ```rust
@@ -198,18 +215,43 @@ Demand matched against a profile is `requiredCapabilities` plus
 `externalDependencies[].capability`. Environment `softwareCapabilities` and
 `isolation` are not treated as orchestrator capability ids.
 
-`OrchestratorCapabilities` remains a deprecated name alias for
-`CapabilityProfile`. Prefer `CapabilityProfile`.
+## Contract reference resolution and nesting (0.13.0)
 
-## Orchestrator binding (0.8.0)
+```rust
+use dpcs::{
+    plan, plan_with_resolve, resolve_contract_references, validate_resolved, ResolveOptions,
+};
+
+// Library plan()/bind_contract() deep-resolve using CWD by default (SPEC Ch 7).
+let _planned = plan(&contract);
+
+// Prefer document-relative roots when locations are beside the contract file:
+let opts = ResolveOptions::from_document_path("pipeline.dpcs.yaml");
+let report = validate_resolved(&contract, &opts);
+let resolution = resolve_contract_references(&contract, &opts);
+let _planned = plan_with_resolve(&contract, Some(&opts));
+let _ = (report, resolution);
+```
+
+Nested DPCS references (`type: dpcs` / step `dpcs:pipeline`) must resolve to
+readable documents (recursive, cycle-guarded). Companion ODCS/DTCS locations may
+be external. Successful plans expose `PipelinePlan.nested` (ports, stepOrder,
+children) and lineage provenance parent/child links. Every bind bundle includes
+`dpcs_semantics.json` (Ch 17 scaffold + structured semantics).
+
+Also: `ResolveOptions::default_for_planning`, `plan_with_context_and_resolve`,
+`bind_contract_with_resolve`, `NestedPipeline`, `NestedPlanPipeline`,
+`ResolutionResult`, `MAX_NESTING_DEPTH`.
+
+## Orchestrator binding (0.8.0 / 0.13.0)
 
 Bind a planned pipeline to an orchestrator target after a successful capability
 match. Adapters emit scaffold artifacts (Airflow/Dagster/Prefect; Temporal and
-Kubernetes are experimental).
+Kubernetes are experimental) plus structured `dpcs_semantics.json`.
 
-Crate-root API: `bind`, `bind_contract`, `parse_target`, `write_bundle`,
-`BindContext`, `BindingBundle`, `BindingFile`, `BindingFramework`,
-`BindingResult`, `BindingTarget`.
+Crate-root API: `bind`, `bind_contract`, `bind_contract_with_resolve`,
+`parse_target`, `write_bundle`, `BindContext`, `BindingBundle`, `BindingFile`,
+`BindingFramework`, `BindingResult`, `BindingTarget`.
 
 ```rust
 use dpcs::{

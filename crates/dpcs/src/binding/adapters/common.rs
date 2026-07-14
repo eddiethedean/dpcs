@@ -333,7 +333,7 @@ impl<'a> PlanView<'a> {
             ));
         }
         lines.push(
-            "# Scaffold encodes identity/topology where the target allows; QG/FS/execution intents are documented here."
+            "# Scaffold encodes identity/topology where the target allows; full scheduling/QG/FS/execution intents are in dpcs_semantics.json."
                 .to_owned(),
         );
         lines.push(
@@ -408,6 +408,30 @@ pub fn python_file(relative_path: &str, content: String) -> BindingFile {
 /// Helper to build a YAML artifact.
 pub fn yaml_file(relative_path: &str, content: String) -> BindingFile {
     BindingFile::new(relative_path, "application/yaml", content)
+}
+
+/// Structured semantics artifact shared by every orchestrator adapter (Ch 17).
+///
+/// Encodes scheduling, quality gates, failure semantics, execution requirements,
+/// nested pipelines, and dependency topology as JSON so binding fidelity is not
+/// limited to comment headers.
+pub fn semantics_file(view: &PlanView<'_>) -> BindingFile {
+    let payload = serde_json::json!({
+        "contractId": view.contract_id(),
+        "contractVersion": view.contract_version(),
+        "profileIdentity": view.profile_identity(),
+        "dpcsVersion": view.plan.dpcs_version,
+        "stepOrder": view.step_order(),
+        "scheduling": view.scheduling(),
+        "qualityGates": view.quality_gates(),
+        "failureSemantics": view.failure_semantics(),
+        "execution": view.execution(),
+        "nestedPipelines": &view.plan.nested,
+        "dependencies": view.dependency_edges(),
+        "contractReferences": view.contract_references(),
+    });
+    let content = serde_json::to_string_pretty(&payload).unwrap_or_else(|_| "{}".to_owned());
+    BindingFile::new("dpcs_semantics.json", "application/json", content)
 }
 
 #[cfg(test)]

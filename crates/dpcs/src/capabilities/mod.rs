@@ -10,6 +10,4 @@ mod profile;
 pub use evaluate::{
     evaluate, evaluate_many, evaluate_requirements, CapabilityReport, CapabilityResult,
 };
-#[allow(deprecated)]
-pub use profile::OrchestratorCapabilities;
 pub use profile::{validate_profile, CapabilityDecl, CapabilityProfile};

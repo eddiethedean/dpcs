@@ -81,4 +81,14 @@ Capability match failures use `DiagnosticStage::CapabilityEvaluation`
 Compatibility analysis uses `DiagnosticStage::CompatibilityAnalysis` (`DPCS-COMPAT-*`).
 Unknown preserved extensions emit `Information` (`DPCS-EXT-010`).
 
+Reference resolution (0.13): unresolved nested DPCS locations emit `DPCS-REF-007`
+/ `DPCS-REF-008`. Companion ODCS/DTCS locations may be external and are not
+required to exist locally.
+
+## Catalog
+
+A machine-readable inventory of emitted diagnostic identifiers is generated from
+source under [`diagnostics.catalog.json`](diagnostics.catalog.json) (regenerate
+with `make diagnostics-catalog`).
+
 Diagnostics describe observations only. They must not change pipeline semantics.

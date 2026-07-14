@@ -13,7 +13,10 @@ mod diagnostics;
 mod framework;
 
 pub use artifact::{BindingBundle, BindingFile, BindingTarget};
-pub use framework::{bind, bind_contract, parse_target, write_bundle, BindContext, BindingResult};
+pub use framework::{
+    bind, bind_contract, bind_contract_with_resolve, parse_target, write_bundle, BindContext,
+    BindingResult,
+};
 
 /// Entry point describing binding availability for this release.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

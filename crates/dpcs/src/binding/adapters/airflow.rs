@@ -3,7 +3,7 @@
 use crate::diagnostics::ValidationReport;
 use crate::plan::PipelinePlan;
 
-use super::common::{python_file, PlanView};
+use super::common::{python_file, semantics_file, PlanView};
 use super::{BindContext, OrchestratorAdapter};
 use crate::binding::artifact::{BindingFile, BindingTarget};
 
@@ -110,6 +110,9 @@ with DAG(
             body.push('\n');
         }
 
-        Ok(vec![python_file(&format!("dags/{file_stem}.py"), body)])
+        Ok(vec![
+            python_file(&format!("dags/{file_stem}.py"), body),
+            semantics_file(&view),
+        ])
     }
 }

@@ -37,6 +37,8 @@ pub mod package;
 pub mod parser;
 pub mod plan;
 pub mod report;
+pub mod resolve;
+#[doc(hidden)]
 pub mod synth;
 pub mod validation;
 
@@ -50,11 +52,9 @@ pub mod registry_net;
 pub mod schema;
 
 pub use binding::{
-    bind, bind_contract, parse_target, write_bundle, BindContext, BindingBundle, BindingFile,
-    BindingFramework, BindingResult, BindingTarget,
+    bind, bind_contract, bind_contract_with_resolve, parse_target, write_bundle, BindContext,
+    BindingBundle, BindingFile, BindingFramework, BindingResult, BindingTarget,
 };
-#[allow(deprecated)]
-pub use capabilities::OrchestratorCapabilities;
 pub use capabilities::{
     evaluate, evaluate_many, evaluate_requirements, validate_profile, CapabilityDecl,
     CapabilityProfile, CapabilityReport, CapabilityResult,
@@ -95,13 +95,20 @@ pub use parser::{
     parse_file, parse_json, parse_json_file, parse_json_slice, parse_yaml, parse_yaml_file,
     parse_yaml_slice, to_file, to_json, to_json_file, to_yaml, to_yaml_file,
 };
-pub use plan::{plan, plan_with_context, try_plan, PipelinePlan, PlanDependencyEdge, PlanResult};
+pub use plan::{
+    plan, plan_with_context, plan_with_context_and_resolve, plan_with_resolve, try_plan,
+    NestedPlanPipeline, PipelinePlan, PlanDependencyEdge, PlanResult,
+};
 pub use report::{
     capability_to_html, capability_to_markdown, compatibility_to_html, compatibility_to_markdown,
     diagnostic_to_html, diagnostic_to_markdown, graph_to_dot, graph_to_html, graph_to_markdown,
     graph_to_mermaid, graph_view_from_contract, inspect_to_html, inspect_to_markdown,
     inspect_view_from_contract, to_dot, to_mermaid, validation_to_html, validation_to_markdown,
     GraphEdgeView, GraphView, InspectView, ReportFormat,
+};
+pub use resolve::{
+    resolve_contract_references, validate_resolved, NestedPipeline, ResolutionResult,
+    ResolveOptions, MAX_NESTING_DEPTH,
 };
 pub use validation::{
     validate, validate_cached, validate_extension_definition, validate_governance,

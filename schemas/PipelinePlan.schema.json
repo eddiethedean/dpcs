@@ -405,6 +405,67 @@
       },
       "type": "object"
     },
+    "NestedPlanPipeline": {
+      "description": "Nested pipeline captured on a [`PipelinePlan`].",
+      "properties": {
+        "children": {
+          "description": "Recursively nested children.",
+          "items": {
+            "$ref": "#/definitions/NestedPlanPipeline"
+          },
+          "type": "array"
+        },
+        "contractId": {
+          "description": "Nested contract identity.",
+          "type": "string"
+        },
+        "contractRef": {
+          "description": "Contract reference id or location used to load the nested contract.",
+          "type": "string"
+        },
+        "contractVersion": {
+          "description": "Nested contract version.",
+          "type": "string"
+        },
+        "dpcsVersion": {
+          "description": "Nested contract DPCS version.",
+          "type": "string"
+        },
+        "inputPorts": {
+          "description": "Nested interface input port identifiers (preserved identity/boundary).",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "outputPorts": {
+          "description": "Nested interface output port identifiers.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "parentStepId": {
+          "description": "Parent step identifier.",
+          "type": "string"
+        },
+        "stepOrder": {
+          "description": "Deterministic nested step order when the nested graph is acyclic.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "contractId",
+        "contractRef",
+        "contractVersion",
+        "dpcsVersion",
+        "parentStepId"
+      ],
+      "type": "object"
+    },
     "PipelineGraph": {
       "description": "Directed graph describing step relationships.",
       "properties": {
@@ -1118,6 +1179,13 @@
         }
       ],
       "description": "Preserved lineage."
+    },
+    "nested": {
+      "description": "Nested Pipeline Contracts loaded during planning (SPEC Ch 5/6).\n\nEach nested contract retains its own identity and interface; parent–child links are also recorded on [`Self::lineage`] provenance.",
+      "items": {
+        "$ref": "#/definitions/NestedPlanPipeline"
+      },
+      "type": "array"
     },
     "qualityGates": {
       "description": "Preserved quality gates.",

@@ -4,8 +4,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::diagnostics::{categories, Diagnostic, ValidationReport};
 use crate::model::{
-    AnalysisContext, ContractReference, ExecutionRequirements, FailureSemantics, PipelineContract,
-    PipelineGraph, PipelineLineage, PipelineStep, QualityGate, SchedulingIntent,
+    AnalysisContext, ContractReference, DependencyGraph, ExecutionRequirements, FailureSemantics,
+    PipelineContract, PipelineGraph, PipelineLineage, PipelineStep, QualityGate, SchedulingIntent,
+};
+use crate::resolve::{
+    apply_nested_provenance, resolve_contract_references, stamp_nested_parents, NestedPipeline,
+    ResolveOptions,
 };
 use crate::validation;
 
@@ -62,6 +66,41 @@ pub struct PipelinePlan {
     /// Preserved lineage.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub lineage: Option<PipelineLineage>,
+    /// Nested Pipeline Contracts loaded during planning (SPEC Ch 5/6).
+    ///
+    /// Each nested contract retains its own identity and interface; parent–child
+    /// links are also recorded on [`Self::lineage`] provenance.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub nested: Vec<NestedPlanPipeline>,
+}
+
+/// Nested pipeline captured on a [`PipelinePlan`].
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "jsonschema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct NestedPlanPipeline {
+    /// Parent step identifier.
+    pub parent_step_id: String,
+    /// Contract reference id or location used to load the nested contract.
+    pub contract_ref: String,
+    /// Nested contract identity.
+    pub contract_id: String,
+    /// Nested contract version.
+    pub contract_version: String,
+    /// Nested contract DPCS version.
+    pub dpcs_version: String,
+    /// Nested interface input port identifiers (preserved identity/boundary).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub input_ports: Vec<String>,
+    /// Nested interface output port identifiers.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub output_ports: Vec<String>,
+    /// Deterministic nested step order when the nested graph is acyclic.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub step_order: Vec<String>,
+    /// Recursively nested children.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub children: Vec<NestedPlanPipeline>,
 }
 
 /// Result of attempting to produce a Pipeline Plan.
@@ -106,18 +145,55 @@ impl PlanResult {
 
 /// Build a Pipeline Plan from a successfully validated contract.
 ///
-/// When the contract has validation errors, returns [`PlanResult::Err`] with
-/// planning-stage diagnostics (`DPCS-PLN-001`) plus the underlying validation
-/// findings. Callers SHOULD prefer this over assuming a plan can always be built.
+/// Always deep-resolves Contract References before planning (SPEC Ch 7) using
+/// [`ResolveOptions::default_for_planning`] (process CWD). Prefer
+/// [`plan_with_resolve`] with [`ResolveOptions::from_document_path`] when
+/// locations are relative to a contract file.
+///
+/// When the contract has validation or resolution errors, returns
+/// [`PlanResult::Err`] with planning-stage diagnostics (`DPCS-PLN-001`) plus the
+/// underlying findings.
 pub fn plan(contract: &PipelineContract) -> PlanResult {
+    let opts = ResolveOptions::default_for_planning();
+    plan_with_resolve(contract, Some(&opts))
+}
+
+/// Build a Pipeline Plan, resolving Contract References with `resolve` when
+/// provided, otherwise [`ResolveOptions::default_for_planning`].
+pub fn plan_with_resolve(
+    contract: &PipelineContract,
+    resolve: Option<&ResolveOptions>,
+) -> PlanResult {
     let ctx = AnalysisContext::build(contract);
-    plan_with_context(&ctx)
+    plan_with_context_and_resolve(&ctx, resolve)
 }
 
 /// Build a Pipeline Plan using a prebuilt [`AnalysisContext`].
 pub fn plan_with_context(ctx: &AnalysisContext<'_>) -> PlanResult {
+    let opts = ResolveOptions::default_for_planning();
+    plan_with_context_and_resolve(ctx, Some(&opts))
+}
+
+/// Build a Pipeline Plan using a prebuilt context and resolve options.
+///
+/// When `resolve` is `None`, uses [`ResolveOptions::default_for_planning`].
+pub fn plan_with_context_and_resolve(
+    ctx: &AnalysisContext<'_>,
+    resolve: Option<&ResolveOptions>,
+) -> PlanResult {
     let contract = ctx.contract;
-    let report = validation::validate_with_context(ctx);
+    let mut report = validation::validate_with_context(ctx);
+    let owned_default = ResolveOptions::default_for_planning();
+    let opts = resolve.unwrap_or(&owned_default);
+    let mut resolution = resolve_contract_references(contract, opts);
+    let mut nested_loaded: Vec<NestedPipeline> = Vec::new();
+    if !resolution.report.is_valid() {
+        report.extend(resolution.report);
+    } else {
+        stamp_nested_parents(&mut resolution.nested, &contract.id);
+        nested_loaded = resolution.nested;
+        report.extend(resolution.report);
+    }
     if !report.is_valid() {
         let mut planning_report = ValidationReport::new();
         planning_report.push(
@@ -161,6 +237,13 @@ pub fn plan_with_context(ctx: &AnalysisContext<'_>) -> PlanResult {
         .map(|(from, to)| PlanDependencyEdge { from, to })
         .collect();
 
+    let mut lineage = contract.lineage.clone();
+    apply_nested_provenance(&mut lineage, &contract.id, &nested_loaded);
+    let nested = nested_loaded
+        .into_iter()
+        .map(nested_pipeline_to_plan)
+        .collect();
+
     PlanResult::Ok(Box::new(PipelinePlan {
         contract_id: contract.id.clone(),
         contract_version: contract.version.clone(),
@@ -175,13 +258,53 @@ pub fn plan_with_context(ctx: &AnalysisContext<'_>) -> PlanResult {
         scheduling: contract.scheduling.clone(),
         quality_gates: contract.quality_gates.clone(),
         failure_semantics: contract.failure_semantics.clone(),
-        lineage: contract.lineage.clone(),
+        lineage,
+        nested,
     }))
 }
 
 /// Convenience wrapper that returns only the plan when planning succeeds.
 pub fn try_plan(contract: &PipelineContract) -> Option<PipelinePlan> {
     plan(contract).plan()
+}
+
+fn nested_pipeline_to_plan(n: NestedPipeline) -> NestedPlanPipeline {
+    let step_order = DependencyGraph::from_contract(&n.contract)
+        .topological_order()
+        .unwrap_or_else(|_| {
+            n.contract
+                .steps
+                .iter()
+                .map(|step| step.id.clone())
+                .collect()
+        });
+    NestedPlanPipeline {
+        parent_step_id: n.parent_step_id,
+        contract_ref: n.contract_ref,
+        contract_id: n.contract.id.clone(),
+        contract_version: n.contract.version.clone(),
+        dpcs_version: n.contract.dpcs_version.clone(),
+        input_ports: n
+            .contract
+            .interface
+            .inputs
+            .iter()
+            .map(|port| port.id.clone())
+            .collect(),
+        output_ports: n
+            .contract
+            .interface
+            .outputs
+            .iter()
+            .map(|port| port.id.clone())
+            .collect(),
+        step_order,
+        children: n
+            .children
+            .into_iter()
+            .map(nested_pipeline_to_plan)
+            .collect(),
+    }
 }
 
 #[cfg(test)]

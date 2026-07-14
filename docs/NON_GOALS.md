@@ -1,9 +1,12 @@
-# Non-Goals Beyond 0.12.0
+# Non-Goals Beyond 0.13.0
 
-Completed through 0.12.0: orchestrator binding scaffolds, SPEC Ch 18–25 document
-models, JSON Schema/OpenAPI helpers, reference registry HTTP API, pipeline
-packages, Python/WASM distribution packages, Markdown/HTML reports, Mermaid/DOT
-graph exports, rich CLI `--format`/`--out`, the interactive TUI inspector,
+Completed through 0.13.0: full toolkit-actionable SPEC coverage (see
+[`SPEC_COVERAGE.md`](SPEC_COVERAGE.md)), Appendix E conformance suite, public API
+freeze, contract reference resolution, nested pipelines, structured bind
+semantics, orchestrator binding scaffolds, SPEC Ch 18–25 document models, JSON
+Schema/OpenAPI helpers, reference registry HTTP API, pipeline packages,
+Python/WASM distribution packages, Markdown/HTML reports, Mermaid/DOT graph
+exports, rich CLI `--format`/`--out`, the interactive TUI inspector,
 parallel/incremental validation, shared analysis context, Criterion benches, and
 practical allocation reductions (see [`BINDINGS.md`](BINDINGS.md),
 [`CLI_SPEC.md`](CLI_SPEC.md), [`VALIDATION_GUIDE.md`](VALIDATION_GUIDE.md)).

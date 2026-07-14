@@ -1,0 +1,16 @@
+dpcsVersion: "1.0.0"
+id: "nested.parent.deep"
+version: "0.1.0"
+interface:
+  inputs: []
+  outputs: []
+contractReferences:
+  - id: mid
+    type: dpcs
+    location: mid.dpcs.yaml
+steps:
+  - id: run_mid
+    type: dpcs:pipeline
+    contractRef: mid
+graph:
+  edges: []

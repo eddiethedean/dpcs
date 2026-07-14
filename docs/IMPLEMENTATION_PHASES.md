@@ -137,3 +137,12 @@ Distribution details: [`BINDINGS.md`](BINDINGS.md).
 - Incremental `ValidationCache` / `validate_cached`
 - Practical allocation cuts (wire serialize without full COM clone)
 - Criterion benches + `dpcs::synth` generators
+
+## Phase 14 — Reference implementation (complete in 0.13.0)
+
+- SPEC coverage matrix ([`SPEC_COVERAGE.md`](SPEC_COVERAGE.md)) + diagnostic catalog
+- Contract reference resolution (`resolve` module) and nested pipeline planning
+- Structured bind semantics (`dpcs_semantics.json` on all targets)
+- Appendix E conformance suite (`make conformance`)
+- Public API stability documentation; remove deprecated `OrchestratorCapabilities`
+- CompleteImplementation claim restored; comprehensive guides

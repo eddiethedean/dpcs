@@ -1,0 +1,9 @@
+dpcsVersion: "1.0.0"
+id: "nested.grandchild"
+version: "0.1.0"
+interface:
+  inputs: []
+  outputs: []
+steps: []
+graph:
+  edges: []

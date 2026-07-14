@@ -130,3 +130,12 @@ Required test categories:
 - scale smoke: validate `synth::linear_pipeline(200)`
 - Criterion suite: `cargo bench -p dpcs --features parallel --bench performance`
   or `make bench` (parse / validate / graph / plan / serialize)
+
+## Reference implementation / Appendix E (0.13.0)
+
+- `make conformance` runs `tests/conformance.rs` + `tests/conformance_appendix_e.rs`
+- Nested resolve/plan fixtures under `fixtures/valid/nested/` and
+  `fixtures/invalid/nested_missing.dpcs.yaml` (`DPCS-REF-007`)
+- Bind bundles include `dpcs_semantics.json` for all targets
+- SPEC coverage matrix zero-Gap for toolkit-actionable SHALLs
+- `toolkit_claim()` includes `CompleteImplementation`

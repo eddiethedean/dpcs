@@ -3,7 +3,7 @@
 use crate::diagnostics::ValidationReport;
 use crate::plan::PipelinePlan;
 
-use super::common::{python_file, PlanView};
+use super::common::{python_file, semantics_file, PlanView};
 use super::{BindContext, OrchestratorAdapter};
 use crate::binding::artifact::{BindingFile, BindingTarget};
 
@@ -111,6 +111,6 @@ impl OrchestratorAdapter for PrefectAdapter {
         body.push_str(&flow_name);
         body.push_str("_flow()\n");
 
-        Ok(vec![python_file("flow.py", body)])
+        Ok(vec![python_file("flow.py", body), semantics_file(&view)])
     }
 }

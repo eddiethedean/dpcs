@@ -1,0 +1,16 @@
+dpcsVersion: "1.0.0"
+id: "nested.cycle.b"
+version: "0.1.0"
+interface:
+  inputs: []
+  outputs: []
+contractReferences:
+  - id: a
+    type: dpcs
+    location: nested_cycle_a.dpcs.yaml
+steps:
+  - id: to_a
+    type: dpcs:pipeline
+    contractRef: a
+graph:
+  edges: []

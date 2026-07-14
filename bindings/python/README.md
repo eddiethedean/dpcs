@@ -12,7 +12,7 @@ contracts from Python via PyO3.
 | | |
 | --- | --- |
 | Package | [`dpcs`](https://pypi.org/project/dpcs/) on PyPI |
-| Toolkit | `0.11.x` (ROADMAP developer-experience release) |
+| Toolkit | `0.13.x` (ROADMAP reference-implementation release) |
 | Spec | `1.0.0-draft` |
 | Requires | Python ≥ 3.9 (abi3) |
 | Guides | [dpcs.readthedocs.io](https://dpcs.readthedocs.io/en/latest/) |

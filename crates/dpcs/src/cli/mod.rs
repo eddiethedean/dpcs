@@ -13,11 +13,11 @@ use crate::report::{graph_view_from_contract, inspect_view_from_contract, Report
 use crate::DPCS_SPEC_VERSION;
 use crate::{
     apply_profile_to_contract, bind, compare_contracts, evaluate, openapi_document, pack,
-    parse_target, serve, toolkit_claim, unpack, validate, validate_conformance_profile,
-    validate_package, validate_registry, write_bundle, write_document_schemas,
+    parse_target, serve, toolkit_claim, unpack, validate_conformance_profile, validate_package,
+    validate_registry, validate_resolved, write_bundle, write_document_schemas,
     write_openapi_documents, BindingResult, CapabilityProfile, CapabilityResult,
     ConformanceProfile, OpenApiKind, PackageLayout, PublishRequest, Registry, RegistryCache,
-    RegistryClient, RegistryClientError, ServeOptions, VERSION,
+    RegistryClient, RegistryClientError, ResolveOptions, ServeOptions, VERSION,
 };
 
 mod output;
@@ -507,7 +507,8 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                 }
                 Err(err) => return Err(err),
             };
-            let mut report = validate(&contract);
+            let resolve = ResolveOptions::from_document_path(&path);
+            let mut report = validate_resolved(&contract, &resolve);
             if let Some(profile_path) = profile {
                 let profile = match ConformanceProfile::from_file(&profile_path) {
                     Ok(profile) => profile,
@@ -573,7 +574,8 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                 }
                 Err(err) => return Err(err),
             };
-            let report = validate(&contract);
+            let resolve = ResolveOptions::from_document_path(&path);
+            let report = validate_resolved(&contract, &resolve);
             if opts.format == ReportFormat::Json {
                 emit_diagnostic_report(
                     &opts,
@@ -628,7 +630,8 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                 Err(err) => return Err(err),
             };
 
-            let planned = match plan::plan(&contract) {
+            let resolve = ResolveOptions::from_document_path(&contract_path);
+            let planned = match plan::plan_with_resolve(&contract, Some(&resolve)) {
                 plan::PlanResult::Ok(planned) => planned,
                 plan::PlanResult::Err(report) => {
                     emit_validation(&opts, &report)?;
@@ -683,7 +686,8 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                 Err(err) => return Err(err),
             };
 
-            let planned = match plan::plan(&contract) {
+            let resolve = ResolveOptions::from_document_path(&path);
+            let planned = match plan::plan_with_resolve(&contract, Some(&resolve)) {
                 plan::PlanResult::Ok(planned) => planned,
                 plan::PlanResult::Err(report) => {
                     print_report(&report, json)?;

@@ -287,13 +287,31 @@ async fn publish_artifact(
     let mut registry = read_registry(&state.root)?;
     if let Some(existing) = registry
         .artifacts
-        .iter_mut()
+        .iter()
         .find(|a| a.id == artifact.id && a.version == artifact.version)
+        .cloned()
     {
-        *existing = artifact.clone();
-    } else {
-        registry.artifacts.push(artifact.clone());
+        // SPEC Ch 22/23: registries SHALL NOT modify registered artifacts.
+        // Same id@version with identical content is idempotent; differing content
+        // is rejected (HTTP 409). Status transitions use deprecate/retire.
+        if let Some(new_content) = &pending_content {
+            if let Some(location) = &existing.location {
+                if let Ok(path) = contained_file(&state.root, location) {
+                    if let Ok(old) = std::fs::read_to_string(&path) {
+                        if old != *new_content {
+                            return Err(ApiError::conflict(format!(
+                                "DPCS-REG-016: artifact `{}@{}` is immutable; content differs from the registered payload",
+                                artifact.id, artifact.version
+                            )));
+                        }
+                    }
+                }
+            }
+        }
+        return Ok(Json(existing));
     }
+
+    registry.artifacts.push(artifact.clone());
     let report = validate_registry(&registry);
     if !report.is_valid() {
         return Err(ApiError::bad_request(report));
@@ -307,8 +325,6 @@ async fn publish_artifact(
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent).map_err(|err| ApiError::internal(err.to_string()))?;
         }
-        // Write registry first so a content write failure does not leave orphans
-        // for an uncommitted registry row; content is rewritten on republish.
         write_registry(&state.root, &registry)?;
         std::fs::write(&path, content).map_err(|err| ApiError::internal(err.to_string()))?;
     } else {
@@ -413,6 +429,14 @@ impl ApiError {
     fn bad_message(message: impl Into<String>) -> Self {
         Self {
             status: StatusCode::BAD_REQUEST,
+            body: ApiBody::Message {
+                error: message.into(),
+            },
+        }
+    }
+    fn conflict(message: impl Into<String>) -> Self {
+        Self {
+            status: StatusCode::CONFLICT,
             body: ApiBody::Message {
                 error: message.into(),
             },

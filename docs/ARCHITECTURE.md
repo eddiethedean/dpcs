@@ -24,7 +24,7 @@ Orchestrator Binding
 Execution Runtime
 ```
 
-Current implementation scope (through ROADMAP 0.12.0):
+Current implementation scope (through ROADMAP 0.13.0):
 
 ```text
 DPCS Document
@@ -36,29 +36,31 @@ Parser
 Canonical Object Model
         │
         ▼
-Validator (+ extensions, security, governance, versioning)
+Validator (+ resolve nested DPCS refs, security, governance, versioning)
         │
         ▼
 Diagnostics / DiagnosticReport
         │
         ▼
-Pipeline Plan (deterministic, validation-gated)
+Pipeline Plan (deterministic, validation-gated, nested provenance)
         │
         ▼
 Capability Evaluation (profile match, no plan mutation)
         │
         ▼
-Orchestrator Binding (scaffold artifacts; capability-gated)
+Orchestrator Binding (scaffolds + dpcs_semantics.json; capability-gated)
 
 Also first-class (not mutating contracts):
   Compatibility analysis · Registry document validate · Registry HTTP client/server
   Conformance claims/profiles · Pipeline packages · JSON Schema / OpenAPI emit
   Language bindings (Python / WASM; see BINDINGS.md)
   Reports (Markdown/HTML/Mermaid/DOT) · Rich CLI formats · TUI inspector
+  SPEC coverage matrix · Diagnostic catalog
 ```
 
 Execution runtimes remain out of scope. Binding adapters emit implementation-defined
-scaffold artifacts for Airflow, Dagster, Prefect, Temporal, and Kubernetes.
+scaffold artifacts for Airflow, Dagster, Prefect, Temporal, and Kubernetes, plus a
+structured `dpcs_semantics.json` encoding scheduling/QG/FS/execution/nesting.
 Registry networking uses the reference HTTP API (see ADR-0005).
 Language packages publish to PyPI (`dpcs`), npm (`@eddiethedean/dpcs`), and
 Wasmer (`eddiethedean/dpcs`).

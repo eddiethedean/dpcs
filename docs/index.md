@@ -34,8 +34,12 @@ dpcs version --json
 
 | Topic | Page |
 | --- | --- |
+| Quick start | [Getting started](GETTING_STARTED.md) |
 | Processing architecture | [Architecture](ARCHITECTURE.md) |
 | Library surface | [Public API](PUBLIC_API.md) |
+| SPEC completeness | [SPEC coverage](SPEC_COVERAGE.md) |
+| Conformance suite | [Conformance](CONFORMANCE.md) |
+| Planning / binding | [Planning](PLANNING.md) |
 | CLI flags and exit codes | [CLI specification](CLI_SPEC.md) |
 | Python / WASM packages | [Bindings](BINDINGS.md) |
 | `.dpcspkg` layout | [Package format](PACKAGE_FORMAT.md) |

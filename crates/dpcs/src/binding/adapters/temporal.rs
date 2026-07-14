@@ -3,7 +3,7 @@
 use crate::diagnostics::ValidationReport;
 use crate::plan::PipelinePlan;
 
-use super::common::{python_file, PlanView};
+use super::common::{python_file, semantics_file, PlanView};
 use super::{BindContext, OrchestratorAdapter};
 use crate::binding::artifact::{BindingFile, BindingTarget};
 
@@ -98,6 +98,9 @@ from temporalio import activity, workflow
             }
         }
 
-        Ok(vec![python_file("workflow.py", body)])
+        Ok(vec![
+            python_file("workflow.py", body),
+            semantics_file(&view),
+        ])
     }
 }

@@ -13,7 +13,7 @@ bind pipeline contracts in the browser or Node.
 | --- | --- |
 | npm | [`@eddiethedean/dpcs`](https://www.npmjs.com/package/@eddiethedean/dpcs) |
 | Wasmer | [`eddiethedean/dpcs`](https://wasmer.io/eddiethedean/dpcs) |
-| Toolkit | `0.11.x` (ROADMAP developer-experience release) |
+| Toolkit | `0.13.x` (ROADMAP reference-implementation release) |
 | Spec | `1.0.0-draft` |
 | Guides | [dpcs.readthedocs.io](https://dpcs.readthedocs.io/en/latest/) |
 | Bindings notes | [docs/BINDINGS.md](https://github.com/eddiethedean/dpcs/blob/main/docs/BINDINGS.md) |

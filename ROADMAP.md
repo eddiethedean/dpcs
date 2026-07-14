@@ -208,14 +208,17 @@ See [`docs/BINDINGS.md`](docs/BINDINGS.md) for install and republish details.
 
 ------------------------------------------------------------------------
 
-# 0.13.0 --- Reference Implementation
+# 0.13.0 --- Reference Implementation (shipped)
 
 ### Deliverables
 
--   Complete implementation of SPEC.md
--   100% conformance suite
--   Stable public API
--   Comprehensive documentation
+-   Complete implementation of SPEC.md (toolkit-actionable SHALLs; see
+    [`docs/SPEC_COVERAGE.md`](docs/SPEC_COVERAGE.md))
+-   100% Appendix E conformance suite (`make conformance`)
+-   Stable public API (documented freeze in [`docs/PUBLIC_API.md`](docs/PUBLIC_API.md))
+-   Comprehensive documentation (coverage matrix, diagnostics catalog, guides)
+-   Contract reference resolution + nested pipelines
+-   Structured bind semantics (`dpcs_semantics.json`)
 
 ------------------------------------------------------------------------
 

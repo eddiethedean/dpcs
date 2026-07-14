@@ -169,14 +169,6 @@ pub struct CapabilityProfile {
     pub extensions: ExtensionMap,
 }
 
-/// Deprecated name alias for [`CapabilityProfile`].
-///
-/// Prefer [`CapabilityProfile`]. Field shape follows 0.7 (`identity`,
-/// `dpcs_version`, `Vec<CapabilityDecl>`); wire YAML may still use `profile`
-/// and bare capability id strings.
-#[deprecated(note = "use CapabilityProfile")]
-pub type OrchestratorCapabilities = CapabilityProfile;
-
 impl CapabilityProfile {
     /// Create a minimal profile with an identity and supported DPCS version.
     pub fn new(identity: impl Into<String>, dpcs_version: impl Into<String>) -> Self {

@@ -1,4 +1,4 @@
-.PHONY: fmt fmt-check lint test build examples check ci schema docs docs-site bench
+.PHONY: fmt fmt-check lint test build examples check ci schema docs docs-site bench conformance diagnostics-catalog
 
 fmt:
 	cargo fmt --all
@@ -20,6 +20,13 @@ docs:
 
 bench:
 	cargo bench -p dpcs --features parallel --bench performance
+
+conformance:
+	cargo test -p dpcs --all-features --test conformance --test conformance_appendix_e
+
+diagnostics-catalog:
+	python3 -c "import json,re,pathlib; root=pathlib.Path('crates/dpcs/src'); ids=sorted({m.group(1) for p in root.rglob('*.rs') for m in re.finditer(r'\"(DPCS-[A-Z]+-\\d+)\"', p.read_text())}); fam={}; \
+[fam.setdefault(i.rsplit('-',1)[0], []).append(i) for i in ids]; pathlib.Path('docs/diagnostics.catalog.json').write_text(json.dumps({'generatedFrom':'crates/dpcs/src','count':len(ids),'ids':ids,'families':fam}, indent=2)+'\n')"
 
 docs-site:
 	python3 -m pip install -q -r docs/requirements.txt
@@ -47,6 +54,6 @@ examples:
 	grep -q flowchart /tmp/dpcs-graph.mmd
 	grep -q Pipeline /tmp/dpcs-inspect.md
 
-check: fmt-check lint test
+check: fmt-check lint test conformance
 
-ci: lint test examples build
+ci: lint test conformance examples build

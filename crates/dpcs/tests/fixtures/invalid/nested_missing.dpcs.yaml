@@ -1,0 +1,16 @@
+dpcsVersion: "1.0.0"
+id: "nested.missing"
+version: "0.1.0"
+interface:
+  inputs: []
+  outputs: []
+contractReferences:
+  - id: child
+    type: dpcs
+    location: does-not-exist.dpcs.yaml
+steps:
+  - id: run_child
+    type: dpcs:pipeline
+    contractRef: child
+graph:
+  edges: []

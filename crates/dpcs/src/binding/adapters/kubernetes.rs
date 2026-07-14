@@ -3,7 +3,7 @@
 use crate::diagnostics::ValidationReport;
 use crate::plan::PipelinePlan;
 
-use super::common::{yaml_file, PlanView};
+use super::common::{semantics_file, yaml_file, PlanView};
 use super::{BindContext, OrchestratorAdapter};
 use crate::binding::artifact::{BindingFile, BindingTarget};
 
@@ -85,6 +85,7 @@ data:
                 },
                 job_or_cron,
             ),
+            semantics_file(&view),
         ])
     }
 }

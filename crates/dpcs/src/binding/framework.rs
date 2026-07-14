@@ -161,7 +161,22 @@ pub fn bind_contract(
     profile: &CapabilityProfile,
     target: BindingTarget,
 ) -> BindingResult {
-    match plan::plan(contract) {
+    // Deep-resolve with default planning options (CWD); prefer
+    // `bind_contract_with_resolve` + `ResolveOptions::from_document_path` for
+    // document-relative nested locations.
+    bind_contract_with_resolve(contract, profile, target, None)
+}
+
+/// Plan (with reference resolution) then bind.
+///
+/// When `resolve` is `None`, uses [`crate::ResolveOptions::default_for_planning`].
+pub fn bind_contract_with_resolve(
+    contract: &PipelineContract,
+    profile: &CapabilityProfile,
+    target: BindingTarget,
+    resolve: Option<&crate::resolve::ResolveOptions>,
+) -> BindingResult {
+    match plan::plan_with_resolve(contract, resolve) {
         PlanResult::Ok(planned) => bind(&planned, profile, target),
         PlanResult::Err(report) => BindingResult::err(report),
     }

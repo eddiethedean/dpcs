@@ -5,6 +5,40 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.0] - 2026-07-14
+
+### Added
+
+- SPEC coverage matrix (`docs/SPEC_COVERAGE.md`) and diagnostic catalog
+  (`docs/diagnostics.catalog.json`, `make diagnostics-catalog`)
+- Contract reference resolution module (`ResolveOptions`,
+  `resolve_contract_references`, `validate_resolved`) with nested DPCS loading
+- Nested pipeline planning: `PipelinePlan.nested` (ports / stepOrder / children),
+  lineage provenance, recursive resolve with cycle/depth guards,
+  `plan_with_resolve` / `plan_with_context_and_resolve` /
+  `bind_contract_with_resolve`
+- Structured bind artifact `dpcs_semantics.json` on all five orchestrator targets
+- Registry HTTP immutability for same id@version content (`DPCS-REG-016` / 409)
+- Appendix E conformance suite (`tests/conformance_appendix_e.rs`,
+  `make conformance`)
+- Guides: Getting started, Planning/binding, Conformance; PUBLIC_API stability
+  section
+
+### Changed
+
+- Crate version `0.13.0`
+- `plan()` / `bind_contract()` deep-resolve by default via
+  `ResolveOptions::default_for_planning()` (CWD); prefer
+  `from_document_path` for document-relative locations
+- CLI `validate` / `diagnostics` / `capabilities` / `bind` resolve relative to
+  the document path for nested DPCS references
+- `CompleteImplementation` claim aligned with Gap-free SPEC_COVERAGE + suite
+- Binding headers point at `dpcs_semantics.json` for QG/FS/execution fidelity
+
+### Removed
+
+- Deprecated `OrchestratorCapabilities` type alias (use `CapabilityProfile`)
+
 ## [0.12.0] - 2026-07-14
 
 ### Added
@@ -375,6 +409,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `dpcs` CLI: `validate`, `inspect`, `diagnostics`, `graph`, `version`
 - Examples, fixtures, CI, and contributor documentation
 
+[0.13.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.13.0
 [0.12.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.12.0
 [0.11.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.11.0
 [0.10.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.10.0

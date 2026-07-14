@@ -1,6 +1,6 @@
 # Language Bindings and Distribution
 
-Ecosystem packages introduced in ROADMAP 0.10.0 (still current in 0.11.x). The Rust
+Ecosystem packages introduced in ROADMAP 0.10.0 (current through 0.13.x). The Rust
 `dpcs` library remains the canonical implementation; bindings wrap a subset of
 parse / validate / plan / capabilities / bind / compatibility / registry /
 conformance entry points. Report/TUI DX surfaces in 0.11 are Rust/CLI-first;
