@@ -28,13 +28,13 @@ and Kubernetes. Execution runtimes remain out of scope. See [`ROADMAP.md`](ROADM
 
 | Item | Value |
 | --- | --- |
-| Crate version | `0.11.0` |
+| Crate version | `0.12.0` |
 | Spec version | `1.0.0-draft` |
 | Language | Rust 2021 (MSRV 1.88) |
 | License | Apache-2.0 OR MIT |
 | Guides | [dpcs.readthedocs.io](https://dpcs.readthedocs.io/en/latest/) |
 | API docs | [docs.rs/dpcs](https://docs.rs/dpcs) |
-| Release focus | Developer experience: reports, rich CLI, TUI, graph exports (ROADMAP 0.11.0) |
+| Release focus | Performance: parallel/incremental validate, graph opts, benches (ROADMAP 0.12.0) |
 
 ## Quick start
 
@@ -43,7 +43,7 @@ and Kubernetes. Execution runtimes remain out of scope. See [`ROADMAP.md`](ROADM
 ```bash
 cargo install --path crates/dpcs-cli
 # or published packages:
-# cargo install dpcs-cli --version 0.11.0
+# cargo install dpcs-cli --version 0.12.0
 # pip install dpcs
 # npm install @eddiethedean/dpcs
 ```

@@ -22,10 +22,11 @@ rustdoc-args = ["--cfg", "docsrs"]
 default = []
 cli = ["dep:clap", "jsonschema", "registry-client", "registry-server"]
 tui = ["cli", "dep:ratatui", "dep:crossterm"]
+parallel = ["dep:rayon"]
 jsonschema = ["dep:schemars"]
 registry-client = ["dep:reqwest", "dep:url"]
 registry-server = ["dep:axum", "dep:tokio", "dep:tower-http", "dep:url"]
-full = ["cli", "tui"]
+full = ["cli", "tui", "parallel"]
 
 [[test]]
 name = "schema"
@@ -34,6 +35,10 @@ required-features = ["jsonschema"]
 [[test]]
 name = "registry_net"
 required-features = ["registry-client", "registry-server"]
+
+[[bench]]
+name = "performance"
+harness = false
 
 [dependencies]
 serde = { workspace = true }
@@ -50,6 +55,7 @@ tower-http = { workspace = true, optional = true }
 url = { workspace = true, optional = true }
 ratatui = { workspace = true, optional = true }
 crossterm = { workspace = true, optional = true }
+rayon = { workspace = true, optional = true }
 zip = { workspace = true }
 walkdir = { workspace = true }
 
@@ -58,3 +64,4 @@ assert_cmd = { workspace = true }
 predicates = { workspace = true }
 tempfile = { workspace = true }
 tokio = { workspace = true }
+criterion = { workspace = true }

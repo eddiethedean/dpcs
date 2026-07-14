@@ -5,6 +5,30 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] - 2026-07-14
+
+### Added
+
+- `AnalysisContext` shared indexes (step ids, endpoints, `DependencyGraph`) for
+  validate / plan / report hot paths
+- Feature `parallel` (rayon): concurrent validation phases inside `validate`;
+  included in `full` / `dpcs-cli`. `validate_sequential` for single-threaded runs
+- Incremental validation: `ValidationCache` + `validate_cached` with section
+  fingerprints and `ValidationCacheStats`
+- `dpcs::synth` large-graph generators and Criterion bench suite
+  (`benches/performance.rs`, `make bench`)
+- Byte-slice parsers `parse_yaml_slice` / `parse_json_slice`
+- `plan_with_context` / `validate_with_context` reuse a shared analysis context
+
+### Changed
+
+- Crate version `0.12.0`
+- Wire YAML/JSON serialize filters reserved root extension keys without cloning
+  the full `PipelineContract`
+- Dependency graph build uses indexed endpoint lookups; unreachable-step scan is
+  multi-source BFS; plan/report reuse the shared graph instead of rebuilding
+- CI tests default (no `parallel`) features in addition to `--all-features`
+
 ## [0.11.0] - 2026-07-14
 
 ### Added
@@ -351,6 +375,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `dpcs` CLI: `validate`, `inspect`, `diagnostics`, `graph`, `version`
 - Examples, fixtures, CI, and contributor documentation
 
+[0.12.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.12.0
 [0.11.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.11.0
 [0.10.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.10.0
 [0.9.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.9.0

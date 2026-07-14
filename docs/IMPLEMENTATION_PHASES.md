@@ -129,3 +129,11 @@ Distribution details: [`BINDINGS.md`](BINDINGS.md).
 - Report module: Markdown / HTML / Mermaid / DOT exports
 - Rich CLI `--format` / `--out` (with `--json` alias)
 - Interactive TUI inspector (`tui` feature; `dpcs tui` / `inspect --tui`)
+
+## Phase 13 — Performance (complete in 0.12.0)
+
+- Shared `AnalysisContext` + large-graph endpoint/graph optimizations
+- Parallel validation (`parallel` feature) and `validate_sequential`
+- Incremental `ValidationCache` / `validate_cached`
+- Practical allocation cuts (wire serialize without full COM clone)
+- Criterion benches + `dpcs::synth` generators

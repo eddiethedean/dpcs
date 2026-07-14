@@ -1,4 +1,4 @@
-.PHONY: fmt fmt-check lint test build examples check ci schema docs docs-site
+.PHONY: fmt fmt-check lint test build examples check ci schema docs docs-site bench
 
 fmt:
 	cargo fmt --all
@@ -17,6 +17,9 @@ build:
 
 docs:
 	RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps
+
+bench:
+	cargo bench -p dpcs --features parallel --bench performance
 
 docs-site:
 	python3 -m pip install -q -r docs/requirements.txt

@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::diagnostics::{categories, Diagnostic, ValidationReport};
 use crate::model::{
-    ContractReference, DependencyGraph, ExecutionRequirements, FailureSemantics, PipelineContract,
+    AnalysisContext, ContractReference, ExecutionRequirements, FailureSemantics, PipelineContract,
     PipelineGraph, PipelineLineage, PipelineStep, QualityGate, SchedulingIntent,
 };
 use crate::validation;
@@ -110,7 +110,14 @@ impl PlanResult {
 /// planning-stage diagnostics (`DPCS-PLN-001`) plus the underlying validation
 /// findings. Callers SHOULD prefer this over assuming a plan can always be built.
 pub fn plan(contract: &PipelineContract) -> PlanResult {
-    let report = validation::validate(contract);
+    let ctx = AnalysisContext::build(contract);
+    plan_with_context(&ctx)
+}
+
+/// Build a Pipeline Plan using a prebuilt [`AnalysisContext`].
+pub fn plan_with_context(ctx: &AnalysisContext<'_>) -> PlanResult {
+    let contract = ctx.contract;
+    let report = validation::validate_with_context(ctx);
     if !report.is_valid() {
         let mut planning_report = ValidationReport::new();
         planning_report.push(
@@ -127,7 +134,7 @@ pub fn plan(contract: &PipelineContract) -> PlanResult {
         return PlanResult::Err(planning_report);
     }
 
-    let dependency_graph = DependencyGraph::from_contract(contract);
+    let dependency_graph = &ctx.graph;
     let step_order = match dependency_graph.topological_order() {
         Ok(order) => order,
         Err(cycle) => {

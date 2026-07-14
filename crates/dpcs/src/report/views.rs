@@ -4,9 +4,9 @@ use std::collections::BTreeSet;
 
 use serde::{Deserialize, Serialize};
 
-use crate::model::{data_flow_step_dependency, DependencyGraph, PipelineContract};
-use crate::plan::{plan, PlanResult};
-use crate::validation::validate;
+use crate::model::{AnalysisContext, PipelineContract};
+use crate::plan::{plan_with_context, PlanResult};
+use crate::validation::validate_with_context;
 
 /// Summary view of a pipeline contract for inspect / reports / TUI.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -96,8 +96,9 @@ pub struct GraphEdgeView {
 
 /// Build an [`InspectView`] from a contract.
 pub fn inspect_view_from_contract(contract: &PipelineContract) -> InspectView {
-    let valid = validate(contract).is_valid();
-    let planned = match plan(contract) {
+    let ctx = AnalysisContext::build(contract);
+    let valid = validate_with_context(&ctx).is_valid();
+    let planned = match plan_with_context(&ctx) {
         PlanResult::Ok(plan) => Some(plan.step_order.clone()),
         PlanResult::Err(_) => None,
     };
@@ -128,9 +129,10 @@ pub fn inspect_view_from_contract(contract: &PipelineContract) -> InspectView {
 /// Build a [`GraphView`] from a contract.
 ///
 /// Edges include declared `graph.edges` plus step-to-step dependencies implied by
-/// control flow and data flow (same sources as [`DependencyGraph`]).
+/// control flow and data flow (same sources as [`crate::model::DependencyGraph`]).
 pub fn graph_view_from_contract(contract: &PipelineContract) -> GraphView {
-    let (step_order, planning_refused) = match plan(contract) {
+    let ctx = AnalysisContext::build(contract);
+    let (step_order, planning_refused) = match plan_with_context(&ctx) {
         PlanResult::Ok(plan) => (Some(plan.step_order.clone()), false),
         PlanResult::Err(_) => (None, true),
     };
@@ -139,13 +141,14 @@ pub fn graph_view_from_contract(contract: &PipelineContract) -> GraphView {
         entry_points: contract.graph.entry_points.clone(),
         exit_points: contract.graph.exit_points.clone(),
         step_ids: contract.steps.iter().map(|s| s.id.clone()).collect(),
-        edges: collect_graph_edges(contract),
+        edges: collect_graph_edges(&ctx),
         step_order,
         planning_refused,
     }
 }
 
-fn collect_graph_edges(contract: &PipelineContract) -> Vec<GraphEdgeView> {
+fn collect_graph_edges(ctx: &AnalysisContext<'_>) -> Vec<GraphEdgeView> {
+    let contract = ctx.contract;
     let mut edges = Vec::new();
     let mut seen: BTreeSet<(String, String, Option<String>)> = BTreeSet::new();
     let mut pairs: BTreeSet<(String, String)> = BTreeSet::new();
@@ -193,9 +196,7 @@ fn collect_graph_edges(contract: &PipelineContract) -> Vec<GraphEdgeView> {
         );
     }
     for flow in &contract.data_flow {
-        if let Some((from_step, to_step)) =
-            data_flow_step_dependency(contract, &flow.from, &flow.to)
-        {
+        if let Some((from_step, to_step)) = ctx.data_flow_step_dependency(&flow.from, &flow.to) {
             push_edge(
                 &mut edges,
                 &mut seen,
@@ -207,7 +208,7 @@ fn collect_graph_edges(contract: &PipelineContract) -> Vec<GraphEdgeView> {
         }
     }
 
-    for (from, to) in DependencyGraph::from_contract(contract).edges() {
+    for (from, to) in ctx.graph.edges() {
         if pairs.contains(&(from.clone(), to.clone())) {
             continue;
         }

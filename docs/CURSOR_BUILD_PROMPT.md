@@ -6,11 +6,12 @@ The repository contains a single `SPEC.md` document with the full 26-chapter DPC
 
 Treat `SPEC.md` as authoritative.
 
-Processing pipeline through ROADMAP 0.11.0:
+Processing pipeline through ROADMAP 0.12.0:
 
 ```text
 DPCS Document -> Parser -> COM -> Validator -> Pipeline Plan -> Capability Evaluation -> Orchestrator Binding
 (+ Compatibility / Registry documents+HTTP / Conformance / Packages / Schema emit / Reports / TUI)
+(+ AnalysisContext / parallel+incremental validate / Criterion benches)
 ```
 
 Implemented:
@@ -33,8 +34,9 @@ Implemented:
 16. Python and WASM bindings (PyPI / npm `@eddiethedean/dpcs` / Wasmer)
 17. Report module (Markdown / HTML / Mermaid / DOT) and rich CLI `--format`/`--out`
 18. Interactive TUI inspector (`tui` feature)
-19. CLI
-20. Tests and fixtures
+19. Performance: `AnalysisContext`, `parallel` validate, `ValidationCache`, synth + Criterion
+20. CLI
+21. Tests and fixtures
 
 Do not implement execution runtimes or production-grade operator libraries.
 

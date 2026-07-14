@@ -1,10 +1,12 @@
-# Non-Goals Beyond 0.11.0
+# Non-Goals Beyond 0.12.0
 
-Completed through 0.11.0: orchestrator binding scaffolds, SPEC Ch 18–25 document
+Completed through 0.12.0: orchestrator binding scaffolds, SPEC Ch 18–25 document
 models, JSON Schema/OpenAPI helpers, reference registry HTTP API, pipeline
 packages, Python/WASM distribution packages, Markdown/HTML reports, Mermaid/DOT
-graph exports, rich CLI `--format`/`--out`, and the interactive TUI inspector
-(see [`BINDINGS.md`](BINDINGS.md), [`CLI_SPEC.md`](CLI_SPEC.md)).
+graph exports, rich CLI `--format`/`--out`, the interactive TUI inspector,
+parallel/incremental validation, shared analysis context, Criterion benches, and
+practical allocation reductions (see [`BINDINGS.md`](BINDINGS.md),
+[`CLI_SPEC.md`](CLI_SPEC.md), [`VALIDATION_GUIDE.md`](VALIDATION_GUIDE.md)).
 
 Do **not** implement yet:
 
@@ -15,7 +17,7 @@ Do **not** implement yet:
 - ETL execution
 - ODCS validation internals
 - DTCS validation internals
-- parallel / incremental validation and zero-copy parsing (ROADMAP 0.12)
+- lifetime-parameterized / wire-buffer-borrowing COM (`PipelineContract<'a>`)
 - multi-document TUI workspace browser / registry-serve TUI
 
 DPCS should reference ODCS and DTCS contracts, not implement them internally.

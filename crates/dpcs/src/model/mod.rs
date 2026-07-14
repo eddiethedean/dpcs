@@ -5,6 +5,7 @@
 
 mod analysis;
 mod compatibility;
+mod context;
 mod contract;
 mod control_flow;
 mod data_flow;
@@ -31,6 +32,7 @@ mod versioning;
 
 pub use analysis::{step_id_from_endpoint, CycleError, DependencyGraph, DuplicateEdge};
 pub use compatibility::*;
+pub use context::AnalysisContext;
 pub use contract::*;
 pub use control_flow::*;
 pub use data_flow::*;

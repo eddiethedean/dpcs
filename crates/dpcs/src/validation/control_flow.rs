@@ -3,13 +3,23 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::diagnostics::{categories, Diagnostic, ValidationReport};
-use crate::model::{data_flow_step_dependency, PipelineContract};
+use crate::model::{AnalysisContext, PipelineContract};
 
+#[allow(dead_code)]
 /// Validate control-flow dependencies against known steps and other models.
 pub fn validate(contract: &PipelineContract) -> ValidationReport {
-    let mut report = ValidationReport::new();
-    let step_ids: BTreeSet<&str> = contract.steps.iter().map(|s| s.id.as_str()).collect();
+    let ctx = AnalysisContext::build(contract);
+    validate_with_context(&ctx)
+}
 
+/// Validate control flow using a shared analysis context.
+pub fn validate_with_context(ctx: &AnalysisContext<'_>) -> ValidationReport {
+    let contract = ctx.contract;
+    let mut report = ValidationReport::new();
+    let step_ids = &ctx.step_ids;
+
+    // Reuse the shared dependency graph's non-control edges via reconstructed
+    // deps from graph + data-flow only (control-flow conflict detection).
     let mut deps: BTreeSet<(String, String)> = BTreeSet::new();
     for edge in &contract.graph.edges {
         if edge.from.trim().is_empty() || edge.to.trim().is_empty() {
@@ -20,9 +30,7 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
         }
     }
     for flow in &contract.data_flow {
-        if let Some((from_step, to_step)) =
-            data_flow_step_dependency(contract, &flow.from, &flow.to)
-        {
+        if let Some((from_step, to_step)) = ctx.data_flow_step_dependency(&flow.from, &flow.to) {
             deps.insert((from_step, to_step));
         }
     }

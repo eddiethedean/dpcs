@@ -13,6 +13,11 @@ pub fn parse_json(input: &str) -> Result<PipelineContract> {
     serde_json::from_str(input).map_err(diagnostics::json_parse_error)
 }
 
+/// Parse a Pipeline Contract from JSON bytes.
+pub fn parse_json_slice(input: &[u8]) -> Result<PipelineContract> {
+    serde_json::from_slice(input).map_err(diagnostics::json_parse_error)
+}
+
 /// Parse a Pipeline Contract from a JSON file.
 pub fn parse_json_file(path: impl AsRef<Path>) -> Result<PipelineContract> {
     let path = path.as_ref();
@@ -26,10 +31,9 @@ pub fn parse_json_file(path: impl AsRef<Path>) -> Result<PipelineContract> {
 /// Serialize a Pipeline Contract to a pretty-printed JSON string.
 ///
 /// Reserved root field names that collide in `extensions` are omitted so the
-/// wire document does not emit duplicate keys.
+/// wire document does not emit duplicate keys (without cloning the COM tree).
 pub fn to_json(contract: &PipelineContract) -> Result<String> {
-    let wire = contract.for_wire_serialization();
-    serde_json::to_string_pretty(&wire)
+    serde_json::to_string_pretty(contract)
         .map_err(|err| Error::Serialization(format!("failed to serialize JSON: {err}")))
 }
 

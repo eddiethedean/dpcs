@@ -5,7 +5,8 @@
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
-use super::{data_flow_step_dependency, PipelineContract};
+use super::endpoints::data_flow_step_dependency_with_indexes;
+use super::{known_data_flow_endpoints, PipelineContract, PipelineStep};
 
 /// A directed step dependency graph derived from a Pipeline Contract.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -52,8 +53,24 @@ pub struct DuplicateEdge {
 impl DependencyGraph {
     /// Builds a dependency graph from the contract's graph, control flow, and data flow.
     pub fn from_contract(contract: &PipelineContract) -> Self {
-        let mut graph = Self::empty();
         let step_ids = contract.step_ids();
+        let steps_by_id: BTreeMap<&str, &PipelineStep> = contract
+            .steps
+            .iter()
+            .map(|step| (step.id.as_str(), step))
+            .collect();
+        let known_endpoints = known_data_flow_endpoints(contract);
+        Self::from_indexes(contract, &step_ids, &steps_by_id, &known_endpoints)
+    }
+
+    /// Builds a dependency graph using precomputed step / endpoint indexes.
+    pub fn from_indexes(
+        contract: &PipelineContract,
+        step_ids: &BTreeSet<&str>,
+        steps_by_id: &BTreeMap<&str, &PipelineStep>,
+        known_endpoints: &BTreeSet<String>,
+    ) -> Self {
+        let mut graph = Self::empty();
 
         for step in &contract.steps {
             if !step.id.trim().is_empty() {
@@ -83,9 +100,13 @@ impl DependencyGraph {
             if flow.from.trim().is_empty() || flow.to.trim().is_empty() {
                 continue;
             }
-            if let Some((from_step, to_step)) =
-                data_flow_step_dependency(contract, &flow.from, &flow.to)
-            {
+            if let Some((from_step, to_step)) = data_flow_step_dependency_with_indexes(
+                step_ids,
+                known_endpoints,
+                steps_by_id,
+                &flow.from,
+                &flow.to,
+            ) {
                 graph.add_edge(&from_step, &to_step);
             }
         }
@@ -96,6 +117,24 @@ impl DependencyGraph {
     /// Returns all step identifiers present in the dependency graph.
     pub fn nodes(&self) -> &BTreeSet<String> {
         &self.nodes
+    }
+
+    /// Returns a borrowed view of direct successors, if the node exists.
+    pub fn successors_ref(&self, step_id: &str) -> Option<&BTreeSet<String>> {
+        self.successors.get(step_id)
+    }
+
+    /// Returns a borrowed view of direct predecessors, if the node exists.
+    pub fn predecessors_ref(&self, step_id: &str) -> Option<&BTreeSet<String>> {
+        self.predecessors.get(step_id)
+    }
+
+    /// Returns whether `step_id` has no predecessors.
+    pub fn is_root(&self, step_id: &str) -> bool {
+        self.predecessors
+            .get(step_id)
+            .map(|set| set.is_empty())
+            .unwrap_or(true)
     }
 
     /// Returns direct successor step identifiers for `step_id`.
@@ -232,32 +271,32 @@ impl DependencyGraph {
 
     /// Returns step identifiers not reachable from declared entry points or indegree-zero roots.
     pub fn unreachable_steps(&self, contract: &PipelineContract) -> BTreeSet<String> {
-        let declared: Vec<String> = contract
+        let has_declared_entry_points = contract
             .graph
             .entry_points
             .iter()
-            .filter(|id| !id.trim().is_empty())
-            .cloned()
-            .collect();
+            .any(|id| !id.trim().is_empty());
 
-        let has_declared_entry_points = !declared.is_empty();
-        let valid_entry_points: BTreeSet<String> = declared
-            .into_iter()
-            .filter(|id| self.nodes.contains(id.as_str()))
-            .collect();
-
-        let roots: Vec<String> = if has_declared_entry_points {
+        let roots: Vec<&str> = if has_declared_entry_points {
             // Invalid entry points are reported by graph validation (GRP-007).
             // Do not treat an all-invalid entryPoints list as "nothing reachable".
-            if valid_entry_points.is_empty() {
+            let valid: Vec<&str> = contract
+                .graph
+                .entry_points
+                .iter()
+                .filter(|id| !id.trim().is_empty())
+                .map(String::as_str)
+                .filter(|id| self.nodes.contains(*id))
+                .collect();
+            if valid.is_empty() {
                 return BTreeSet::new();
             }
-            valid_entry_points.into_iter().collect()
+            valid
         } else {
             self.nodes
                 .iter()
-                .filter(|node| self.predecessors(node).is_empty())
-                .cloned()
+                .filter(|node| self.is_root(node.as_str()))
+                .map(String::as_str)
                 .collect()
         };
 
@@ -267,9 +306,19 @@ impl DependencyGraph {
         }
 
         let mut reachable = BTreeSet::new();
+        let mut queue = VecDeque::new();
         for root in roots {
-            for node in self.walk_bfs(&root) {
-                reachable.insert(node);
+            if reachable.insert(root.to_string()) {
+                queue.push_back(root.to_string());
+            }
+        }
+        while let Some(node) = queue.pop_front() {
+            if let Some(successors) = self.successors.get(&node) {
+                for successor in successors {
+                    if reachable.insert(successor.clone()) {
+                        queue.push_back(successor.clone());
+                    }
+                }
             }
         }
 

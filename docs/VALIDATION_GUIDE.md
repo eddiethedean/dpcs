@@ -4,6 +4,18 @@ Validation is deterministic and phase-based. It returns a `ValidationReport`
 and does not panic on invalid contracts. Phases always complete and findings are
 accumulated, then sorted deterministically.
 
+## Performance (0.12.0)
+
+- `validate` builds an [`AnalysisContext`] once (step ids, endpoints, dependency
+  graph) and reuses it across phases.
+- With the `parallel` feature (included in `full` / `dpcs-cli`), independent
+  phases run concurrently via rayon; diagnostics are then merged and sorted.
+  `validate_sequential` always runs phases in order (same final report).
+- `validate_cached` + `ValidationCache` fingerprint contract sections and reuse
+  clean phase diagnostics across incremental edits.
+- Large-graph hot paths use shared indexes (`data_flow_step_dependency_with_indexes`,
+  multi-source unreachable BFS). Synthetic helpers live in `dpcs::synth`.
+
 ## Phases (0.9.0)
 
 1. Document — unsupported `dpcsVersion` warnings (`DPCS-DOC-002`)

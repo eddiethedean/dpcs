@@ -1291,7 +1291,7 @@
       "type": "object"
     }
   },
-  "description": "Root Canonical Object Model for a DPCS Pipeline Contract.\n\nField names follow the camelCase serialization used in `SPEC.md` examples.",
+  "description": "Root Canonical Object Model for a DPCS Pipeline Contract.\n\nField names follow the camelCase serialization used in `SPEC.md` examples.\n\nWire serialization omits reserved root keys that collide in `extensions` (without cloning the contract) so YAML/JSON does not emit duplicate keys.",
   "properties": {
     "compatibility": {
       "anyOf": [

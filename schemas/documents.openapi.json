@@ -1215,7 +1215,7 @@
         "type": "object"
       },
       "PipelineContract": {
-        "description": "Root Canonical Object Model for a DPCS Pipeline Contract.\n\nField names follow the camelCase serialization used in `SPEC.md` examples.",
+        "description": "Root Canonical Object Model for a DPCS Pipeline Contract.\n\nField names follow the camelCase serialization used in `SPEC.md` examples.\n\nWire serialization omits reserved root keys that collide in `extensions` (without cloning the contract) so YAML/JSON does not emit duplicate keys.",
         "properties": {
           "compatibility": {
             "anyOf": [
@@ -2400,7 +2400,7 @@
   "info": {
     "description": "Informative OpenAPI component schemas for DPCS 1.0.0-draft documents and reports.",
     "title": "DPCS Document Schemas",
-    "version": "0.11.0"
+    "version": "0.12.0"
   },
   "openapi": "3.0.3",
   "paths": {

@@ -11,6 +11,28 @@ let report = validate(&contract);
 assert!(report.is_valid());
 ```
 
+### Performance surfaces (0.12.0)
+
+```rust
+use dpcs::{
+    parse_yaml_slice, validate, validate_cached, validate_sequential,
+    validate_with_context, AnalysisContext, ValidationCache,
+};
+
+let contract = parse_yaml_file("pipeline.dpcs.yaml")?;
+let _ = validate_sequential(&contract); // always single-threaded
+
+let ctx = AnalysisContext::build(&contract);
+let report = validate_with_context(&ctx);
+
+let mut cache = ValidationCache::new();
+let _ = validate_cached(&contract, &mut cache);
+let _ = validate_cached(&contract, &mut cache); // phases reused
+```
+
+Byte-slice parsers: `parse_yaml_slice` / `parse_json_slice`.
+Feature `parallel` enables concurrent phases inside `validate` (CLI / `full`).
+
 Parse failures return [`Error::InvalidDocument`] with Parse-stage diagnostics:
 
 ```rust

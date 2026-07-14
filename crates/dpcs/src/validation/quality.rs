@@ -1,15 +1,23 @@
 //! Quality gate validation phase (SPEC Ch 12).
 
 use crate::diagnostics::{categories, Diagnostic, ValidationReport};
-use crate::model::PipelineContract;
+use crate::model::{AnalysisContext, PipelineContract};
 
+#[allow(dead_code)]
 /// Validate quality-gate structural constraints beyond identity.
 ///
 /// Identifier presence and uniqueness are owned by the Canonical Object Model
 /// phase.
 pub fn validate(contract: &PipelineContract) -> ValidationReport {
+    let ctx = AnalysisContext::build(contract);
+    validate_with_context(&ctx)
+}
+
+/// Validate quality gates using a shared analysis context.
+pub fn validate_with_context(ctx: &AnalysisContext<'_>) -> ValidationReport {
+    let contract = ctx.contract;
     let mut report = ValidationReport::new();
-    let step_ids = contract.step_ids();
+    let step_ids = &ctx.step_ids;
     let reference_ids: std::collections::BTreeSet<&str> = contract
         .contract_references
         .iter()

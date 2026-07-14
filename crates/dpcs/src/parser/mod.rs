@@ -4,8 +4,8 @@ mod diagnostics;
 mod json;
 mod yaml;
 
-pub use json::{parse_json, parse_json_file, to_json, to_json_file};
-pub use yaml::{parse_yaml, parse_yaml_file, to_yaml, to_yaml_file};
+pub use json::{parse_json, parse_json_file, parse_json_slice, to_json, to_json_file};
+pub use yaml::{parse_yaml, parse_yaml_file, parse_yaml_slice, to_yaml, to_yaml_file};
 
 use std::path::Path;
 

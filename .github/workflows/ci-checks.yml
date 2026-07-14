@@ -25,6 +25,8 @@ jobs:
         run: RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps
       - name: Test
         run: cargo test --workspace --all-features
+      - name: Test without parallel (WASM-safe defaults)
+        run: cargo test -p dpcs --no-default-features
       - name: Validate examples
         run: |
           cargo run -p dpcs-cli --release -- validate examples/minimal.dpcs.yaml

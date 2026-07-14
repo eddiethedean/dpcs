@@ -3,10 +3,18 @@
 use std::collections::BTreeSet;
 
 use crate::diagnostics::{categories, Diagnostic, ValidationReport};
-use crate::model::PipelineContract;
+use crate::model::{AnalysisContext, PipelineContract};
 
+#[allow(dead_code)]
 /// Validate lineage dataset, step, and contract references.
 pub fn validate(contract: &PipelineContract) -> ValidationReport {
+    let ctx = AnalysisContext::build(contract);
+    validate_with_context(&ctx)
+}
+
+/// Validate lineage using a shared analysis context.
+pub fn validate_with_context(ctx: &AnalysisContext<'_>) -> ValidationReport {
+    let contract = ctx.contract;
     let mut report = ValidationReport::new();
     let Some(lineage) = &contract.lineage else {
         return report;
@@ -30,7 +38,7 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
         }
     }
 
-    let step_ids = contract.step_ids();
+    let step_ids = &ctx.step_ids;
     let reference_ids: BTreeSet<&str> = contract
         .contract_references
         .iter()

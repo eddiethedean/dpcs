@@ -37,6 +37,7 @@ pub mod package;
 pub mod parser;
 pub mod plan;
 pub mod report;
+pub mod synth;
 pub mod validation;
 
 mod paths;
@@ -75,26 +76,26 @@ pub use error::{Error, Result};
 pub use model::{
     is_valid_extension_namespace, is_valid_version, parse_version, step_id_from_endpoint,
     unreachable_datasets, unsatisfied_ports, validate_registry, versions_compatible,
-    CompatibilityPolicy, ContractReference, CycleError, DatasetLineage, DependencyGraph,
-    DuplicateEdge, EndpointRole, ExecutionEnvironment, ExecutionRequirements, ExtensionDefinition,
-    ExtensionMap, ExtensionValue, ExternalDependency, FailureResponse, FailureScope,
-    FailureSemantics, GateOutcome, GatePlacement, GovernanceMetadata, IdentityCatalog,
-    IntegrityReference, InterfacePort, Metadata, ObjectId, ObjectKind, ObjectPath, ParsedVersion,
-    PipelineContract, PipelineGraph, PipelineIdentity, PipelineInterface, PipelineLineage,
-    PipelineProvenance, PipelineStep, QualityCriterion, QualityGate, RegisteredArtifact, Registry,
-    RegistryReference, ResourceRequirements, RetrySemantics, SchedulingConstraints,
-    SchedulingEvent, SchedulingIntent, SchedulingMode, SecretReference, SecurityMetadata,
-    StepLineage,
+    AnalysisContext, CompatibilityPolicy, ContractReference, CycleError, DatasetLineage,
+    DependencyGraph, DuplicateEdge, EndpointRole, ExecutionEnvironment, ExecutionRequirements,
+    ExtensionDefinition, ExtensionMap, ExtensionValue, ExternalDependency, FailureResponse,
+    FailureScope, FailureSemantics, GateOutcome, GatePlacement, GovernanceMetadata,
+    IdentityCatalog, IntegrityReference, InterfacePort, Metadata, ObjectId, ObjectKind, ObjectPath,
+    ParsedVersion, PipelineContract, PipelineGraph, PipelineIdentity, PipelineInterface,
+    PipelineLineage, PipelineProvenance, PipelineStep, QualityCriterion, QualityGate,
+    RegisteredArtifact, Registry, RegistryReference, ResourceRequirements, RetrySemantics,
+    SchedulingConstraints, SchedulingEvent, SchedulingIntent, SchedulingMode, SecretReference,
+    SecurityMetadata, StepLineage,
 };
 pub use package::{
     artifact_entry, pack, resolve_artifact, unpack, validate_package, write_manifest,
     PackageArtifactEntry, PackageLayout, PackageManifest,
 };
 pub use parser::{
-    parse_file, parse_json, parse_json_file, parse_yaml, parse_yaml_file, to_file, to_json,
-    to_json_file, to_yaml, to_yaml_file,
+    parse_file, parse_json, parse_json_file, parse_json_slice, parse_yaml, parse_yaml_file,
+    parse_yaml_slice, to_file, to_json, to_json_file, to_yaml, to_yaml_file,
 };
-pub use plan::{plan, try_plan, PipelinePlan, PlanDependencyEdge, PlanResult};
+pub use plan::{plan, plan_with_context, try_plan, PipelinePlan, PlanDependencyEdge, PlanResult};
 pub use report::{
     capability_to_html, capability_to_markdown, compatibility_to_html, compatibility_to_markdown,
     diagnostic_to_html, diagnostic_to_markdown, graph_to_dot, graph_to_html, graph_to_markdown,
@@ -103,7 +104,9 @@ pub use report::{
     GraphEdgeView, GraphView, InspectView, ReportFormat,
 };
 pub use validation::{
-    validate, validate_extension_definition, validate_governance, validate_security,
+    validate, validate_cached, validate_extension_definition, validate_governance,
+    validate_security, validate_sequential, validate_with_context, ValidationCache,
+    ValidationCacheStats, ValidationPhase,
 };
 
 #[cfg(feature = "jsonschema")]

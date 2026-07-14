@@ -121,3 +121,12 @@ Required test categories:
 - SemVer rejection (`DPCS-VER-001`)
 - invalid extension namespace (`DPCS-EXT-001`) and informational preserve (`DPCS-EXT-010`)
 - registry duplicate artifact id+version (`DPCS-REG-014`)
+
+## Performance (0.12.0)
+
+- `validate` ≡ `validate_sequential` diagnostic multiset (`tests/performance.rs`)
+- `ValidationCache` reuses phases on unchanged sections; dirty scheduling re-runs subset
+- `AnalysisContext` graph edges/topo match `DependencyGraph::from_contract`
+- scale smoke: validate `synth::linear_pipeline(200)`
+- Criterion suite: `cargo bench -p dpcs --features parallel --bench performance`
+  or `make bench` (parse / validate / graph / plan / serialize)

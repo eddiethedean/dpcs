@@ -59,7 +59,7 @@ pub fn known_data_flow_endpoints(contract: &PipelineContract) -> BTreeSet<String
 pub fn data_flow_endpoint_known(contract: &PipelineContract, endpoint: &str) -> bool {
     let endpoints = known_data_flow_endpoints(contract);
     let steps_by_id = steps_by_id(contract);
-    endpoint_known(&endpoints, &steps_by_id, endpoint)
+    endpoint_known_with_indexes(&endpoints, &steps_by_id, endpoint)
 }
 
 /// Classifies a known-or-bag endpoint into a SPEC source/destination role.
@@ -113,36 +113,14 @@ pub fn data_flow_step_dependency(
     from: &str,
     to: &str,
 ) -> Option<(String, String)> {
-    if !data_flow_endpoint_known(contract, from) || !data_flow_endpoint_known(contract, to) {
-        return None;
-    }
-    if !is_valid_flow_source(from) || !is_valid_flow_destination(to) {
-        return None;
-    }
-
-    let from_step = super::step_id_from_endpoint(from)?;
-    let to_step = super::step_id_from_endpoint(to)?;
-    if from_step == to_step {
-        return None;
-    }
-
+    let endpoints = known_data_flow_endpoints(contract);
+    let steps_by_id = steps_by_id(contract);
     let step_ids = contract.step_ids();
-    if step_ids.contains(from_step.as_str()) && step_ids.contains(to_step.as_str()) {
-        Some((from_step, to_step))
-    } else {
-        None
-    }
+    data_flow_step_dependency_with_indexes(&step_ids, &endpoints, &steps_by_id, from, to)
 }
 
-fn steps_by_id(contract: &PipelineContract) -> BTreeMap<&str, &PipelineStep> {
-    contract
-        .steps
-        .iter()
-        .map(|step| (step.id.as_str(), step))
-        .collect()
-}
-
-fn endpoint_known(
+/// Endpoint lookup using precomputed indexes (hot-path form).
+pub fn endpoint_known_with_indexes(
     endpoints: &BTreeSet<String>,
     steps_by_id: &BTreeMap<&str, &PipelineStep>,
     endpoint: &str,
@@ -176,6 +154,44 @@ fn endpoint_known(
         return false;
     };
     !port_name.is_empty() && parts.next().is_none()
+}
+
+/// Inter-step dependency extraction using precomputed indexes (hot-path form).
+pub fn data_flow_step_dependency_with_indexes(
+    step_ids: &BTreeSet<&str>,
+    endpoints: &BTreeSet<String>,
+    steps_by_id: &BTreeMap<&str, &PipelineStep>,
+    from: &str,
+    to: &str,
+) -> Option<(String, String)> {
+    if !endpoint_known_with_indexes(endpoints, steps_by_id, from)
+        || !endpoint_known_with_indexes(endpoints, steps_by_id, to)
+    {
+        return None;
+    }
+    if !is_valid_flow_source(from) || !is_valid_flow_destination(to) {
+        return None;
+    }
+
+    let from_step = super::step_id_from_endpoint(from)?;
+    let to_step = super::step_id_from_endpoint(to)?;
+    if from_step == to_step {
+        return None;
+    }
+
+    if step_ids.contains(from_step.as_str()) && step_ids.contains(to_step.as_str()) {
+        Some((from_step, to_step))
+    } else {
+        None
+    }
+}
+
+fn steps_by_id(contract: &PipelineContract) -> BTreeMap<&str, &PipelineStep> {
+    contract
+        .steps
+        .iter()
+        .map(|step| (step.id.as_str(), step))
+        .collect()
 }
 
 #[cfg(test)]

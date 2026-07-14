@@ -196,15 +196,15 @@ See [`docs/BINDINGS.md`](docs/BINDINGS.md) for install and republish details.
 
 ------------------------------------------------------------------------
 
-# 0.12.0 --- Performance
+# 0.12.0 --- Performance (shipped)
 
 ### Deliverables
 
--   Zero-copy parsing where practical
--   Parallel validation
--   Incremental validation
--   Large graph optimization
--   Benchmark suite
+-   Zero-copy parsing where practical (owned COM; borrow-heavy analysis + clone-free wire serialize)
+-   Parallel validation (`parallel` feature / CLI `full`)
+-   Incremental validation (`ValidationCache` / `validate_cached`)
+-   Large graph optimization (`AnalysisContext`, indexed endpoints, graph reuse)
+-   Benchmark suite (`cargo bench -p dpcs` / `make bench`)
 
 ------------------------------------------------------------------------
 

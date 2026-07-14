@@ -2,12 +2,20 @@
 
 use crate::diagnostics::{categories, Diagnostic, ValidationReport};
 use crate::model::{
-    data_flow_endpoint_known, is_valid_flow_destination, is_valid_flow_source,
-    unreachable_datasets, unsatisfied_ports, PipelineContract,
+    is_valid_flow_destination, is_valid_flow_source, unreachable_datasets, unsatisfied_ports,
+    AnalysisContext, PipelineContract,
 };
 
+#[allow(dead_code)]
 /// Validate data-flow endpoints, roles, dataset identity, wiring, and reachability.
 pub fn validate(contract: &PipelineContract) -> ValidationReport {
+    let ctx = AnalysisContext::build(contract);
+    validate_with_context(&ctx)
+}
+
+/// Validate data flow using a shared analysis context.
+pub fn validate_with_context(ctx: &AnalysisContext<'_>) -> ValidationReport {
+    let contract = ctx.contract;
     let mut report = ValidationReport::new();
 
     for (index, flow) in contract.data_flow.iter().enumerate() {
@@ -25,8 +33,8 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
             continue;
         }
 
-        let from_known = data_flow_endpoint_known(contract, &flow.from);
-        let to_known = data_flow_endpoint_known(contract, &flow.to);
+        let from_known = ctx.data_flow_endpoint_known(&flow.from);
+        let to_known = ctx.data_flow_endpoint_known(&flow.to);
 
         if !from_known {
             report.push(

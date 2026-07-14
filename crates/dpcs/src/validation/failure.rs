@@ -1,15 +1,23 @@
 //! Failure semantics validation phase (SPEC Ch 13).
 
 use crate::diagnostics::{categories, Diagnostic, ValidationReport};
-use crate::model::{FailureResponse, PipelineContract, RetrySemantics};
+use crate::model::{AnalysisContext, FailureResponse, PipelineContract, RetrySemantics};
 
+#[allow(dead_code)]
 /// Validate failure triggers, responses, scope, and retry declarations.
 ///
 /// Identifier presence and uniqueness are owned by the Canonical Object Model
 /// phase.
 pub fn validate(contract: &PipelineContract) -> ValidationReport {
+    let ctx = AnalysisContext::build(contract);
+    validate_with_context(&ctx)
+}
+
+/// Validate failure semantics using a shared analysis context.
+pub fn validate_with_context(ctx: &AnalysisContext<'_>) -> ValidationReport {
+    let contract = ctx.contract;
     let mut report = ValidationReport::new();
-    let step_ids = contract.step_ids();
+    let step_ids = &ctx.step_ids;
 
     for (index, semantics) in contract.failure_semantics.iter().enumerate() {
         let object_ref = format!("failureSemantics[{index}]");

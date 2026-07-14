@@ -1,12 +1,12 @@
 //! Root Pipeline Contract object.
 
-use serde::{Deserialize, Serialize};
+use serde::{ser::SerializeMap, Deserialize, Serialize, Serializer};
 
 use super::{
-    CompatibilityPolicy, ContractReference, ControlFlow, DataFlow, ExecutionRequirements,
-    ExtensionMap, FailureSemantics, GovernanceMetadata, IdentityCatalog, Metadata, PipelineGraph,
-    PipelineIdentity, PipelineInterface, PipelineLineage, PipelineStep, QualityGate,
-    SchedulingIntent, SecurityMetadata,
+    is_reserved_root_field, CompatibilityPolicy, ContractReference, ControlFlow, DataFlow,
+    ExecutionRequirements, ExtensionMap, ExtensionValue, FailureSemantics, GovernanceMetadata,
+    IdentityCatalog, Metadata, PipelineGraph, PipelineIdentity, PipelineInterface, PipelineLineage,
+    PipelineStep, QualityGate, SchedulingIntent, SecurityMetadata,
 };
 use crate::diagnostics::ValidationReport;
 use crate::error::Result;
@@ -15,6 +15,9 @@ use crate::validation;
 /// Root Canonical Object Model for a DPCS Pipeline Contract.
 ///
 /// Field names follow the camelCase serialization used in `SPEC.md` examples.
+///
+/// Wire serialization omits reserved root keys that collide in `extensions`
+/// (without cloning the contract) so YAML/JSON does not emit duplicate keys.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "jsonschema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
@@ -72,8 +75,29 @@ pub struct PipelineContract {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub governance: Option<GovernanceMetadata>,
     /// Extension fields preserved from the source document.
-    #[serde(default, flatten)]
+    ///
+    /// Reserved colliding keys are omitted on serialize (validation still reports them).
+    #[serde(default, flatten, serialize_with = "serialize_root_extensions")]
     pub extensions: ExtensionMap,
+}
+
+/// Serialize root extensions while omitting reserved colliding keys.
+fn serialize_root_extensions<S>(
+    extensions: &ExtensionMap,
+    serializer: S,
+) -> std::result::Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    let filtered: Vec<(&String, &ExtensionValue)> = extensions
+        .iter()
+        .filter(|(key, _)| !is_reserved_root_field(key))
+        .collect();
+    let mut map = serializer.serialize_map(Some(filtered.len()))?;
+    for (key, value) in filtered {
+        map.serialize_entry(key, value)?;
+    }
+    map.end()
 }
 
 impl PipelineContract {
@@ -120,17 +144,6 @@ impl PipelineContract {
     /// Validate this contract and return a deterministic report.
     pub fn validate(&self) -> ValidationReport {
         validation::validate(self)
-    }
-
-    /// Clone this contract with reserved colliding extension keys removed for wire output.
-    ///
-    /// Validation still reports those keys via `DPCS-COM-012`; serialization omits them so
-    /// YAML/JSON does not emit duplicate root keys.
-    pub(crate) fn for_wire_serialization(&self) -> Self {
-        let mut wire = self.clone();
-        wire.extensions
-            .retain(|key, _| !super::is_reserved_root_field(key));
-        wire
     }
 
     /// Returns pipeline-level identity extracted from this contract.

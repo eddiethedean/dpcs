@@ -1,12 +1,20 @@
 //! Graph validation phase.
 
 use crate::diagnostics::{categories, Diagnostic, ValidationReport};
-use crate::model::{DependencyGraph, PipelineContract};
+use crate::model::{AnalysisContext, DependencyGraph, PipelineContract};
 
+#[allow(dead_code)]
 /// Validate graph edges and detect prohibited cycles.
 pub fn validate(contract: &PipelineContract) -> ValidationReport {
+    let ctx = AnalysisContext::build(contract);
+    validate_with_context(&ctx)
+}
+
+/// Validate graph edges using a shared analysis context.
+pub fn validate_with_context(ctx: &AnalysisContext<'_>) -> ValidationReport {
+    let contract = ctx.contract;
     let mut report = ValidationReport::new();
-    let step_ids = contract.step_ids();
+    let step_ids = &ctx.step_ids;
 
     for (index, point) in contract.graph.entry_points.iter().enumerate() {
         if point.trim().is_empty() {
@@ -106,7 +114,7 @@ pub fn validate(contract: &PipelineContract) -> ValidationReport {
         );
     }
 
-    let dependency_graph = DependencyGraph::from_contract(contract);
+    let dependency_graph = &ctx.graph;
     let cycle = dependency_graph.find_cycle();
     let has_cycle = cycle.is_some();
 

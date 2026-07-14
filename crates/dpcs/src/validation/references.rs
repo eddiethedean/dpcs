@@ -3,10 +3,18 @@
 use std::collections::BTreeSet;
 
 use crate::diagnostics::{categories, Diagnostic, ValidationReport};
-use crate::model::PipelineContract;
+use crate::model::{AnalysisContext, PipelineContract};
 
+#[allow(dead_code)]
 /// Validate that contract references are well-formed and resolvable by id.
 pub fn validate(contract: &PipelineContract) -> ValidationReport {
+    let ctx = AnalysisContext::build(contract);
+    validate_with_context(&ctx)
+}
+
+/// Validate references using a shared analysis context.
+pub fn validate_with_context(ctx: &AnalysisContext<'_>) -> ValidationReport {
+    let contract = ctx.contract;
     let mut report = ValidationReport::new();
     let known_refs: BTreeSet<&str> = contract
         .contract_references

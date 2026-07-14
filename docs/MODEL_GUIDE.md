@@ -38,6 +38,11 @@ the specification.
 COM types are the canonical in-memory representation. Serde attributes exist at
 the wire boundary so YAML and JSON documents deserialize into the same COM values.
 
+Wire→COM remains **owned** (`String` / `Vec` / `IndexMap`). ROADMAP 0.12 “zero-copy
+where practical” means analysis borrows from the owned COM (shared
+`AnalysisContext`), and wire serialization filters reserved extension keys
+without cloning the full contract — not lifetime-parameterizing `PipelineContract`.
+
 Extension fields use `ExtensionValue` and `ExtensionMap` from the
 [`dpcs`](https://docs.rs/dpcs/) crate (not `serde_json::Value`).
 Conversions to and from JSON-shaped values happen only at parse/serialize time.

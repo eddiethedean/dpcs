@@ -24,7 +24,7 @@ Orchestrator Binding
 Execution Runtime
 ```
 
-Current implementation scope (through ROADMAP 0.11.0):
+Current implementation scope (through ROADMAP 0.12.0):
 
 ```text
 DPCS Document
