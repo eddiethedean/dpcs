@@ -7,6 +7,7 @@ use std::str::FromStr;
 use crate::capabilities::{evaluate, CapabilityProfile, CapabilityReport, CapabilityResult};
 use crate::diagnostics::ValidationReport;
 use crate::model::PipelineContract;
+use crate::paths::join_under_root;
 use crate::plan::{self, PipelinePlan, PlanResult};
 
 use super::adapters::{adapter_for, validate_relative_path};
@@ -180,7 +181,12 @@ pub fn write_bundle(bundle: &BindingBundle, out_dir: &Path) -> Result<(), Valida
     }
     for file in &bundle.files {
         validate_relative_path(&file.relative_path)?;
-        let path = out_dir.join(Path::new(&file.relative_path));
+        let path = join_under_root(out_dir, &file.relative_path).map_err(|err| {
+            diagnostics::report_error(write_failed(format!(
+                "unsafe binding path {}: {err}",
+                file.relative_path
+            )))
+        })?;
         if let Some(parent) = path.parent() {
             if let Err(err) = fs::create_dir_all(parent) {
                 return Err(diagnostics::report_error(write_failed(format!(

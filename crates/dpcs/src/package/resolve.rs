@@ -214,14 +214,25 @@ fn resolve_archive_candidate(archive: &Path) -> Result<PathBuf> {
 }
 
 fn ensure_dest_not_under_src(src: &Path, dest: &Path) -> Result<()> {
-    let src_abs = src.canonicalize().unwrap_or_else(|_| src.to_path_buf());
+    let src_abs = src.canonicalize().map_err(|err| Error::Io {
+        path: src.to_path_buf(),
+        source: err,
+    })?;
     let dest_abs = if dest.exists() {
-        dest.canonicalize().unwrap_or_else(|_| dest.to_path_buf())
+        dest.canonicalize().map_err(|err| Error::Io {
+            path: dest.to_path_buf(),
+            source: err,
+        })?
     } else if let Some(parent) = dest.parent() {
-        parent
-            .canonicalize()
-            .unwrap_or_else(|_| parent.to_path_buf())
-            .join(dest.file_name().unwrap_or_default())
+        if parent.as_os_str().is_empty() {
+            dest.to_path_buf()
+        } else {
+            let parent_abs = parent.canonicalize().map_err(|err| Error::Io {
+                path: parent.to_path_buf(),
+                source: err,
+            })?;
+            parent_abs.join(dest.file_name().unwrap_or_default())
+        }
     } else {
         dest.to_path_buf()
     };
@@ -285,14 +296,6 @@ fn write_zip(root: &Path, archive: &Path) -> Result<()> {
             Error::Serialization(format!("failed walking package directory: {err}"))
         })?;
         let path = entry.path();
-        if path.is_dir() {
-            continue;
-        }
-        if let Some(archive_abs) = &archive_abs {
-            if path == archive_abs {
-                continue;
-            }
-        }
         let meta = fs::symlink_metadata(path).map_err(|err| Error::Io {
             path: path.to_path_buf(),
             source: err,
@@ -302,6 +305,14 @@ fn write_zip(root: &Path, archive: &Path) -> Result<()> {
                 "refusing to pack symlink: {}",
                 path.display()
             )));
+        }
+        if meta.is_dir() {
+            continue;
+        }
+        if let Some(archive_abs) = &archive_abs {
+            if path == archive_abs {
+                continue;
+            }
         }
         let rel = path.strip_prefix(root).map_err(|_| {
             Error::Serialization(format!(
@@ -408,22 +419,22 @@ fn copy_dir(src: &Path, dest: &Path) -> Result<()> {
             continue;
         }
         let target = join_under_root(dest, &rel_str)?;
-        if path.is_dir() {
+        let meta = fs::symlink_metadata(path).map_err(|err| Error::Io {
+            path: path.to_path_buf(),
+            source: err,
+        })?;
+        if meta.file_type().is_symlink() {
+            return Err(Error::Serialization(format!(
+                "refusing to copy symlink: {}",
+                path.display()
+            )));
+        }
+        if meta.is_dir() {
             fs::create_dir_all(&target).map_err(|err| Error::Io {
                 path: target,
                 source: err,
             })?;
         } else {
-            let meta = fs::symlink_metadata(path).map_err(|err| Error::Io {
-                path: path.to_path_buf(),
-                source: err,
-            })?;
-            if meta.file_type().is_symlink() {
-                return Err(Error::Serialization(format!(
-                    "refusing to copy symlink: {}",
-                    path.display()
-                )));
-            }
             if let Some(parent) = target.parent() {
                 fs::create_dir_all(parent).map_err(|err| Error::Io {
                     path: parent.to_path_buf(),

@@ -22,13 +22,18 @@ fn render_diagnostic_list(out: &mut String, diagnostics: &[Diagnostic]) {
     out.push_str("| Severity | Id | Stage | Object | Message |\n");
     out.push_str("| --- | --- | --- | --- | --- |\n");
     for d in diagnostics {
-        let object = d.object_ref.as_deref().unwrap_or("");
+        let object = d
+            .object_ref
+            .as_deref()
+            .unwrap_or("")
+            .replace('|', "\\|")
+            .replace('\n', " ");
         let message = d.message.replace('|', "\\|").replace('\n', " ");
         out.push_str(&format!(
             "| {} | `{}` | {} | {} | {} |\n",
             severity_label(d.severity),
-            d.id,
-            d.stage,
+            d.id.replace('|', "\\|"),
+            d.stage.to_string().replace('|', "\\|"),
             object,
             message
         ));
@@ -188,7 +193,7 @@ pub fn compatibility_to_markdown(report: &CompatibilityReport) -> String {
         "- **Candidate:** `{}@{}`\n",
         report.candidate_id, report.candidate_version
     ));
-    out.push_str(&format!("- **Category:** {:?}\n\n", report.category));
+    out.push_str(&format!("- **Category:** {}\n\n", report.category));
     out.push_str("## Diagnostics\n\n");
     render_diagnostic_list(&mut out, &report.diagnostics);
     out

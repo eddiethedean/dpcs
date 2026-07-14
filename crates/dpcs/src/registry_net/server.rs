@@ -307,9 +307,13 @@ async fn publish_artifact(
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent).map_err(|err| ApiError::internal(err.to_string()))?;
         }
+        // Write registry first so a content write failure does not leave orphans
+        // for an uncommitted registry row; content is rewritten on republish.
+        write_registry(&state.root, &registry)?;
         std::fs::write(&path, content).map_err(|err| ApiError::internal(err.to_string()))?;
+    } else {
+        write_registry(&state.root, &registry)?;
     }
-    write_registry(&state.root, &registry)?;
     Ok(Json(artifact))
 }
 

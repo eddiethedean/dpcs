@@ -49,6 +49,41 @@ pub struct Cli {
     command: Commands,
 }
 
+impl Cli {
+    fn wants_json_output(&self) -> bool {
+        match &self.command {
+            Commands::Validate { json, format, .. }
+            | Commands::Inspect { json, format, .. }
+            | Commands::Diagnostics { json, format, .. }
+            | Commands::Graph { json, format, .. }
+            | Commands::Capabilities { json, format, .. }
+            | Commands::Compatibility { json, format, .. } => {
+                *json || format.as_deref().is_some_and(|f| f.eq_ignore_ascii_case("json"))
+            }
+            Commands::Bind { json, .. } | Commands::Version { json } => *json,
+            Commands::Registry { command } => match command {
+                RegistryCommands::Validate { json, .. }
+                | RegistryCommands::Pull { json, .. }
+                | RegistryCommands::Lookup { json, .. }
+                | RegistryCommands::Publish { json, .. }
+                | RegistryCommands::Deprecate { json, .. }
+                | RegistryCommands::Retire { json, .. } => *json,
+                _ => false,
+            },
+            Commands::Conformance { command } => match command {
+                ConformanceCommands::Validate { json, .. } => *json,
+            },
+            Commands::Package { command } => match command {
+                PackageCommands::Validate { json, .. } | PackageCommands::Show { json, .. } => *json,
+                _ => false,
+            },
+            #[cfg(feature = "tui")]
+            Commands::Tui { .. } => false,
+            Commands::Schema { .. } => false,
+        }
+    }
+}
+
 #[derive(Debug, Subcommand)]
 enum Commands {
     /// Validate a Pipeline Contract document.
@@ -399,9 +434,10 @@ enum SchemaCommands {
 /// Run the CLI and return a process exit code.
 pub fn run() -> ExitCode {
     let cli = Cli::parse();
+    let json = cli.wants_json_output();
     match execute(cli) {
         Ok(code) => ExitCode::from(code),
-        Err(err) => handle_cli_error(err, false),
+        Err(err) => handle_cli_error(err, json),
     }
 }
 
@@ -553,7 +589,7 @@ fn execute(cli: Cli) -> Result<u8, Error> {
             let contract = match parser::parse_file(&path) {
                 Ok(contract) => contract,
                 Err(Error::InvalidDocument { report }) => {
-                    emit_validation(&opts, &report)?;
+                    emit_validation(&opts.for_diagnostics(), &report)?;
                     return Ok(EXIT_FAILURE);
                 }
                 Err(err) => return Err(err),
@@ -606,17 +642,7 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                 } => {
                     let mut merged = (*report).clone();
                     merged.diagnostics = diagnostics.diagnostics.clone();
-                    if opts.format == ReportFormat::Text {
-                        emit_validation(&opts, &diagnostics)?;
-                        if !report.missing_mandatory.is_empty() {
-                            println!(
-                                "missingMandatory: {}",
-                                report.missing_mandatory.join(", ")
-                            );
-                        }
-                    } else {
-                        emit_capability(&opts, &merged, false)?;
-                    }
+                    emit_capability(&opts, &merged, false)?;
                     Ok(EXIT_VALIDATION)
                 }
             }
@@ -875,7 +901,7 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                 content,
                 content_encoding: Some("utf-8".into()),
             };
-            let client = build_registry_client(&url, token, cache_dir)?;
+            let mut client = build_registry_client(&url, token, cache_dir)?;
             match client.publish(&id, &request) {
                 Ok(artifact) => {
                     if json {
@@ -907,7 +933,7 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                     json,
                 },
         } => {
-            let client = build_registry_client(&url, token, cache_dir)?;
+            let mut client = build_registry_client(&url, token, cache_dir)?;
             match client.deprecate(&id, version.as_deref()) {
                 Ok(artifact) => {
                     if json {
@@ -939,7 +965,7 @@ fn execute(cli: Cli) -> Result<u8, Error> {
                     json,
                 },
         } => {
-            let client = build_registry_client(&url, token, cache_dir)?;
+            let mut client = build_registry_client(&url, token, cache_dir)?;
             match client.retire(&id, version.as_deref()) {
                 Ok(artifact) => {
                     if json {
@@ -1125,7 +1151,7 @@ fn build_registry_client(
 }
 
 fn exit_code_for_registry_error(err: &RegistryClientError) -> u8 {
-    if err.is_transport() || err.is_server_error() {
+    if err.is_transport() || err.is_server_error() || err.is_decode() {
         EXIT_FAILURE
     } else {
         EXIT_VALIDATION

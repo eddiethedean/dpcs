@@ -72,6 +72,11 @@ impl RegistryClientError {
         matches!(self, Self::Transport(_))
     }
 
+    /// True when the response body could not be decoded.
+    pub fn is_decode(&self) -> bool {
+        matches!(self, Self::Decode(_))
+    }
+
     /// True when the HTTP status indicates a server / gateway failure.
     pub fn is_server_error(&self) -> bool {
         matches!(self, Self::Http { status, .. } if *status >= 500)
@@ -128,13 +133,16 @@ impl RegistryClient {
         &mut self.cache
     }
 
-    /// Stable namespace for cache keys derived from the base URL.
+    /// Stable namespace for cache keys derived from the base URL (scheme + host + port + path).
     fn cache_namespace(&self) -> String {
-        format!(
-            "{}{}",
-            self.base.host_str().unwrap_or("localhost"),
-            self.base.path()
-        )
+        let scheme = self.base.scheme();
+        let host = self.base.host_str().unwrap_or("localhost");
+        let port = self
+            .base
+            .port_or_known_default()
+            .map(|p| p.to_string())
+            .unwrap_or_default();
+        format!("{}://{}:{}{}", scheme, host, port, self.base.path())
     }
 
     fn absolute(
@@ -281,7 +289,7 @@ impl RegistryClient {
 
     /// `PUT /v1/artifacts/{id}`
     pub fn publish(
-        &self,
+        &mut self,
         id: &str,
         request: &PublishRequest,
     ) -> Result<RegisteredArtifact, RegistryClientError> {
@@ -291,12 +299,14 @@ impl RegistryClient {
             .json(request)
             .send()
             .map_err(|err| RegistryClientError::Transport(err.to_string()))?;
-        Self::json(response)
+        let artifact = Self::json(response)?;
+        let _ = self.cache.clear();
+        Ok(artifact)
     }
 
     /// `POST /v1/artifacts/{id}/deprecate`
     pub fn deprecate(
-        &self,
+        &mut self,
         id: &str,
         version: Option<&str>,
     ) -> Result<RegisteredArtifact, RegistryClientError> {
@@ -309,12 +319,14 @@ impl RegistryClient {
             .request_url(reqwest::Method::POST, url)
             .send()
             .map_err(|err| RegistryClientError::Transport(err.to_string()))?;
-        Self::json(response)
+        let artifact = Self::json(response)?;
+        let _ = self.cache.clear();
+        Ok(artifact)
     }
 
     /// `POST /v1/artifacts/{id}/retire`
     pub fn retire(
-        &self,
+        &mut self,
         id: &str,
         version: Option<&str>,
     ) -> Result<RegisteredArtifact, RegistryClientError> {
@@ -327,7 +339,9 @@ impl RegistryClient {
             .request_url(reqwest::Method::POST, url)
             .send()
             .map_err(|err| RegistryClientError::Transport(err.to_string()))?;
-        Self::json(response)
+        let artifact = Self::json(response)?;
+        let _ = self.cache.clear();
+        Ok(artifact)
     }
 
     fn json<T: for<'de> Deserialize<'de>>(

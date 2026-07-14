@@ -157,6 +157,43 @@ fn tui_requires_tty() {
 }
 
 #[test]
+fn graph_parse_failure_with_mermaid_still_emits_diagnostics() {
+    bin()
+        .args([
+            "graph",
+            &fixture("invalid/malformed.dpcs.yaml"),
+            "--format",
+            "mermaid",
+        ])
+        .assert()
+        .failure()
+        .code(2)
+        .stdout(predicate::str::contains("DPCS-PARSE-"));
+}
+
+#[test]
+fn capabilities_text_out_includes_missing_mandatory() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let out = dir.path().join("cap.txt");
+    bin()
+        .args([
+            "capabilities",
+            &fixture("capabilities/invalid/missing_mandatory.profile.yaml"),
+            "--plan",
+            &fixture("valid/with_execution_model.dpcs.yaml"),
+            "--out",
+            out.to_str().unwrap(),
+        ])
+        .assert()
+        .failure()
+        .code(1)
+        .stdout(predicate::str::is_empty());
+    let body = std::fs::read_to_string(&out).expect("read out");
+    assert!(body.contains("missingMandatory"));
+    assert!(!body.contains('\u{1b}'));
+}
+
+#[test]
 fn inspect_parse_failure_json_includes_parse_stage() {
     bin()
         .args(["inspect", &fixture("invalid/malformed.dpcs.yaml"), "--json"])

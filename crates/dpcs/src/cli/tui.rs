@@ -195,28 +195,54 @@ pub fn run(path: &Path) -> Result<u8> {
     };
 
     let mut terminal = setup_terminal()?;
-    let result = run_loop(&mut terminal, &mut state);
-    restore_terminal(&mut terminal)?;
-    result?;
-    Ok(EXIT_OK)
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        run_loop(&mut terminal, &mut state)
+    }));
+    let restore = restore_terminal(&mut terminal);
+    match result {
+        Ok(Ok(())) => {
+            restore?;
+            Ok(EXIT_OK)
+        }
+        Ok(Err(err)) => {
+            let _ = restore;
+            Err(err)
+        }
+        Err(_) => {
+            let _ = restore;
+            Err(Error::Serialization("TUI inspector panicked".to_owned()))
+        }
+    }
 }
 
 fn setup_terminal() -> Result<Terminal<CrosstermBackend<Stdout>>> {
     enable_raw_mode().map_err(|err| Error::Serialization(format!("enable raw mode: {err}")))?;
     let mut stdout = io::stdout();
-    execute!(stdout, EnterAlternateScreen)
-        .map_err(|err| Error::Serialization(format!("enter alternate screen: {err}")))?;
+    if let Err(err) = execute!(stdout, EnterAlternateScreen) {
+        let _ = disable_raw_mode();
+        return Err(Error::Serialization(format!(
+            "enter alternate screen: {err}"
+        )));
+    }
     let backend = CrosstermBackend::new(stdout);
-    Terminal::new(backend).map_err(|err| Error::Serialization(format!("create terminal: {err}")))
+    match Terminal::new(backend) {
+        Ok(terminal) => Ok(terminal),
+        Err(err) => {
+            let mut stdout = io::stdout();
+            let _ = execute!(stdout, LeaveAlternateScreen);
+            let _ = disable_raw_mode();
+            Err(Error::Serialization(format!("create terminal: {err}")))
+        }
+    }
 }
 
 fn restore_terminal(terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> Result<()> {
-    disable_raw_mode().map_err(|err| Error::Serialization(format!("disable raw mode: {err}")))?;
-    execute!(terminal.backend_mut(), LeaveAlternateScreen)
-        .map_err(|err| Error::Serialization(format!("leave alternate screen: {err}")))?;
-    terminal
-        .show_cursor()
-        .map_err(|err| Error::Serialization(format!("show cursor: {err}")))?;
+    let leave = execute!(terminal.backend_mut(), LeaveAlternateScreen);
+    let raw = disable_raw_mode();
+    let cursor = terminal.show_cursor();
+    leave.map_err(|err| Error::Serialization(format!("leave alternate screen: {err}")))?;
+    raw.map_err(|err| Error::Serialization(format!("disable raw mode: {err}")))?;
+    cursor.map_err(|err| Error::Serialization(format!("show cursor: {err}")))?;
     Ok(())
 }
 

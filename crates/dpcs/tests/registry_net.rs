@@ -34,7 +34,7 @@ async fn registry_serve_and_client_round_trip() {
     let (url, server) = spawn_server(root.path().to_path_buf(), Some("secret".into())).await;
 
     tokio::task::spawn_blocking(move || {
-        let client = RegistryClient::new(&url).unwrap().with_token("secret");
+        let mut client = RegistryClient::new(&url).unwrap().with_token("secret");
         let registry = client.get_registry().unwrap();
         assert_eq!(registry.id, "local");
 
@@ -68,7 +68,7 @@ async fn registry_rejects_unauthenticated_mutates() {
     let (url, server) = spawn_server(root.path().to_path_buf(), Some("secret".into())).await;
 
     tokio::task::spawn_blocking(move || {
-        let client = RegistryClient::new(&url).unwrap();
+        let mut client = RegistryClient::new(&url).unwrap();
         let err = client
             .publish(
                 "demo",
@@ -96,7 +96,7 @@ async fn registry_rejects_path_traversal_location() {
     let (url, server) = spawn_server(root.path().to_path_buf(), Some("secret".into())).await;
 
     tokio::task::spawn_blocking(move || {
-        let client = RegistryClient::new(&url).unwrap().with_token("secret");
+        let mut client = RegistryClient::new(&url).unwrap().with_token("secret");
         let mut artifact = sample_artifact("demo", "0.1.0");
         artifact.location = Some("../escape.yaml".into());
         let err = client
@@ -128,7 +128,7 @@ async fn registry_rejects_non_utf8_content_encoding() {
     let (url, server) = spawn_server(root.path().to_path_buf(), Some("secret".into())).await;
 
     tokio::task::spawn_blocking(move || {
-        let client = RegistryClient::new(&url).unwrap().with_token("secret");
+        let mut client = RegistryClient::new(&url).unwrap().with_token("secret");
         let err = client
             .publish(
                 "demo",
@@ -156,7 +156,7 @@ async fn registry_status_filter_is_case_insensitive() {
     let (url, server) = spawn_server(root.path().to_path_buf(), Some("secret".into())).await;
 
     tokio::task::spawn_blocking(move || {
-        let client = RegistryClient::new(&url).unwrap().with_token("secret");
+        let mut client = RegistryClient::new(&url).unwrap().with_token("secret");
         client
             .publish(
                 "demo",
@@ -183,7 +183,7 @@ async fn registry_deprecate_version_targets_specific_row() {
     let (url, server) = spawn_server(root.path().to_path_buf(), Some("secret".into())).await;
 
     tokio::task::spawn_blocking(move || {
-        let client = RegistryClient::new(&url).unwrap().with_token("secret");
+        let mut client = RegistryClient::new(&url).unwrap().with_token("secret");
         for version in ["0.1.0", "0.2.0"] {
             client
                 .publish(
@@ -215,7 +215,7 @@ async fn registry_client_encodes_special_query_chars() {
     let (url, server) = spawn_server(root.path().to_path_buf(), Some("secret".into())).await;
 
     tokio::task::spawn_blocking(move || {
-        let client = RegistryClient::new(&url).unwrap().with_token("secret");
+        let mut client = RegistryClient::new(&url).unwrap().with_token("secret");
         client
             .publish(
                 "demo",
@@ -272,4 +272,26 @@ async fn registry_disk_cache_serves_lookup_hits() {
     .unwrap();
 
     server.abort();
+}
+
+#[tokio::test]
+async fn registry_cache_namespaces_are_origin_specific() {
+    let mut cache = RegistryCache::memory();
+    cache
+        .put(
+            "http://example.invalid:1111/",
+            sample_artifact("demo", "0.1.0"),
+            None,
+            None,
+        )
+        .unwrap();
+    assert!(cache
+        .get("http://example.invalid:1111/", "demo", "0.1.0")
+        .is_some());
+    assert!(cache
+        .get("http://example.invalid:2222/", "demo", "0.1.0")
+        .is_none());
+    assert!(cache
+        .get("https://example.invalid:1111/", "demo", "0.1.0")
+        .is_none());
 }

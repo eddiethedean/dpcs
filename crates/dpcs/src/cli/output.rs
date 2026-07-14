@@ -51,6 +51,18 @@ impl EmitOpts {
             )))
         }
     }
+
+    /// Remap graph-only formats so diagnostic emission stays valid.
+    pub fn for_diagnostics(&self) -> Self {
+        let format = match self.format {
+            ReportFormat::Mermaid | ReportFormat::Dot => ReportFormat::Text,
+            other => other,
+        };
+        Self {
+            format,
+            out: self.out.clone(),
+        }
+    }
 }
 
 /// Write a string body to `--out` or stdout.
@@ -83,17 +95,17 @@ pub fn emit_body(opts: &EmitOpts, body: impl AsRef<str>) -> Result<()> {
     Ok(())
 }
 
-fn color_enabled() -> bool {
-    io::stdout().is_terminal() && std::env::var_os("NO_COLOR").is_none()
+fn color_enabled(opts: &EmitOpts) -> bool {
+    opts.out.is_none() && io::stdout().is_terminal() && std::env::var_os("NO_COLOR").is_none()
 }
 
-fn paint_severity(severity: Severity) -> String {
+fn paint_severity(opts: &EmitOpts, severity: Severity) -> String {
     let label = match severity {
         Severity::Error => "error",
         Severity::Warning => "warning",
         Severity::Information => "information",
     };
-    if !color_enabled() {
+    if !color_enabled(opts) {
         return label.to_owned();
     }
     match severity {
@@ -112,7 +124,7 @@ pub fn emit_validation(opts: &EmitOpts, report: &ValidationReport) -> Result<()>
         ReportFormat::Html,
     ])?;
     match opts.format {
-        ReportFormat::Text => emit_body(opts, format_validation_text(report)),
+        ReportFormat::Text => emit_body(opts, format_validation_text(opts, report)),
         ReportFormat::Json => {
             let payload = serde_json::to_string_pretty(report).map_err(|err| {
                 Error::Serialization(format!("failed to serialize diagnostics: {err}"))
@@ -139,7 +151,7 @@ pub fn emit_diagnostic_report(opts: &EmitOpts, report: &DiagnosticReport) -> Res
         ReportFormat::Text => {
             let mut tmp = ValidationReport::new();
             tmp.diagnostics = report.diagnostics.clone();
-            emit_body(opts, format_validation_text(&tmp))
+            emit_body(opts, format_validation_text(opts, &tmp))
         }
         ReportFormat::Json => {
             let payload = serde_json::to_string_pretty(report).map_err(|err| {
@@ -155,7 +167,7 @@ pub fn emit_diagnostic_report(opts: &EmitOpts, report: &DiagnosticReport) -> Res
     }
 }
 
-fn format_validation_text(report: &ValidationReport) -> String {
+fn format_validation_text(opts: &EmitOpts, report: &ValidationReport) -> String {
     if report.diagnostics.is_empty() {
         return "valid: no diagnostics".to_owned();
     }
@@ -173,7 +185,7 @@ fn format_validation_text(report: &ValidationReport) -> String {
             .unwrap_or_default();
         out.push_str(&format!(
             "{} {}: {}{} — {}{}\n",
-            paint_severity(diagnostic.severity),
+            paint_severity(opts, diagnostic.severity),
             diagnostic.id,
             diagnostic.stage,
             object,
@@ -307,7 +319,7 @@ pub fn emit_capability(opts: &EmitOpts, report: &CapabilityReport, match_ok: boo
         ReportFormat::Html,
     ])?;
     match opts.format {
-        ReportFormat::Text => emit_body(opts, format_capability_text(report, match_ok)),
+        ReportFormat::Text => emit_body(opts, format_capability_text(opts, report, match_ok)),
         ReportFormat::Json => {
             let payload = serde_json::to_string_pretty(report).map_err(|err| {
                 Error::Serialization(format!("serialize capability report: {err}"))
@@ -322,7 +334,7 @@ pub fn emit_capability(opts: &EmitOpts, report: &CapabilityReport, match_ok: boo
     }
 }
 
-fn format_capability_text(report: &CapabilityReport, match_ok: bool) -> String {
+fn format_capability_text(opts: &EmitOpts, report: &CapabilityReport, match_ok: bool) -> String {
     let mut lines = vec![
         format!("profile: {}", report.profile_identity),
     ];
@@ -345,7 +357,7 @@ fn format_capability_text(report: &CapabilityReport, match_ok: bool) -> String {
     for diagnostic in &report.diagnostics {
         lines.push(format!(
             "{} {}: {} — {}",
-            paint_severity(diagnostic.severity),
+            paint_severity(opts, diagnostic.severity),
             diagnostic.id,
             diagnostic.stage,
             diagnostic.message
@@ -366,7 +378,7 @@ pub fn emit_compatibility(opts: &EmitOpts, report: &CompatibilityReport) -> Resu
         ReportFormat::Html,
     ])?;
     match opts.format {
-        ReportFormat::Text => emit_body(opts, format_compatibility_text(report)),
+        ReportFormat::Text => emit_body(opts, format_compatibility_text(opts, report)),
         ReportFormat::Json => {
             let payload = serde_json::to_string_pretty(report).map_err(|err| {
                 Error::Serialization(format!("serialize compatibility report: {err}"))
@@ -381,7 +393,7 @@ pub fn emit_compatibility(opts: &EmitOpts, report: &CompatibilityReport) -> Resu
     }
 }
 
-fn format_compatibility_text(report: &CompatibilityReport) -> String {
+fn format_compatibility_text(opts: &EmitOpts, report: &CompatibilityReport) -> String {
     let mut lines = vec![
         format!(
             "baseline: {}@{}",
@@ -396,7 +408,7 @@ fn format_compatibility_text(report: &CompatibilityReport) -> String {
     for diagnostic in &report.diagnostics {
         lines.push(format!(
             "{} {}: {} — {}",
-            paint_severity(diagnostic.severity),
+            paint_severity(opts, diagnostic.severity),
             diagnostic.id,
             diagnostic.stage,
             diagnostic.message

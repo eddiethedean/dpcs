@@ -1,8 +1,10 @@
 //! Stable inspect / graph view models for CLI, reports, and TUI.
 
+use std::collections::BTreeSet;
+
 use serde::{Deserialize, Serialize};
 
-use crate::model::PipelineContract;
+use crate::model::{data_flow_step_dependency, DependencyGraph, PipelineContract};
 use crate::plan::{plan, PlanResult};
 use crate::validation::validate;
 
@@ -70,7 +72,7 @@ pub struct GraphView {
     /// Step identifiers.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub step_ids: Vec<String>,
-    /// Graph edges.
+    /// Graph edges (declared graph edges plus control/data-flow step deps).
     pub edges: Vec<GraphEdgeView>,
     /// Planned step order when available.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -124,6 +126,9 @@ pub fn inspect_view_from_contract(contract: &PipelineContract) -> InspectView {
 }
 
 /// Build a [`GraphView`] from a contract.
+///
+/// Edges include declared `graph.edges` plus step-to-step dependencies implied by
+/// control flow and data flow (same sources as [`DependencyGraph`]).
 pub fn graph_view_from_contract(contract: &PipelineContract) -> GraphView {
     let (step_order, planning_refused) = match plan(contract) {
         PlanResult::Ok(plan) => (Some(plan.step_order.clone()), false),
@@ -134,17 +139,80 @@ pub fn graph_view_from_contract(contract: &PipelineContract) -> GraphView {
         entry_points: contract.graph.entry_points.clone(),
         exit_points: contract.graph.exit_points.clone(),
         step_ids: contract.steps.iter().map(|s| s.id.clone()).collect(),
-        edges: contract
-            .graph
-            .edges
-            .iter()
-            .map(|e| GraphEdgeView {
-                from: e.from.clone(),
-                to: e.to.clone(),
-                kind: e.kind.clone(),
-            })
-            .collect(),
+        edges: collect_graph_edges(contract),
         step_order,
         planning_refused,
     }
+}
+
+fn collect_graph_edges(contract: &PipelineContract) -> Vec<GraphEdgeView> {
+    let mut edges = Vec::new();
+    let mut seen: BTreeSet<(String, String, Option<String>)> = BTreeSet::new();
+    let mut pairs: BTreeSet<(String, String)> = BTreeSet::new();
+
+    let push_edge = |edges: &mut Vec<GraphEdgeView>,
+                     seen: &mut BTreeSet<(String, String, Option<String>)>,
+                     pairs: &mut BTreeSet<(String, String)>,
+                     from: String,
+                     to: String,
+                     kind: Option<String>| {
+        if from.trim().is_empty() || to.trim().is_empty() {
+            return;
+        }
+        let pair = (from.clone(), to.clone());
+        let key = (from.clone(), to.clone(), kind.clone());
+        if seen.insert(key) {
+            pairs.insert(pair);
+            edges.push(GraphEdgeView { from, to, kind });
+        }
+    };
+
+    for e in &contract.graph.edges {
+        push_edge(
+            &mut edges,
+            &mut seen,
+            &mut pairs,
+            e.from.clone(),
+            e.to.clone(),
+            e.kind.clone(),
+        );
+    }
+    for flow in &contract.control_flow {
+        let kind = flow
+            .kind
+            .clone()
+            .filter(|k| !k.is_empty())
+            .or_else(|| Some("controlFlow".to_owned()));
+        push_edge(
+            &mut edges,
+            &mut seen,
+            &mut pairs,
+            flow.from.clone(),
+            flow.to.clone(),
+            kind,
+        );
+    }
+    for flow in &contract.data_flow {
+        if let Some((from_step, to_step)) =
+            data_flow_step_dependency(contract, &flow.from, &flow.to)
+        {
+            push_edge(
+                &mut edges,
+                &mut seen,
+                &mut pairs,
+                from_step,
+                to_step,
+                Some("dataFlow".to_owned()),
+            );
+        }
+    }
+
+    for (from, to) in DependencyGraph::from_contract(contract).edges() {
+        if pairs.contains(&(from.clone(), to.clone())) {
+            continue;
+        }
+        push_edge(&mut edges, &mut seen, &mut pairs, from, to, None);
+    }
+
+    edges
 }

@@ -19,12 +19,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI smoke coverage for markdown `--out`, Mermaid graph export, and TUI
   non-TTY failure
 
+### Fixed
+
+- Registry client cache namespaces include scheme and port (prevents cross-origin collisions)
+- Mutating registry client calls clear the local cache after success
+- Graph views include control-flow and data-flow step dependencies, not only `graph.edges`
+- Mermaid/DOT sanitize collisions for distinct step ids; harden edge-label escaping
+- Capability text failures honor `--out` (no stray `missingMandatory` on stdout)
+- Text reports no longer embed ANSI colors when writing `--out` files
+- Graph parse failures with `--format mermaid|dot` emit text diagnostics instead of format errors
+- Registry decode failures exit `2`; HTML/Markdown use Display severity/category labels
+- Package pack/copy refuse directory symlinks; binding writes use path containment
+- Planning refuses with `DPCS-PLN-002` if a cycle slips past validation
+- TUI terminal restore is resilient to setup failures and panics
+
 ### Changed
 
 - Crate version `0.11.0`
 - `--json` soft-deprecated as an alias of `--format json` (still supported)
 - Feature `full` now enables `cli` + `tui`; text validation output uses ANSI
   severity colors on a TTY (honors `NO_COLOR`)
+- Graph HTML pages prioritize embedded Mermaid source for offline use
 
 ## [0.10.0] - 2026-07-14
 

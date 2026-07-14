@@ -128,10 +128,25 @@ pub fn plan(contract: &PipelineContract) -> PlanResult {
     }
 
     let dependency_graph = DependencyGraph::from_contract(contract);
-    // Validated contracts are acyclic; topological_order is infallible here.
-    let step_order = dependency_graph
-        .topological_order()
-        .unwrap_or_else(|_| contract.steps.iter().map(|step| step.id.clone()).collect());
+    let step_order = match dependency_graph.topological_order() {
+        Ok(order) => order,
+        Err(cycle) => {
+            let mut planning_report = ValidationReport::new();
+            planning_report.push(
+                Diagnostic::planning_error(
+                    "DPCS-PLN-002",
+                    categories::PLANNING,
+                    format!(
+                        "pipeline dependency graph contains a cycle: {}",
+                        cycle.cycle.join(" -> ")
+                    ),
+                )
+                .with_remediation("Remove cyclic graph / control-flow / data-flow dependencies"),
+            );
+            planning_report.sort_deterministic();
+            return PlanResult::Err(planning_report);
+        }
+    };
 
     let dependency_edges = dependency_graph
         .edges()

@@ -57,7 +57,7 @@ Exit codes:
 
 - `0` valid / capability match ok / bind ok / compatible / registry or conformance ok
 - `1` validation, capability, binding, compatibility, registry, or conformance errors (including HTTP 4xx from the registry API)
-- `2` parse or IO failure (including registry transport errors and HTTP 5xx)
+- `2` parse or IO failure (including registry transport errors, response decode failures, and HTTP 5xx)
 
 Notes:
 

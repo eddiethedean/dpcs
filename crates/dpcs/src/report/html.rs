@@ -1,4 +1,5 @@
-//! Self-contained HTML report renderers.
+//! Self-contained HTML report renderers (diagnostics/inspect are fully offline;
+//! graph pages embed Mermaid source and optionally load a CDN renderer).
 
 use crate::capabilities::CapabilityReport;
 use crate::compatibility::CompatibilityReport;
@@ -62,9 +63,9 @@ fn diagnostics_table(diagnostics: &[Diagnostic]) -> String {
     );
     for d in diagnostics {
         out.push_str(&format!(
-            "<tr><td class=\"{cls}\">{sev:?}</td><td><code>{id}</code></td><td>{stage}</td><td>{object}</td><td>{message}</td></tr>",
+            "<tr><td class=\"{cls}\">{sev}</td><td><code>{id}</code></td><td>{stage}</td><td>{object}</td><td>{message}</td></tr>",
             cls = severity_class(d.severity),
-            sev = d.severity,
+            sev = esc(&d.severity.to_string()),
             id = esc(&d.id),
             stage = esc(&d.stage.to_string()),
             object = esc(d.object_ref.as_deref().unwrap_or("")),
@@ -147,7 +148,7 @@ pub fn inspect_to_html(view: &InspectView) -> String {
     wrap_document("Pipeline Inspect", &body)
 }
 
-/// HTML for a graph view (offline Mermaid source + optional CDN render).
+/// HTML for a graph view (Mermaid source always embedded; CDN render is optional).
 pub fn graph_to_html(view: &GraphView) -> String {
     let mermaid = graph_to_mermaid(view);
     let title = view
@@ -157,9 +158,11 @@ pub fn graph_to_html(view: &GraphView) -> String {
         .unwrap_or_else(|| "Pipeline Graph".to_owned());
     let body = format!(
         "<h1>{}</h1>\
-<div class=\"mermaid\">\n{}\n</div>\
+<p class=\"meta\">Mermaid source is embedded for offline use. Rendering below requires network access to the Mermaid CDN.</p>\
 <h2>Mermaid source</h2>\
 <pre><code>{}</code></pre>\
+<h2>Rendered graph</h2>\
+<div class=\"mermaid\">\n{}\n</div>\
 <script type=\"module\">\
 import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';\
 mermaid.initialize({{ startOnLoad: true }});\
@@ -173,18 +176,23 @@ mermaid.initialize({{ startOnLoad: true }});\
 
 /// HTML for a capability report.
 pub fn capability_to_html(report: &CapabilityReport) -> String {
-    let body = format!(
+    let mut body = format!(
         "<h1>Capability Report</h1><ul>\
-<li>Profile: <code>{}</code></li>\
-<li>Satisfied: {}</li>\
+<li>Profile: <code>{}</code></li>",
+        esc(&report.profile_identity),
+    );
+    if let Some(id) = &report.plan_contract_id {
+        body.push_str(&format!("<li>Contract: <code>{}</code></li>", esc(id)));
+    }
+    body.push_str(&format!(
+        "<li>Satisfied: {}</li>\
 <li>Missing mandatory: {}</li>\
 <li>Unsupported optional: {}</li></ul>{}",
-        esc(&report.profile_identity),
         esc(&report.satisfied.join(", ")),
         esc(&report.missing_mandatory.join(", ")),
         esc(&report.unsupported_optional.join(", ")),
         diagnostics_table(&report.diagnostics)
-    );
+    ));
     wrap_document("Capability Report", &body)
 }
 
@@ -194,12 +202,12 @@ pub fn compatibility_to_html(report: &CompatibilityReport) -> String {
         "<h1>Compatibility Report</h1><ul>\
 <li>Baseline: <code>{}@{}</code></li>\
 <li>Candidate: <code>{}@{}</code></li>\
-<li>Category: <code>{:?}</code></li></ul>{}",
+<li>Category: <code>{}</code></li></ul>{}",
         esc(&report.baseline_id),
         esc(&report.baseline_version),
         esc(&report.candidate_id),
         esc(&report.candidate_version),
-        report.category,
+        esc(&report.category.to_string()),
         diagnostics_table(&report.diagnostics)
     );
     wrap_document("Compatibility Report", &body)
