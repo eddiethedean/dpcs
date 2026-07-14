@@ -40,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Feature `full` now enables `cli` + `tui`; text validation output uses ANSI
   severity colors on a TTY (honors `NO_COLOR`)
 - Graph HTML pages prioritize embedded Mermaid source for offline use
+- Raise MSRV to 1.88 for locked `ratatui` / `darling` / `instability` builds
 
 ## [0.10.0] - 2026-07-14
 

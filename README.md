@@ -29,7 +29,7 @@ and Kubernetes. Execution runtimes remain out of scope. See [`ROADMAP.md`](ROADM
 | --- | --- |
 | Crate version | `0.11.0` |
 | Spec version | `1.0.0-draft` |
-| Language | Rust 2021 (MSRV 1.86) |
+| Language | Rust 2021 (MSRV 1.88) |
 | License | Apache-2.0 OR MIT |
 | Release focus | Developer experience: reports, rich CLI, TUI, graph exports (ROADMAP 0.11.0) |
 
