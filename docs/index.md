@@ -1,7 +1,7 @@
 # DPCS documentation
 
-[![Documentation](https://readthedocs.org/projects/dpcs/badge/?version=latest)](https://dpcs.readthedocs.io/en/latest/)
-[![docs.rs](https://img.shields.io/docsrs/dpcs)](https://docs.rs/dpcs)
+[![Guides](https://img.shields.io/badge/guides-readthedocs.io-blue?logo=readthedocs&logoColor=white)](https://dpcs.readthedocs.io/en/latest/)
+[![Rust API](https://img.shields.io/docsrs/dpcs?label=rust%20api)](https://docs.rs/dpcs)
 [![crates.io](https://img.shields.io/crates/v/dpcs.svg)](https://crates.io/crates/dpcs)
 
 Reference toolkit for the **Data Pipeline Contract Standard (DPCS)**.
