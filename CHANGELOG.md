@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.1] - 2026-07-14
+
+### Changed
+
+- Crate version `0.13.1`
+
 ### Fixed
 
 - Registry content paths use case-preserving hex keys so `Demo`/`demo` no longer
@@ -426,6 +432,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `dpcs` CLI: `validate`, `inspect`, `diagnostics`, `graph`, `version`
 - Examples, fixtures, CI, and contributor documentation
 
+[0.13.1]: https://github.com/eddiethedean/dpcs/releases/tag/v0.13.1
 [0.13.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.13.0
 [0.12.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.12.0
 [0.11.0]: https://github.com/eddiethedean/dpcs/releases/tag/v0.11.0

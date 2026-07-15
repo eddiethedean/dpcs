@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "dpcs"
-version = "0.13.0"
+version = "0.13.1"
 description = "Python bindings for the Data Pipeline Contract Standard (DPCS) reference toolkit"
 readme = "README.md"
 requires-python = ">=3.9"

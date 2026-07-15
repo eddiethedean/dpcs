@@ -5,7 +5,7 @@
 [![crates.io](https://img.shields.io/crates/v/dpcs.svg)](https://crates.io/crates/dpcs)
 
 Reference toolkit for the **Data Pipeline Contract Standard (DPCS)**
-(crate **0.13.0**, ROADMAP reference implementation).
+(crate **0.13.1**, ROADMAP reference implementation).
 
 Rust API docs live on [docs.rs/dpcs](https://docs.rs/dpcs). The normative
 specification is [`SPEC.md`](https://github.com/eddiethedean/dpcs/blob/main/SPEC.md)

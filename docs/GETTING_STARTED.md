@@ -4,7 +4,7 @@ Install the CLI from this workspace (or crates.io once published):
 
 ```bash
 cargo install --path crates/dpcs-cli
-# cargo install dpcs-cli --version 0.13.0
+# cargo install dpcs-cli --version 0.13.1
 dpcs version --json
 ```
 

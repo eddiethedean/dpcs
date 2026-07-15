@@ -15,7 +15,7 @@ Thanks for helping build the DPCS reference implementation.
 
 Tagged releases use `.github/workflows/release.yml`:
 
-1. Push a version tag matching `v*.*.*` (for example `v0.13.0`).
+1. Push a version tag matching `v*.*.*` (for example `v0.13.1`).
 2. The release workflow runs the same CI checks as pull requests (`ci-checks.yml`).
 3. After checks pass, it publishes:
    - Rust crates `dpcs` and `dpcs-cli` to crates.io (`CARGO_REGISTRY_TOKEN`)
@@ -27,7 +27,7 @@ Tagged releases use `.github/workflows/release.yml`:
 To re-publish only npm / Wasmer after a tag (for example after a build-tool fix),
 use `.github/workflows/publish-wasm.yml` (`workflow_dispatch`). It builds from
 the checked-out `main` ref and requires the workspace version to match the
-selected tag (for example `v0.13.0`). See [`docs/BINDINGS.md`](docs/BINDINGS.md).
+selected tag (for example `v0.13.1`). See [`docs/BINDINGS.md`](docs/BINDINGS.md).
 
 ## Workflow
 

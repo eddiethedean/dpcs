@@ -538,7 +538,7 @@ dependencies = [
 
 [[package]]
 name = "dpcs"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "assert_cmd",
  "axum",
@@ -565,7 +565,7 @@ dependencies = [
 
 [[package]]
 name = "dpcs-cli"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "assert_cmd",
  "dpcs",
@@ -575,7 +575,7 @@ dependencies = [
 
 [[package]]
 name = "dpcs-wasm"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "console_error_panic_hook",
  "dpcs",

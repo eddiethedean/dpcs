@@ -28,7 +28,7 @@ and Kubernetes. Execution runtimes remain out of scope. See [`ROADMAP.md`](ROADM
 
 | Item | Value |
 | --- | --- |
-| Crate version | `0.13.0` |
+| Crate version | `0.13.1` |
 | Spec version | `1.0.0-draft` |
 | Language | Rust 2021 (MSRV 1.88) |
 | License | Apache-2.0 OR MIT |
@@ -43,7 +43,7 @@ and Kubernetes. Execution runtimes remain out of scope. See [`ROADMAP.md`](ROADM
 ```bash
 cargo install --path crates/dpcs-cli
 # or published packages:
-# cargo install dpcs-cli --version 0.13.0
+# cargo install dpcs-cli --version 0.13.1
 # pip install dpcs
 # npm install @eddiethedean/dpcs
 ```
