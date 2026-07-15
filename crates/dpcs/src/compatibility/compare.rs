@@ -793,7 +793,27 @@ fn execution_fingerprint(execution: &ExecutionRequirements) -> String {
 fn scheduling_fingerprints(items: &[SchedulingIntent]) -> BTreeSet<String> {
     items
         .iter()
-        .map(|s| format!("{:?}|{:?}|{:?}|{:?}", s.mode, s.cron, s.frequency, s.events))
+        .map(|s| {
+            let events: BTreeSet<_> = s
+                .events
+                .iter()
+                .map(|e| format!("{}|{}|{:?}", e.id, e.source, e.condition))
+                .collect();
+            let windows: BTreeSet<_> = s.windows.iter().cloned().collect();
+            let blackouts: BTreeSet<_> = s.blackouts.iter().cloned().collect();
+            let deadlines: BTreeSet<_> = s.deadlines.iter().cloned().collect();
+            let policies: BTreeSet<_> = s.policies.iter().cloned().collect();
+            let constraints = s.constraints.as_ref().map(|c| {
+                format!(
+                    "{:?}|{:?}|{:?}|{:?}|{:?}",
+                    c.earliest, c.latest, c.deadline, c.concurrency, c.ordering
+                )
+            });
+            format!(
+                "{:?}|{:?}|{:?}|{:?}|{:?}|{windows:?}|{blackouts:?}|{deadlines:?}|{events:?}|{constraints:?}|{policies:?}",
+                s.id, s.mode, s.cron, s.timezone, s.frequency
+            )
+        })
         .collect()
 }
 
@@ -801,9 +821,19 @@ fn quality_fingerprints(items: &[QualityGate]) -> BTreeSet<String> {
     items
         .iter()
         .map(|g| {
+            let criteria: BTreeSet<_> = g
+                .criteria
+                .iter()
+                .map(|c| {
+                    format!(
+                        "{:?}|{:?}|{:?}|{:?}",
+                        c.id, c.criterion_type, c.contract_ref, c.expression
+                    )
+                })
+                .collect();
             format!(
-                "{}|{}|{:?}|{:?}|{:?}",
-                g.id, g.purpose, g.on_success, g.on_failure, g.placement
+                "{}|{}|{:?}|{:?}|{:?}|{:?}|{criteria:?}",
+                g.id, g.purpose, g.on_success, g.on_failure, g.category, g.placement
             )
         })
         .collect()
@@ -814,15 +844,63 @@ fn failure_fingerprints(items: &[FailureSemantics]) -> BTreeSet<String> {
         .iter()
         .map(|f| {
             let triggers: BTreeSet<_> = f.triggers.iter().cloned().collect();
-            format!("{}|{:?}|{:?}", f.id, f.scope, triggers)
+            let responses: BTreeSet<_> =
+                f.responses.iter().map(|r| r.as_str().to_owned()).collect();
+            let retry = f.retry.as_ref().map(|r| {
+                format!(
+                    "{:?}|{:?}|{:?}|{:?}|{:?}",
+                    r.eligible, r.max_attempts, r.conditions, r.delay_policy, r.termination
+                )
+            });
+            let recovery = f.recovery.as_ref().map(|r| {
+                format!(
+                    "{:?}|{:?}|{:?}|{:?}|{:?}",
+                    r.restart, r.resume, r.rollback, r.checkpoint, r.state_restoration
+                )
+            });
+            format!(
+                "{}|{:?}|{triggers:?}|{responses:?}|{:?}|{retry:?}|{:?}|{recovery:?}",
+                f.id, f.scope, f.category, f.compensation
+            )
         })
         .collect()
 }
 
 fn lineage_fingerprint(lineage: &crate::model::PipelineLineage) -> String {
-    let datasets: BTreeSet<_> = lineage.datasets.iter().map(|d| d.dataset.clone()).collect();
-    let steps: BTreeSet<_> = lineage.steps.iter().map(|s| s.step_id.clone()).collect();
-    format!("{datasets:?}|{steps:?}")
+    let datasets: BTreeSet<_> = lineage
+        .datasets
+        .iter()
+        .map(|d| {
+            let consumed: BTreeSet<_> = d.consumed_by.iter().cloned().collect();
+            format!(
+                "{}|{:?}|{consumed:?}|{:?}|{:?}",
+                d.dataset, d.produced_by, d.contract_ref, d.transform_ref
+            )
+        })
+        .collect();
+    let steps: BTreeSet<_> = lineage
+        .steps
+        .iter()
+        .map(|s| {
+            let pred: BTreeSet<_> = s.predecessors.iter().cloned().collect();
+            let succ: BTreeSet<_> = s.successors.iter().cloned().collect();
+            format!(
+                "{}|{pred:?}|{succ:?}|{:?}|{:?}",
+                s.step_id, s.dependency_kind, s.contract_ref
+            )
+        })
+        .collect();
+    let provenance = lineage.provenance.as_ref().map(|p| {
+        let parents: BTreeSet<_> = p.parents.iter().cloned().collect();
+        let nested: BTreeSet<_> = p.nested.iter().cloned().collect();
+        let imported: BTreeSet<_> = p.imported.iter().cloned().collect();
+        let history: BTreeSet<_> = p.version_history.iter().cloned().collect();
+        format!(
+            "{:?}|{parents:?}|{nested:?}|{imported:?}|{history:?}",
+            p.originating
+        )
+    });
+    format!("{datasets:?}|{steps:?}|{provenance:?}")
 }
 
 fn edge_set(contract: &PipelineContract) -> BTreeSet<String> {

@@ -113,3 +113,41 @@ pub fn is_safe_path_segment(id: &str) -> bool {
             .chars()
             .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-' | '+'))
 }
+
+/// Encode an id/version into a path segment that is unique on case-insensitive
+/// filesystems (`Demo` and `demo` produce distinct hex names).
+#[cfg(feature = "registry-server")]
+pub fn encode_path_key(id: &str, version: &str) -> String {
+    let mut out = String::with_capacity((id.len() + version.len() + 1) * 2);
+    for byte in id.as_bytes() {
+        out.push_str(&format!("{byte:02x}"));
+    }
+    out.push('-');
+    for byte in version.as_bytes() {
+        out.push_str(&format!("{byte:02x}"));
+    }
+    out
+}
+
+/// Relative registry content path for a published artifact payload.
+#[cfg(feature = "registry-server")]
+pub fn registry_content_relative_path(id: &str, version: &str) -> String {
+    format!("artifacts/{}.yaml", encode_path_key(id, version))
+}
+
+#[cfg(all(test, feature = "registry-server"))]
+mod tests {
+    use super::{encode_path_key, registry_content_relative_path};
+
+    #[test]
+    fn encode_path_key_is_case_sensitive() {
+        assert_ne!(
+            encode_path_key("Demo", "0.1.0"),
+            encode_path_key("demo", "0.1.0")
+        );
+        assert_ne!(
+            registry_content_relative_path("Demo", "0.1.0"),
+            registry_content_relative_path("demo", "0.1.0")
+        );
+    }
+}
